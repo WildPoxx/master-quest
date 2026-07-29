@@ -1,0 +1,89 @@
+[
+  {
+    "id": "quest-clean",
+    "uuid": "JournalEntry.quest-clean",
+    "name": "Quest Clean",
+    "ownership": {
+      "default": 2
+    },
+    "flags": {
+      "forien-quest-log": {
+        "json": {
+          "name": "Quest Clean",
+          "status": "active",
+          "description": "All fields are coherent.",
+          "gmnotes": "GM material.",
+          "playernotes": "Public material.",
+          "tasks": [
+            {
+              "name": "Reach the relay",
+              "completed": false,
+              "failed": false,
+              "hidden": false,
+              "uuidv4": "task-clean-1"
+            }
+          ],
+          "rewards": [
+            {
+              "type": "abstract",
+              "data": {
+                "name": "Old coordinates"
+              },
+              "hidden": false,
+              "locked": true,
+              "uuidv4": "reward-clean-1"
+            }
+          ],
+          "parent": null,
+          "subquests": [],
+          "customMystery": {
+            "preserve": true
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "quest-broken",
+    "uuid": "JournalEntry.quest-broken",
+    "name": "Quest Broken",
+    "ownership": {
+      "default": 2
+    },
+    "flags": {
+      "forien-quest-log": {
+        "json": {
+          "name": "Quest Broken",
+          "status": "drifting",
+          "description": "Needs migration care.",
+          "gmnotes": "Private material.",
+          "playerNotes": "Legacy alias still in use.",
+          "tasks": [
+            {
+              "completed": false
+            },
+            "Reach the crater",
+            7
+          ],
+          "rewards": [
+            {
+              "type": "item",
+              "data": {
+                "name": "Cracked memory shard"
+              }
+            },
+            {
+              "hidden": true
+            },
+            "Salvage rights"
+          ],
+          "parent": 42,
+          "subquests": [
+            "child-a",
+            99
+          ]
+        }
+      }
+    }
+  }
+]

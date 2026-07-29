@@ -1,0 +1,32 @@
+{
+  "id": "master-quest",
+  "title": "MasterQuest",
+  "description": "Native Foundry VTT adventure and quest authoring module for GM operations, campaign continuity, and controlled export previews. FQL snapshots and SWADE support are optional profiles, not required dependencies.",
+  "authors": [
+    {
+      "name": "Mario Bastos / OutsiderS - Lost Frontier"
+    }
+  ],
+  "version": "0.14.0",
+  "compatibility": {
+    "minimum": "14",
+    "verified": "14.365"
+  },
+  "esmodules": [
+    "scripts/init.js"
+  ],
+  "styles": [
+    "styles/mq-tokens.css",
+    "styles/masterquest.css"
+  ],
+  "socket": false,
+  "library": false,
+  "protected": false,
+  "url": "https://github.com/WildPoxx/master-quest",
+  "manifest": "https://github.com/WildPoxx/master-quest/releases/latest/download/module.json",
+  "download": "https://github.com/WildPoxx/master-quest/releases/download/v0.14.0/master-quest.zip",
+  "bugs": "https://github.com/WildPoxx/master-quest/issues",
+  "readme": "https://github.com/WildPoxx/master-quest/blob/main/README.md",
+  "changelog": "https://github.com/WildPoxx/master-quest/releases",
+  "license": "LICENSE"
+}

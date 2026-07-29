@@ -1,0 +1,107 @@
+[
+  {
+    "id": "PLEaT1CvUVnkpL16",
+    "uuid": "JournalEntry.PLEaT1CvUVnkpL16",
+    "name": "OLF — Pontas Soltas",
+    "ownership": {
+      "default": 0
+    },
+    "flags": {
+      "forien-quest-log": {
+        "json": {
+          "name": "OLF — Pontas Soltas",
+          "status": "inactive",
+          "gmnotes": "Container operacional de pontas soltas.",
+          "gmNotes": "Container operacional de pontas soltas.",
+          "playernotes": "Pontas soltas da campanha.",
+          "playerNotes": "Pontas soltas da campanha.",
+          "tasks": [],
+          "rewards": [],
+          "parent": null,
+          "subquests": ["Ogk5sjYltcuUXFyu", "5AE6Io6xzP50ut4X"]
+        }
+      },
+      "outsiders-lost-frontier": {
+        "tam": {
+          "moduleCode": "M02",
+          "moduleName": "M02 — A Sun for Each Destiny",
+          "questKey": "loose-root",
+          "parentKey": null,
+          "kind": "loose-root",
+          "status": "inactive",
+          "lastUpdate": "2026-06-18T21:14:51.035Z"
+        },
+        "fqlRewardMap": []
+      }
+    }
+  },
+  {
+    "id": "5AE6Io6xzP50ut4X",
+    "uuid": "JournalEntry.5AE6Io6xzP50ut4X",
+    "name": "M01 — Ferrugem sob as Estrelas",
+    "ownership": {
+      "default": 0
+    },
+    "flags": {
+      "forien-quest-log": {
+        "json": {
+          "name": "M01 — Ferrugem sob as Estrelas",
+          "status": "inactive",
+          "gmnotes": "Container de continuidade herdada do Módulo 1.",
+          "gmNotes": "Container de continuidade herdada do Módulo 1.",
+          "playernotes": "Consequências abertas de Ferrugem sob as Estrelas.",
+          "playerNotes": "Consequências abertas de Ferrugem sob as Estrelas.",
+          "tasks": [
+            {
+              "name": "Registrar consequências abertas do achado do SWIX.",
+              "completed": false,
+              "failed": false,
+              "hidden": false,
+              "state": "available",
+              "uuidv4": "m01-open-swix"
+            }
+          ],
+          "rewards": [],
+          "parent": "PLEaT1CvUVnkpL16",
+          "subquests": []
+        }
+      }
+    }
+  },
+  {
+    "id": "Ogk5sjYltcuUXFyu",
+    "uuid": "JournalEntry.Ogk5sjYltcuUXFyu",
+    "name": "Pontas Soltas — M02 — A Sun for Each Destiny",
+    "ownership": {
+      "default": 0
+    },
+    "flags": {
+      "forien-quest-log": {
+        "json": {
+          "name": "Pontas Soltas — M02 — A Sun for Each Destiny",
+          "status": "inactive",
+          "gmnotes": "Pontas soltas preparadas para o Módulo 2.",
+          "gmNotes": "Pontas soltas preparadas para o Módulo 2.",
+          "playernotes": "Pendências futuras do Módulo 2.",
+          "playerNotes": "Pendências futuras do Módulo 2.",
+          "tasks": [],
+          "rewards": [],
+          "parent": "PLEaT1CvUVnkpL16",
+          "subquests": []
+        }
+      },
+      "outsiders-lost-frontier": {
+        "tam": {
+          "moduleCode": "M02",
+          "moduleName": "M02 — A Sun for Each Destiny",
+          "questKey": "loose-m02",
+          "parentKey": "loose-root",
+          "kind": "loose-module",
+          "status": "inactive",
+          "lastUpdate": "2026-06-15T22:57:12.078Z"
+        },
+        "fqlRewardMap": []
+      }
+    }
+  }
+]

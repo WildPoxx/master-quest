@@ -1,0 +1,64 @@
+# ---------------------------------------------------------------------------
+# MasterQuest — release automatizada
+#
+# Como publicar uma versao:
+#   1. suba a versao no module.json (ex.: 0.15.0) e commite
+#   2. git tag v0.15.0 && git push origin main --tags
+#
+# Este workflow entao: roda test:ci, sincroniza o campo "download" do
+# module.json com a tag, empacota o master-quest.zip (sem tests/fixtures) e
+# publica a Release com module.json + zip anexados. O manifest "latest"
+# (releases/latest/download/module.json) passa a apontar para ela, e o Foundry
+# oferece a atualizacao sozinho.
+# ---------------------------------------------------------------------------
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Testes (test:ci deve ficar 100% verde)
+        run: npm run test:ci
+
+      - name: Conferir se a tag bate com o module.json
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          VERSION="$(jq -r .version module.json)"
+          if [ "$TAG" != "$VERSION" ]; then
+            echo "Tag v$TAG != module.json version $VERSION — suba a versao antes de taggear."
+            exit 1
+          fi
+
+      - name: Sincronizar download URL com a tag
+        run: |
+          jq --arg tag "$GITHUB_REF_NAME" \
+            '.download = "https://github.com/WildPoxx/master-quest/releases/download/\($tag)/master-quest.zip"' \
+            module.json > module.json.tmp && mv module.json.tmp module.json
+
+      - name: Empacotar master-quest.zip
+        run: |
+          mkdir -p /tmp/pkg/master-quest
+          cp -r module.json README.md LICENSE data scripts src styles templates /tmp/pkg/master-quest/
+          cd /tmp/pkg && zip -rq "$GITHUB_WORKSPACE/master-quest.zip" master-quest
+
+      - name: Publicar Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            master-quest.zip
+            module.json
+          generate_release_notes: true

@@ -1,0 +1,94 @@
+{
+  "caseId": "module_1_session_03_closeout",
+  "moduleTitle": "Ferrugem sob as Estrelas",
+  "session": "Sessao 03",
+  "reportDate": "2026-06-09",
+  "sourceRoot": "../../../../../../03. Aventuras/Continuity Reports",
+  "notes": [
+    "This is the founding real continuity corpus for MasterQuest.",
+    "Session 03 closes Module 1.",
+    "All subquests are completed in the module-level report.",
+    "A Chave de Rastro has a Session 02 subquest report where the decisive closeout scene happened; it is formally consolidated as completed in the Session 03 module-level closeout."
+  ],
+  "reports": [
+    {
+      "id": "module_1_closeout",
+      "kind": "module_closeout",
+      "title": "Ferrugem sob as Estrelas",
+      "scope": "module",
+      "path": "Relatório de Continuidade_Sessão 03 - Encerramneto Modulo 1.txt"
+    },
+    {
+      "id": "prior_subquest_a_chave_de_rastro_session_02",
+      "kind": "prior_subquest_session_report",
+      "title": "A Chave de Rastro",
+      "session": "Sessao 02",
+      "scope": "session",
+      "reportedStatus": "active",
+      "moduleCloseoutStatus": "completed",
+      "path": "Relatório de Continuidade_Sessão 02_24.05.2026 (Subquest - A Chave de Rastro - Em Progresso).txt"
+    },
+    {
+      "id": "subquest_disputa_rust_hollow_phase_1",
+      "kind": "subquest_closeout",
+      "title": "A Disputa por Rust Hollow — Fase I: Controle Inicial do SWIX",
+      "scope": "module",
+      "path": "Relatório de Continuidade_Sessão 03 - Disputa por Rust Hollow - Part I.txt"
+    },
+    {
+      "id": "subquest_o_achado_do_swix",
+      "kind": "subquest_closeout",
+      "title": "O Achado do SWIX",
+      "scope": "module",
+      "path": "Relatório de Continuidade_Sessão 03_09.06.2026 - O Achado do SWIX.txt"
+    },
+    {
+      "id": "subquest_envenenamento_lorna",
+      "kind": "subquest_closeout",
+      "title": "O Envenenamento de Lorna",
+      "scope": "module",
+      "path": "Relatório de Continuidade_Sessão 03_09.06.2026 - O Envenenamento de Lorna.txt"
+    },
+    {
+      "id": "subquest_rastro_vivo_dentinho",
+      "kind": "subquest_closeout",
+      "title": "O Rastro Vivo de Dentinho",
+      "scope": "session",
+      "path": "Relatório de Continuidade_Sessão 03_09.06.2026 - O Rastro Vivo de Dentinho.txt"
+    }
+  ],
+  "moduleReportSubquests": [
+    {
+      "title": "A Chave de Rastro",
+      "status": "completed",
+      "session03IndividualReportProvided": false,
+      "priorReportProvided": true,
+      "priorReportId": "prior_subquest_a_chave_de_rastro_session_02",
+      "interpretation": "Decisive session closeout occurred in Session 02 while the FQL status was still active; formal completion is consolidated in the Session 03 module closeout."
+    },
+    {
+      "title": "A Disputa por Rust Hollow — Fase I: Controle Inicial do SWIX",
+      "status": "completed",
+      "session03IndividualReportProvided": true,
+      "priorReportProvided": false
+    },
+    {
+      "title": "O Achado do SWIX",
+      "status": "completed",
+      "session03IndividualReportProvided": true,
+      "priorReportProvided": false
+    },
+    {
+      "title": "O Envenenamento de Lorna",
+      "status": "completed",
+      "session03IndividualReportProvided": true,
+      "priorReportProvided": false
+    },
+    {
+      "title": "O Rastro Vivo de Dentinho",
+      "status": "completed",
+      "session03IndividualReportProvided": true,
+      "priorReportProvided": false
+    }
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "caseId": "legacy_fql_olf_scripts",
+  "sourceZip": "../../../scripts.zip",
+  "targetFoundry": "Foundry VTT 13 + Forien's Quest Log",
+  "macros": [
+    {
+      "id": "closeout_assistant",
+      "name": "OLF FQL Closeout Assistant v0.3.1",
+      "path": "scripts/fvtt-Macro-olf-fql-closeout-assistant-v0.3.1-uQawnirrr9f0kSbH.json",
+      "role": "Session/module closeout wizard; appends Player Notes and closeout logs after preview.",
+      "importantHelpers": [
+        "getFqlData",
+        "setFqlData",
+        "getTasks",
+        "getRewards",
+        "buildSummary",
+        "suggestLooseEnds",
+        "buildPlayerNotesHtml",
+        "appendCloseoutLog"
+      ]
+    },
+    {
+      "id": "continuity_report",
+      "name": "OLF FQL Continuity Report v0.2",
+      "path": "scripts/fvtt-Macro-olf-fql-continuity-report-v0.2-YIcuLCgAUB4aYO2C.json",
+      "role": "Markdown continuity report generator from FQL quests, subquests, closeout logs, and loose ends.",
+      "importantHelpers": [
+        "summarizeQuest",
+        "buildReport",
+        "collectLooseEndText",
+        "inferOutcomes",
+        "inferNpcAndFactionItems",
+        "showReportDialog"
+      ]
+    },
+    {
+      "id": "quest_update_assistant",
+      "name": "OLF FQL Quest Update Assistant v0.1",
+      "path": "scripts/fvtt-Macro-olf-fql-quest-update-assistant-v0.1-1FsPGCfEk6rxvzVI.json",
+      "role": "Appends structured post-session update blocks to FQL GM Notes.",
+      "importantHelpers": [
+        "getGmNotes",
+        "setGmNotes",
+        "getMarker",
+        "removeExistingUpdateBlock",
+        "buildUpdateHtml",
+        "applyUpdateToGmNotes"
+      ]
+    },
+    {
+      "id": "reset_quest_state",
+      "name": "OLF FQL Reset Quest State v0.2",
+      "path": "scripts/fvtt-Macro-olf-fql-reset-quest-state-v0.2-M4Y7ufWF8to5xwiL.json",
+      "role": "Testing/reset utility for FQL quest state, Player Notes, rewards, tasks, and OLF update blocks.",
+      "importantHelpers": [
+        "resetTask",
+        "resetReward",
+        "removeQuestUpdateBlocks",
+        "getResetTargetRecords",
+        "resetQuestRecord"
+      ]
+    }
+  ],
+  "refactorTargets": [
+    "Shared FQL flag read/write helpers",
+    "Quest/task/reward normalization",
+    "Visibility-safe player report generation",
+    "Closeout log model",
+    "Loose-end extraction",
+    "Idempotent marked-block updates",
+    "Preview-first mutating operations"
+  ]
+}

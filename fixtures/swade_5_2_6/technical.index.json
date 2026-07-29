@@ -1,0 +1,134 @@
+{
+  "caseId": "swade_5_2_6_technical_corpus",
+  "systemId": "swade",
+  "systemTitle": "Savage Worlds Adventure Edition",
+  "version": "5.2.6",
+  "foundryCompatibility": {
+    "minimum": 13.339,
+    "verified": 13,
+    "maximum": 13,
+    "runtimeTarget": "13.351"
+  },
+  "sourceRoot": "../../../../../",
+  "officialSources": [
+    {
+      "id": "peginc_group",
+      "kind": "gitlab_group",
+      "url": "https://gitlab.com/peginc"
+    },
+    {
+      "id": "swade_repo",
+      "kind": "gitlab_repo",
+      "url": "https://gitlab.com/peginc/swade"
+    },
+    {
+      "id": "swade_releases",
+      "kind": "gitlab_releases",
+      "url": "https://gitlab.com/peginc/swade/-/releases"
+    },
+    {
+      "id": "swade_wiki",
+      "kind": "gitlab_wiki",
+      "url": "https://gitlab.com/peginc/swade/-/wikis/home"
+    },
+    {
+      "id": "core_rules_issues",
+      "kind": "gitlab_repo",
+      "url": "https://gitlab.com/peginc/core-rules-issues"
+    },
+    {
+      "id": "swade_fvtt_docs",
+      "kind": "gitlab_repo",
+      "url": "https://gitlab.com/peginc/swade-for-fvtt-docs"
+    }
+  ],
+  "localSources": [
+    {
+      "id": "system_manifest_release",
+      "kind": "system_manifest",
+      "path": "12. IA e Foundry Tools/Modulo MasterQuest/swade-v5.2.6[13]/system.json"
+    },
+    {
+      "id": "system_manifest_source",
+      "kind": "system_manifest_source",
+      "path": "12. IA e Foundry Tools/Modulo MasterQuest/swade-v5.2.6[13]/swade-v5.2.6/src/system.json"
+    },
+    {
+      "id": "system_readme",
+      "kind": "project_doc",
+      "path": "12. IA e Foundry Tools/Modulo MasterQuest/swade-v5.2.6[13]/swade-v5.2.6/README.md"
+    },
+    {
+      "id": "system_faq",
+      "kind": "project_doc",
+      "path": "12. IA e Foundry Tools/Modulo MasterQuest/swade-v5.2.6[13]/swade-v5.2.6/FAQ.md"
+    },
+    {
+      "id": "system_changelog",
+      "kind": "project_doc",
+      "path": "12. IA e Foundry Tools/Modulo MasterQuest/swade-v5.2.6[13]/swade-v5.2.6/CHANGELOG.md"
+    },
+    {
+      "id": "system_package",
+      "kind": "project_config",
+      "path": "12. IA e Foundry Tools/Modulo MasterQuest/swade-v5.2.6[13]/swade-v5.2.6/package.json"
+    },
+    {
+      "id": "runtime_entry",
+      "kind": "runtime_entry",
+      "path": "12. IA e Foundry Tools/Modulo MasterQuest/swade-v5.2.6[13]/swade-v5.2.6/src/swade.ts"
+    },
+    {
+      "id": "combat_doc",
+      "kind": "runtime_document",
+      "path": "12. IA e Foundry Tools/Modulo MasterQuest/swade-v5.2.6[13]/swade-v5.2.6/src/module/documents/combat/SwadeCombat.ts"
+    },
+    {
+      "id": "actor_doc",
+      "kind": "runtime_document",
+      "path": "12. IA e Foundry Tools/Modulo MasterQuest/swade-v5.2.6[13]/swade-v5.2.6/src/module/documents/actor/SwadeActor.ts"
+    },
+    {
+      "id": "core_rules_pdf",
+      "kind": "rules_pdf",
+      "path": "RPG Source Books - OLF/SWADE_Savage_Worlds_Adv_Ed_Core_Rules.pdf"
+    }
+  ],
+  "keyMechanicalTopics": [
+    "Wild Die",
+    "Bennies",
+    "Support",
+    "Quick Encounters",
+    "Chases",
+    "Dramatic Tasks",
+    "Fear",
+    "Hazards",
+    "Interludes",
+    "Mass Battles",
+    "Networking",
+    "Social Conflict",
+    "Travel"
+  ],
+  "fvttImplementationTopics": [
+    "custom Actor document class",
+    "custom Item document class",
+    "custom Combat and Combatant classes",
+    "dramaticTask combat subtype",
+    "chase combat subtype",
+    "benny and joker automation",
+    "Compendium TOC",
+    "Damage Applicator",
+    "Aura hooks",
+    "Headquarters journal page type"
+  ],
+  "recommendedSkillName": "swade-fvtt-mechanics-model",
+  "sufficiencyAssessment": {
+    "baselineIsSufficient": true,
+    "notes": [
+      "The local 5.2.6 corpus plus the core rules PDF are enough to build a stable SWADE-FVTT baseline for Foundry 13.351.",
+      "The repository wiki and swade-for-fvtt-docs remain useful secondary sources for workflow details and future edge cases.",
+      "Observed behavior in the live world should still be used to validate any automation that touches combat, bennies, chases, dramatic tasks, or actor updates."
+    ]
+  }
+}
+

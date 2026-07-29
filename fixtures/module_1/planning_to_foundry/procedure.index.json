@@ -1,0 +1,119 @@
+{
+  "caseId": "module_1_planning_to_foundry",
+  "moduleTitle": "Ferrugem sob as Estrelas",
+  "sourceRoot": "../../../../../../03. Aventuras/Aventura 1 - Ferrugem e Estrelas",
+  "zipPath": "Módulo 1.zip",
+  "methodReferences": [
+    "../../../../../../12. IA e Foundry Tools/Diretrizes/Diretrizes de Desenvolvimento de Aventura de RPG.md",
+    "../../../../../../12. IA e Foundry Tools/Diretrizes/Modelo de Desenvolvimento de Aventuras RPG.md",
+    "../../../../MasterQuest - Planejamento Geral do Modulo de Autoria e Operacoes de Aventuras para OutsiderS - Lost Frontier.md"
+  ],
+  "planningSources": [
+    {
+      "id": "module_plan",
+      "kind": "module_plan",
+      "title": "MÓDULO 1 — FERRUGEM SOB AS ESTRELAS",
+      "path": "Módulo 1/PLANO - MÓDULO 1 — FERRUGEM SOB AS ESTRELAS.md"
+    },
+    {
+      "id": "act_1",
+      "kind": "act_source",
+      "title": "ATO I — O RASTRO SOB A FERRUGEM",
+      "path": "Módulo 1/ATO I - O RASTRO SOB A FERRUGEM.md"
+    },
+    {
+      "id": "act_2",
+      "kind": "act_source",
+      "title": "ATO II — A CHAVE DE RASTRO",
+      "path": "Módulo 1/ATO II - A CHAVE DE RASTRO.md"
+    },
+    {
+      "id": "act_3",
+      "kind": "act_source",
+      "title": "ATO III — A VÉSPERA QUEBRADA",
+      "path": "Módulo 1/ATO III - A VÉSPERA QUEBRADA.md"
+    },
+    {
+      "id": "swix_fragments",
+      "kind": "support_source",
+      "title": "Fragmentos do SWIX - Localizações",
+      "path": "Módulo 1/Fragmentos do SWIX - Localizações.md"
+    },
+    {
+      "id": "expedition_assembly",
+      "kind": "support_source",
+      "title": "Conflito 6 — Montagem da Expedição",
+      "path": "Módulo 1/Conflito 6 — Montagem da Expedição.md"
+    }
+  ],
+  "foundryJournalExports": [
+    {
+      "id": "how_to_use",
+      "title": "00. Como Usar este Módulo",
+      "path": "Módulo 1/fvtt-JournalEntry-00.-como-usar-este-modulo-8JJrfdqSI3ITHTcx.json",
+      "expectedPages": 5
+    },
+    {
+      "id": "premise_structure",
+      "title": "01. Premissa e Estrutura Geral",
+      "path": "Módulo 1/fvtt-JournalEntry-01.-premissa-e-estrutura-geral-MAw51sWAM05QEQeI.json",
+      "expectedPages": 6
+    },
+    {
+      "id": "cast_factions_clocks",
+      "title": "02. Elenco, Facções e Relógios",
+      "path": "Módulo 1/fvtt-JournalEntry-02.-elenco,-faccoes-e-relogios-coSqWB9Icpa8SWoe.json",
+      "expectedPages": 8
+    },
+    {
+      "id": "journal_act_1",
+      "title": "03. Ato I - O Rastro sob a Ferrugem",
+      "path": "Módulo 1/fvtt-JournalEntry-03.-ato-i-o-rastro-sob-a-ferrugem-JH0gV2WIyzJ91VlC.json",
+      "expectedPages": 9
+    },
+    {
+      "id": "journal_act_2",
+      "title": "04. Ato II — A Chave de Rastro",
+      "path": "Módulo 1/fvtt-JournalEntry-04.-ato-ii-—-a-chave-de-rastro-PcgdcytPiP9oWJ4M.json",
+      "expectedPages": 11
+    },
+    {
+      "id": "journal_act_3",
+      "title": "05. Ato III — A Véspera Quebrada",
+      "path": "Módulo 1/fvtt-JournalEntry-05.-ato-iii-—-a-vespera-quebrada-qM16qlL8MUKDnLBA.json",
+      "expectedPages": 18
+    },
+    {
+      "id": "handouts_module_1",
+      "title": "06. Handouts — Módulo 1",
+      "path": "Módulo 1/fvtt-JournalEntry-06.-handouts-—-modulo-1-6qZtkody71YSWZMd.json",
+      "expectedPages": 6
+    },
+    {
+      "id": "development_notes",
+      "title": "Desenvolvimentos",
+      "path": "Módulo 1/fvtt-JournalEntry-desenvolvimentos-t0NVoLaimtBspoER.json",
+      "expectedPages": 2
+    },
+    {
+      "id": "handouts_act_1",
+      "title": "Handouts Ato I",
+      "path": "Módulo 1/fvtt-JournalEntry-handouts-ato-i-weySXNgNlP87joeq.json",
+      "expectedPages": 14
+    },
+    {
+      "id": "handouts_rust_hollow",
+      "title": "Handouts Rust Hollow",
+      "path": "Módulo 1/fvtt-JournalEntry-handouts-rust-hollow-cqH5m3dqLutpcu3X.json",
+      "expectedPages": 16
+    }
+  ],
+  "pipeline": [
+    "Adventure method and template define the operational grammar: 5W+HOW, agents, conflicts, focal points, acts, scenes, SWADE mechanics, consequences.",
+    "Module 1 planning sources define the playable adventure in Markdown.",
+    "Foundry JournalEntry JSON exports transpose the planning sources into GM-facing Journal pages.",
+    "FQL quests are created from that Journal layer, not from raw prose alone.",
+    "Legacy scripts read and update FQL quest flags, generate closeouts and continuity reports, and append controlled GM/Player note blocks.",
+    "MasterQuest should turn those scripts into tested module services and a GM control panel."
+  ]
+}

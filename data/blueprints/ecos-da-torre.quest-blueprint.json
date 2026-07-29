@@ -1,0 +1,760 @@
+{
+  "schemaVersion": 1,
+  "blueprintId": "ecos-da-torre",
+  "title": "Ato I - Ecos da Torre",
+  "campaign": "Conan Legacy",
+  "system": "swade",
+  "folderName": "MasterQuest - Ato I",
+  "source": {
+    "document": "10_Livro-Jogo/Quests/Ato I - Arquitetura FQL - Ecos da Torre.md",
+    "vault": "conan-legacy",
+    "note": "Transposição fiel. Nenhum conteúdo narrativo foi criado fora do documento-fonte."
+  },
+  "activationSequence": [
+    "Criar MQ-ATO1-01 — Ecos da Torre como ativa.",
+    "Criar SQ-ATO1-01 — Chegada a Karavazyan como ativa.",
+    "Criar as demais subquests como inativas.",
+    "Criar side quests como inativas, exceto alguma já acionada em mesa.",
+    "Criar clocks como inativos ou GM-only.",
+    "Quando Narzim entregar a pista, avançar Chegada a Karavazyan e ativar O Mercado das Correntes.",
+    "Quando a pista da Torre estiver clara, ativar O Teste do Fogo.",
+    "Quando o grupo escolher patrono/rota, ativar Rumo a Golamra.",
+    "Quando a Torre aparecer, concluir Rumo a Golamra e ativar A Torre Sem Guardião."
+  ],
+  "visibilityRules": [
+    "A Main Quest pode ser visível desde o começo, com descrição segura.",
+    "Subquests devem surgir por gatilho, não todas de uma vez.",
+    "Side quests existem como inactive e só viram available quando um NPC, rumor ou cena as ativar.",
+    "Tarefas com spoilers devem ser hidden.",
+    "Clocks devem ser invisíveis aos jogadores.",
+    "Segredos sobre Kuth, Kaoshark, natureza da Torre e verdade de Khar-Volun ficam em gmnotes.",
+    "Links para Journals devem apontar para entradas específicas."
+  ],
+  "quests": [
+    {
+      "designId": "MQ-ATO1-01",
+      "name": "Ecos da Torre",
+      "type": "main",
+      "status": "active",
+      "parent": null,
+      "priority": 100,
+      "description": "<p>A Torre de Khar-Volun, há muito evitada por caçadores, comerciantes e soldados, voltou a chamar atenção. Um jovem hyrkaniano parece ter sido levado para a região, rumores falam de um comprador mascarado, e homens poderosos passaram a observar as mesmas estradas. Antes que a fronteira decida por vocês, resta descobrir quem está correndo para a Torre e por quê.</p>",
+      "gmnotes": "<p>Esta Main Quest deve ser ativada desde a chegada a Karavazyan. Ela não precisa revelar Kuth, o real destino de Khar-Volun, nem a natureza defensiva da Torre. A verdade inicial é suficiente: existe uma pessoa desaparecida, uma rota perigosa, um comprador associado à Torre e facções com interesses concorrentes.</p>\n<h3>Premissa operacional</h3>\n<ul><li>Os personagens chegam a Karavazyan sob pressão.</li><li>Descobrem que a Torre voltou a mover interesses.</li><li>Escolhem como sair da cidade: por dever, por patrono, por lucro, por vingança ou por necessidade.</li><li>Atravessam a região de Golamra enquanto facções, rivais e sonhos os alcançam.</li><li>Chegam à Torre sem que isso resolva o problema, apenas mudando sua natureza.</li></ul>\n<h3>Tom</h3>\n<ul><li>Karavazyan deve parecer uma cidade viva antes de parecer uma interface de quest.</li><li>A pergunta central do Ato I não é &quot;onde fica a Torre?&quot;, mas &quot;quem vocês se tornam ao aceitar chegar lá?&quot;.</li><li>Thal-Remmon, Venarium e os Warbarons começam como pressão histórica e política, não como exposição frontal.</li><li>Kuth aparece como erro, sonho, coincidência e medo antes de aparecer como entidade ou verdade.</li></ul>\n<h3>Fontes</h3>\n<ul><li>Capítulo 1 — O Ano da Coroa Quebrada - Doc de Trabalho.md</li><li>CENAS/ATO I — CENA 1C - A Estrada do Norte (Glacestus, Sabotei e Duma).md</li><li>CENAS/ATO I — CENA 2 - O MERCADO DAS CORRENTES.md</li><li>CENAS/ATO I — CENA 3 - A Quinta Roda — O Teste do Fogo.md</li><li>CENAS/ATO I — CENA 4 - v1.md</li><li>CENAS/ATO I — CENA 4 - v2.md</li></ul>",
+      "objectives": [
+        {
+          "name": "Chegar a Karavazyan e reunir informações confiáveis.",
+          "hidden": false
+        },
+        {
+          "name": "Descobrir quem comprou ou transportou o jovem hyrkaniano.",
+          "hidden": false
+        },
+        {
+          "name": "Identificar uma rota até a região de Golamra.",
+          "hidden": false
+        },
+        {
+          "name": "Definir se o grupo parte oficialmente, financiado por patrono ou por conta própria.",
+          "hidden": false
+        },
+        {
+          "name": "Alcançar a Torre de Khar-Volun.",
+          "hidden": false
+        },
+        {
+          "name": "Registrar se a carta de Glacestus permanece intacta, foi destruída, confiscada ou perdida.",
+          "hidden": true
+        },
+        {
+          "name": "Registrar qual facção percebeu primeiro o valor do grupo.",
+          "hidden": true
+        },
+        {
+          "name": "Registrar se Ali Al'Farrad, Molochai ou outro patrono obteve vantagem.",
+          "hidden": true
+        },
+        {
+          "name": "Registrar o avanço do relógio dos rivais.",
+          "hidden": true
+        },
+        {
+          "name": "Registrar o avanço do relógio onírico de Kuth.",
+          "hidden": true
+        }
+      ],
+      "activationTriggers": [],
+      "journalLinks": []
+    },
+    {
+      "designId": "SQ-ATO1-01",
+      "name": "Chegada a Karavazyan",
+      "type": "subquest",
+      "status": "active",
+      "parent": "MQ-ATO1-01",
+      "priority": 90,
+      "description": "<p>Karavazyan se move entre rodas, tendas, correntes, vozes e poeira. Quem procura alguém ali precisa primeiro descobrir quem vende lembranças, quem vende silêncio e quem vende gente.</p>",
+      "gmnotes": "<h3>Função dramática</h3>\n<p>Transformar a chegada à cidade em ponto de convergência: os PCs chegam com urgências diferentes, mas a cidade imediatamente mostra que tudo passa por mercadoria, reputação, medo e informação.</p>\n<h3>Ferramentas SWADE</h3>\n<p>Trait Rolls para leitura social, Notice/Streetwise/Persuasion; Support para PCs ajudando investigações; Tests sociais se guardas, mercadores ou provocadores pressionarem o grupo.</p>",
+      "objectives": [
+        {
+          "name": "Entrar em Karavazyan sem perder o controle da situação.",
+          "hidden": false
+        },
+        {
+          "name": "Descobrir onde circulam mercadores de escravos, rastreadores e informantes.",
+          "hidden": false
+        },
+        {
+          "name": "Identificar o nome de Narzim ibn Haroud como pista relevante.",
+          "hidden": false
+        },
+        {
+          "name": "Chegar ao Mercado das Correntes.",
+          "hidden": false
+        },
+        {
+          "name": "Marcar se os personagens chamaram atenção da Guarda Silenciosa.",
+          "hidden": true
+        },
+        {
+          "name": "Marcar se algum NPC de Karavazyan se interessou pelo grupo.",
+          "hidden": true
+        },
+        {
+          "name": "Marcar se Sabotei manteve ou perdeu controle emocional.",
+          "hidden": true
+        },
+        {
+          "name": "Marcar se Glacestus revelou, protegeu ou comprometeu sua carta.",
+          "hidden": true
+        }
+      ],
+      "activationTriggers": [],
+      "journalLinks": [
+        "Karavazyan - A Cidade sobre Rodas",
+        "Ambientação Geral de Karavazyan",
+        "Nomes Que Circulam [NPCs]",
+        "Dhorim Vance",
+        "Narzim ibn Haroud"
+      ]
+    },
+    {
+      "designId": "SQ-ATO1-02",
+      "name": "O Mercado das Correntes",
+      "type": "subquest",
+      "status": "inactive",
+      "parent": "MQ-ATO1-01",
+      "priority": 80,
+      "description": "<p>No Terceiro Círculo, nomes mudam de dono tão rápido quanto correntes. Narzim pode saber para onde o jovem hyrkaniano foi levado, mas nada em Karavazyan é dito sem preço, testemunha ou ameaça.</p>",
+      "gmnotes": "<h3>Função dramática</h3>\n<p>Converter o rumor em pista concreta. O Mercado das Correntes deve apresentar o horror cotidiano de Karavazyan sem ainda entregar o horror cósmico por inteiro.</p>\n<h3>Gatilhos de conclusão</h3>\n<p>Concluir quando o grupo souber que o comprador está associado à Torre velha, à região de Golamra ou a um intermediário suficientemente preciso para mover a ação.</p>\n<h3>Ferramentas SWADE</h3>\n<p>Social Conflict ou Trait Rolls encadeados para negociar com Narzim; Fear leve ou Test de autocontrole se Ashiq profetizar demais; Quick Encounter se a situação virar tumulto.</p>",
+      "objectives": [
+        {
+          "name": "Encontrar Narzim ibn Haroud.",
+          "hidden": false
+        },
+        {
+          "name": "Descobrir quem comprou o jovem hyrkaniano.",
+          "hidden": false
+        },
+        {
+          "name": "Obter a direção geral da Torre ou da região de Golamra.",
+          "hidden": false
+        },
+        {
+          "name": "Lidar com Ashiq, Valerius ou outro incidente público sem perder a pista.",
+          "hidden": false
+        },
+        {
+          "name": "Registrar se Narzim informa Ali Al'Farrad sobre o grupo.",
+          "hidden": true
+        },
+        {
+          "name": "Registrar o estado da carta de Glacestus.",
+          "hidden": true
+        },
+        {
+          "name": "Registrar se Valerius se torna obstáculo, aliado tático ou inimigo recorrente.",
+          "hidden": true
+        },
+        {
+          "name": "Registrar se Ashiq planta uma pista onírica ou apenas medo.",
+          "hidden": true
+        }
+      ],
+      "activationTriggers": [
+        {
+          "label": "Narzim entrega a pista em Chegada a Karavazyan.",
+          "grantsStatus": "active"
+        }
+      ],
+      "journalLinks": [
+        "O Mercado das Correntes",
+        "Narzim ibn Haroud",
+        "Ali Al'Farrad",
+        "Ashiq",
+        "Valerius",
+        "Guarda Silenciosa"
+      ]
+    },
+    {
+      "designId": "SQ-ATO1-03",
+      "name": "O Teste do Fogo",
+      "type": "subquest",
+      "status": "inactive",
+      "parent": "MQ-ATO1-01",
+      "priority": 70,
+      "description": "<p>Na Quinta Roda, reputação vale tanto quanto aço. Os Abutres de Golamra têm mapa, equipamento e arrogância. Outros olhos observam quem cede, quem compra, quem ameaça e quem sangra.</p>",
+      "gmnotes": "<h3>Função dramática</h3>\n<p>Forçar o grupo a se tornar público. Depois da Quinta Roda, os PCs não são apenas viajantes: são concorrentes, instrumento de patrono, risco político ou presa útil.</p>\n<h3>Estados de saída</h3>\n<ul><li><strong>Partida oficial</strong>: o grupo sai com alguma legitimidade e maior risco político.</li><li><strong>Partida financiada</strong>: o grupo sai melhor equipado, mas com dívida ou expectativa de retorno.</li><li><strong>Partida independente</strong>: o grupo mantém liberdade, mas perde proteção, mapas ou suprimentos.</li></ul>\n<h3>Ferramentas SWADE</h3>\n<p>Tests, Social Conflict, Quick Encounter e Chase. Combate só deve ocorrer se houver objetivo dramático além de ferir inimigos: preservar mapa, impedir fuga, proteger reputação, salvar alguém ou evitar incêndio.</p>",
+      "objectives": [
+        {
+          "name": "Enfrentar ou neutralizar os Abutres de Golamra.",
+          "hidden": false
+        },
+        {
+          "name": "Impedir que Soren fuja com informação decisiva, se isso se tornar relevante.",
+          "hidden": false
+        },
+        {
+          "name": "Descobrir uma rota melhor até Golamra.",
+          "hidden": false
+        },
+        {
+          "name": "Escolher como o grupo parte: missão formal, financiamento privado ou independência.",
+          "hidden": false
+        },
+        {
+          "name": "Preparar suprimentos para a jornada.",
+          "hidden": false
+        },
+        {
+          "name": "Marcar se Ali Al'Farrad manipula a cena com sucesso.",
+          "hidden": true
+        },
+        {
+          "name": "Marcar se Molochai reconhece utilidade política no grupo.",
+          "hidden": true
+        },
+        {
+          "name": "Marcar se os Abutres sobrevivem, fogem, se vingam ou chegam primeiro.",
+          "hidden": true
+        },
+        {
+          "name": "Marcar se a reputação pública do grupo sobe ou se torna perigosa.",
+          "hidden": true
+        }
+      ],
+      "activationTriggers": [
+        {
+          "label": "A pista da Torre fica clara.",
+          "grantsStatus": "active"
+        }
+      ],
+      "journalLinks": [
+        "A Quinta Roda",
+        "Abutres de Golamra",
+        "Ali Al'Farrad",
+        "Molochai",
+        "Soren"
+      ]
+    },
+    {
+      "designId": "SQ-ATO1-04",
+      "name": "Rumo a Golamra",
+      "type": "subquest",
+      "status": "inactive",
+      "parent": "MQ-ATO1-01",
+      "priority": 60,
+      "description": "<p>A estrada para Golamra não é uma estrada. É uma sucessão de mato fechado, pedra antiga, trilhas apagadas e noites que parecem lembrar coisas que ninguém viveu.</p>",
+      "gmnotes": "<h3>Função dramática</h3>\n<p>Tirar a segurança relativa da cidade e transformar decisões anteriores em custo concreto: cansaço, rota, rival, sonhos, sinais errados e facções chegando pelas bordas.</p>\n<h3>Ferramentas SWADE</h3>\n<p>Travel como estrutura principal; Hazards para terreno e clima; Interludes para memória, medo e vínculos; Dramatic Tasks para travessias críticas; Fear para sonhos e intrusões de Kuth; Chases para perseguição ou fuga de batedores.</p>",
+      "objectives": [
+        {
+          "name": "Definir formação, ritmo de marcha e responsabilidades.",
+          "hidden": false
+        },
+        {
+          "name": "Sobreviver ao primeiro dia de viagem.",
+          "hidden": false
+        },
+        {
+          "name": "Enfrentar ou interpretar a primeira noite de sonhos.",
+          "hidden": false
+        },
+        {
+          "name": "Encontrar sinais da rota para Golamra.",
+          "hidden": false
+        },
+        {
+          "name": "Chegar à visão inicial da Torre.",
+          "hidden": false
+        },
+        {
+          "name": "Avançar ou reduzir o relógio dos rivais.",
+          "hidden": true
+        },
+        {
+          "name": "Avançar ou reduzir o relógio onírico de Kuth.",
+          "hidden": true
+        },
+        {
+          "name": "Registrar perda de suprimentos, fadiga, ferimentos ou equipamento.",
+          "hidden": true
+        },
+        {
+          "name": "Registrar pistas abertas pelo amuleto de Xanthes.",
+          "hidden": true
+        },
+        {
+          "name": "Registrar se alguma facção recebe notícia da direção seguida.",
+          "hidden": true
+        }
+      ],
+      "activationTriggers": [
+        {
+          "label": "O grupo escolhe patrono e rota.",
+          "grantsStatus": "active"
+        }
+      ],
+      "journalLinks": [
+        "Golamra",
+        "Protocolo Onírico — Sonhos de Kethryll",
+        "Khar-Volun",
+        "Xanthes",
+        "Kuth"
+      ]
+    },
+    {
+      "designId": "SQ-ATO1-05",
+      "name": "A Torre Sem Guardião",
+      "type": "subquest",
+      "status": "inactive",
+      "parent": "MQ-ATO1-01",
+      "priority": 50,
+      "description": "<p>A Torre não parece abandonada. Parece fechada contra algo. A pergunta é se Khar-Volun tentou impedir que alguém entrasse ou que algo saísse.</p>",
+      "gmnotes": "<h3>Função dramática</h3>\n<p>Entrada futura. Deve permanecer inativa até os PCs alcançarem a Torre. Quando ativada, encerra a lógica da investigação urbana/viagem e inicia a lógica de exploração, revelação e contenção.</p>",
+      "objectives": [
+        {
+          "name": "Encontrar uma entrada segura ou possível.",
+          "hidden": false
+        },
+        {
+          "name": "Interpretar os primeiros sinais deixados por Khar-Volun.",
+          "hidden": false
+        },
+        {
+          "name": "Descobrir se o jovem hyrkaniano ainda pode ser salvo.",
+          "hidden": false
+        },
+        {
+          "name": "Sobreviver ao primeiro contato com a defesa da Torre.",
+          "hidden": false
+        },
+        {
+          "name": "Registrar a primeira manifestação direta de Kuth.",
+          "hidden": true
+        },
+        {
+          "name": "Registrar que tipo de verdade sobre Khar-Volun foi descoberta.",
+          "hidden": true
+        },
+        {
+          "name": "Registrar se a Torre reconhece amuleto, sangue, sonho ou magia.",
+          "hidden": true
+        }
+      ],
+      "activationTriggers": [
+        {
+          "label": "A Torre aparece; Rumo a Golamra é concluída.",
+          "grantsStatus": "active"
+        }
+      ],
+      "journalLinks": [
+        "Khar-Volun",
+        "Kuth"
+      ]
+    },
+    {
+      "designId": "CLOCK-ATO1-01",
+      "name": "Quem Chega Primeiro",
+      "type": "clock",
+      "status": "inactive",
+      "parent": "MQ-ATO1-01",
+      "priority": 40,
+      "description": "",
+      "gmnotes": "<p>Relógio de rivalidade para Abutres, agentes de Al'Farrad, caçadores independentes, Shadow Lions ou outros grupos que disputem a Torre.</p>\n<p><em>Relógio de GM: invisível aos jogadores, salvo se o efeito dramático for mostrar pressão sem explicar sua causa.</em></p>",
+      "objectives": [
+        {
+          "name": "0. Ninguém relevante está à frente.",
+          "hidden": true
+        },
+        {
+          "name": "1. Rivais têm uma pista parcial.",
+          "hidden": true
+        },
+        {
+          "name": "2. Rivais têm rota ou guia.",
+          "hidden": true
+        },
+        {
+          "name": "3. Rivais partem antes ou alcançam o grupo.",
+          "hidden": true
+        },
+        {
+          "name": "4. Rivais chegam primeiro a uma zona externa.",
+          "hidden": true
+        },
+        {
+          "name": "5. Rivais ativam perigo, armadilha ou facção.",
+          "hidden": true
+        },
+        {
+          "name": "6. Rivais alteram a Torre antes dos PCs.",
+          "hidden": true
+        }
+      ],
+      "activationTriggers": [],
+      "journalLinks": []
+    },
+    {
+      "designId": "CLOCK-ATO1-02",
+      "name": "O Sonho de Kuth",
+      "type": "clock",
+      "status": "inactive",
+      "parent": "MQ-ATO1-01",
+      "priority": 40,
+      "description": "",
+      "gmnotes": "<p>Relógio de pressão sobrenatural. Não representa apenas corrupção; representa proximidade, atenção e erro crescente no mundo.</p>\n<p><em>Relógio de GM: invisível aos jogadores, salvo se o efeito dramático for mostrar pressão sem explicar sua causa.</em></p>",
+      "objectives": [
+        {
+          "name": "0. Pesadelos comuns.",
+          "hidden": true
+        },
+        {
+          "name": "1. Símbolos recorrentes.",
+          "hidden": true
+        },
+        {
+          "name": "2. Sonho compartilhado ou sensação física ao acordar.",
+          "hidden": true
+        },
+        {
+          "name": "3. Uma pista verdadeira aparece misturada a medo.",
+          "hidden": true
+        },
+        {
+          "name": "4. Um PC carrega marca, compulsão ou eco.",
+          "hidden": true
+        },
+        {
+          "name": "5. Kuth responde a uma pergunta que ninguém fez.",
+          "hidden": true
+        },
+        {
+          "name": "6. A Torre reage antes da chegada.",
+          "hidden": true
+        }
+      ],
+      "activationTriggers": [],
+      "journalLinks": []
+    },
+    {
+      "designId": "CLOCK-ATO1-03",
+      "name": "Olhos Sobre o Grupo",
+      "type": "clock",
+      "status": "inactive",
+      "parent": "MQ-ATO1-01",
+      "priority": 40,
+      "description": "",
+      "gmnotes": "<p>Relógio político e social. Deve ser alimentado quando os PCs fazem cenas públicas, usam nomes importantes, vencem conflitos visíveis ou carregam artefatos.</p>\n<h3>Facções que podem receber avanço</h3>\n<ul><li>Sommarel.</li><li>Irmandade da Aranha.</li><li>Shadow Lions.</li><li>Voidwatchers.</li><li>Guarda Silenciosa.</li><li>Rede de Ali Al'Farrad.</li><li>Homens de Molochai.</li></ul>\n<p><em>Relógio de GM: invisível aos jogadores, salvo se o efeito dramático for mostrar pressão sem explicar sua causa.</em></p>",
+      "objectives": [],
+      "activationTriggers": [],
+      "journalLinks": []
+    },
+    {
+      "designId": "SIDE-KARA-01",
+      "name": "A Teia Sob a Areia",
+      "type": "side",
+      "status": "inactive",
+      "parent": "MQ-ATO1-01",
+      "priority": 20,
+      "description": "",
+      "gmnotes": "<h3>Papel na campanha</h3>\n<p>Explora espionagem, dívida, chantagem e interesse de facções na Torre.</p>\n<h3>Gatilho</h3>\n<p>Ali Al'Farrad, Sommarel, artefatos ou arquivos</p>\n<p><em>Esboço: texto para jogadores e objetivos ainda não escritos no documento-fonte.</em></p>",
+      "objectives": [],
+      "activationTriggers": [
+        {
+          "label": "Ali Al'Farrad, Sommarel, artefatos ou arquivos",
+          "grantsStatus": "available"
+        }
+      ],
+      "journalLinks": []
+    },
+    {
+      "designId": "SIDE-KARA-02",
+      "name": "O Filho da Filha",
+      "type": "side",
+      "status": "inactive",
+      "parent": "MQ-ATO1-01",
+      "priority": 20,
+      "description": "",
+      "gmnotes": "<h3>Papel na campanha</h3>\n<p>Liga família, sucessão e segredos íntimos à política de Karavazyan.</p>\n<h3>Gatilho</h3>\n<p>Sahysia, herança, sangue ou legitimidade</p>\n<p><em>Esboço: texto para jogadores e objetivos ainda não escritos no documento-fonte.</em></p>",
+      "objectives": [],
+      "activationTriggers": [
+        {
+          "label": "Sahysia, herança, sangue ou legitimidade",
+          "grantsStatus": "available"
+        }
+      ],
+      "journalLinks": []
+    },
+    {
+      "designId": "SIDE-KARA-03",
+      "name": "Sangue na Areia",
+      "type": "side",
+      "status": "inactive",
+      "parent": "MQ-ATO1-01",
+      "priority": 20,
+      "description": "",
+      "gmnotes": "<h3>Papel na campanha</h3>\n<p>Converte conflito social em investigação de autoridade e vingança.</p>\n<h3>Gatilho</h3>\n<p>Valerius, Guarda Silenciosa, violência pública</p>\n<p><em>Esboço: texto para jogadores e objetivos ainda não escritos no documento-fonte.</em></p>",
+      "objectives": [],
+      "activationTriggers": [
+        {
+          "label": "Valerius, Guarda Silenciosa, violência pública",
+          "grantsStatus": "available"
+        }
+      ],
+      "journalLinks": []
+    },
+    {
+      "designId": "SIDE-KARA-04",
+      "name": "Perfume e Vingança",
+      "type": "side",
+      "status": "inactive",
+      "parent": "MQ-ATO1-01",
+      "priority": 20,
+      "description": "",
+      "gmnotes": "<h3>Papel na campanha</h3>\n<p>Permite intriga sem combate: venenos sociais, informação e sedução política.</p>\n<h3>Gatilho</h3>\n<p>Lian Mei, Sommarel, favores íntimos</p>\n<p><em>Esboço: texto para jogadores e objetivos ainda não escritos no documento-fonte.</em></p>",
+      "objectives": [],
+      "activationTriggers": [
+        {
+          "label": "Lian Mei, Sommarel, favores íntimos",
+          "grantsStatus": "available"
+        }
+      ],
+      "journalLinks": []
+    },
+    {
+      "designId": "SIDE-KARA-05",
+      "name": "O Livro Que Nunca Existiu",
+      "type": "side",
+      "status": "inactive",
+      "parent": "MQ-ATO1-01",
+      "priority": 20,
+      "description": "",
+      "gmnotes": "<h3>Papel na campanha</h3>\n<p>Liga sonhos, escrita, presságios e registros impossíveis.</p>\n<h3>Gatilho</h3>\n<p>Mael Theron, Corvin Dhal, Voidwatchers</p>\n<p><em>Esboço: texto para jogadores e objetivos ainda não escritos no documento-fonte.</em></p>",
+      "objectives": [],
+      "activationTriggers": [
+        {
+          "label": "Mael Theron, Corvin Dhal, Voidwatchers",
+          "grantsStatus": "available"
+        }
+      ],
+      "journalLinks": []
+    },
+    {
+      "designId": "SIDE-KARA-06",
+      "name": "O Preço de Uma Rota",
+      "type": "side",
+      "status": "inactive",
+      "parent": "MQ-ATO1-01",
+      "priority": 20,
+      "description": "",
+      "gmnotes": "<h3>Papel na campanha</h3>\n<p>Transforma logística em conflito: mapas, rodas, guias, escolta e contrabando.</p>\n<h3>Gatilho</h3>\n<p>Dhorim Vance, caravanas, Quinta Roda</p>\n<p><em>Esboço: texto para jogadores e objetivos ainda não escritos no documento-fonte.</em></p>",
+      "objectives": [],
+      "activationTriggers": [
+        {
+          "label": "Dhorim Vance, caravanas, Quinta Roda",
+          "grantsStatus": "available"
+        }
+      ],
+      "journalLinks": []
+    },
+    {
+      "designId": "SIDE-IMP-01",
+      "name": "O Leão Sem Coroa",
+      "type": "side",
+      "status": "inactive",
+      "parent": "MQ-ATO1-01",
+      "priority": 20,
+      "description": "",
+      "gmnotes": "<h3>Papel na campanha</h3>\n<p>Mostra Thal-Remmon como poder de fato sem legitimidade formal.</p>\n<h3>Gatilho</h3>\n<p>Notícias de Venarium ou Shadow Lions</p>\n<p><em>Esboço: texto para jogadores e objetivos ainda não escritos no documento-fonte.</em></p>",
+      "objectives": [],
+      "activationTriggers": [
+        {
+          "label": "Notícias de Venarium ou Shadow Lions",
+          "grantsStatus": "available"
+        }
+      ],
+      "journalLinks": []
+    },
+    {
+      "designId": "SIDE-IMP-02",
+      "name": "A Chave de Velitrium",
+      "type": "side",
+      "status": "inactive",
+      "parent": "MQ-ATO1-01",
+      "priority": 20,
+      "description": "",
+      "gmnotes": "<h3>Papel na campanha</h3>\n<p>Faz Velitrium virar peça estratégica entre fronteira, Warbarons e Shadow Lions.</p>\n<h3>Gatilho</h3>\n<p>Rotas ao norte, Verden, ataques pictos</p>\n<p><em>Esboço: texto para jogadores e objetivos ainda não escritos no documento-fonte.</em></p>",
+      "objectives": [],
+      "activationTriggers": [
+        {
+          "label": "Rotas ao norte, Verden, ataques pictos",
+          "grantsStatus": "available"
+        }
+      ],
+      "journalLinks": []
+    },
+    {
+      "designId": "SIDE-IMP-03",
+      "name": "A Carta e o Senado",
+      "type": "side",
+      "status": "inactive",
+      "parent": "MQ-ATO1-01",
+      "priority": 20,
+      "description": "",
+      "gmnotes": "<h3>Papel na campanha</h3>\n<p>Conecta a missão à crise sucessória de Aquilonia.</p>\n<h3>Gatilho</h3>\n<p>Carta de Glacestus intacta ou confiscada</p>\n<p><em>Esboço: texto para jogadores e objetivos ainda não escritos no documento-fonte.</em></p>",
+      "objectives": [],
+      "activationTriggers": [
+        {
+          "label": "Carta de Glacestus intacta ou confiscada",
+          "grantsStatus": "available"
+        }
+      ],
+      "journalLinks": []
+    },
+    {
+      "designId": "SIDE-IMP-04",
+      "name": "Rotas Protegidas",
+      "type": "side",
+      "status": "inactive",
+      "parent": "MQ-ATO1-01",
+      "priority": 20,
+      "description": "",
+      "gmnotes": "<h3>Papel na campanha</h3>\n<p>Revela a expansão indireta de Thal-Remmon por meio de segurança, dívida e presença.</p>\n<h3>Gatilho</h3>\n<p>Escoltas Shadow Lions em caravanas</p>\n<p><em>Esboço: texto para jogadores e objetivos ainda não escritos no documento-fonte.</em></p>",
+      "objectives": [],
+      "activationTriggers": [
+        {
+          "label": "Escoltas Shadow Lions em caravanas",
+          "grantsStatus": "available"
+        }
+      ],
+      "journalLinks": []
+    },
+    {
+      "designId": "SIDE-IMP-05",
+      "name": "O Nome de Venarium",
+      "type": "side",
+      "status": "inactive",
+      "parent": "MQ-ATO1-01",
+      "priority": 20,
+      "description": "",
+      "gmnotes": "<h3>Papel na campanha</h3>\n<p>Usa a cidade-fortaleza como cicatriz política e mítica da fronteira.</p>\n<h3>Gatilho</h3>\n<p>veteranos, ruínas, símbolos ou trauma</p>\n<p><em>Esboço: texto para jogadores e objetivos ainda não escritos no documento-fonte.</em></p>",
+      "objectives": [],
+      "activationTriggers": [
+        {
+          "label": "veteranos, ruínas, símbolos ou trauma",
+          "grantsStatus": "available"
+        }
+      ],
+      "journalLinks": []
+    },
+    {
+      "designId": "SIDE-OCC-01",
+      "name": "Sonhos de Kethryll",
+      "type": "side",
+      "status": "inactive",
+      "parent": "MQ-ATO1-01",
+      "priority": 20,
+      "description": "",
+      "gmnotes": "<h3>Papel na campanha</h3>\n<p>Dá forma investigável aos sonhos sem revelar Kuth cedo demais.</p>\n<h3>Gatilho</h3>\n<p>Falha ou raise no protocolo onírico</p>\n<p><em>Esboço: texto para jogadores e objetivos ainda não escritos no documento-fonte.</em></p>",
+      "objectives": [],
+      "activationTriggers": [
+        {
+          "label": "Falha ou raise no protocolo onírico",
+          "grantsStatus": "available"
+        }
+      ],
+      "journalLinks": []
+    },
+    {
+      "designId": "SIDE-OCC-02",
+      "name": "Sangue do Leão Vermelho",
+      "type": "side",
+      "status": "inactive",
+      "parent": "MQ-ATO1-01",
+      "priority": 20,
+      "description": "",
+      "gmnotes": "<h3>Papel na campanha</h3>\n<p>Introduz o soro da imortalidade como obsessão perigosa.</p>\n<h3>Gatilho</h3>\n<p>Cadernos de Khar-Volun ou Asclipas</p>\n<p><em>Esboço: texto para jogadores e objetivos ainda não escritos no documento-fonte.</em></p>",
+      "objectives": [],
+      "activationTriggers": [
+        {
+          "label": "Cadernos de Khar-Volun ou Asclipas",
+          "grantsStatus": "available"
+        }
+      ],
+      "journalLinks": []
+    },
+    {
+      "designId": "SIDE-OCC-03",
+      "name": "O Amuleto de Xanthes",
+      "type": "side",
+      "status": "inactive",
+      "parent": "MQ-ATO1-01",
+      "priority": 20,
+      "description": "",
+      "gmnotes": "<h3>Papel na campanha</h3>\n<p>Transforma objeto pessoal em chave narrativa e mecânica.</p>\n<h3>Gatilho</h3>\n<p>Reação do amuleto em trilha, selo ou sonho</p>\n<p><em>Esboço: texto para jogadores e objetivos ainda não escritos no documento-fonte.</em></p>",
+      "objectives": [],
+      "activationTriggers": [
+        {
+          "label": "Reação do amuleto em trilha, selo ou sonho",
+          "grantsStatus": "available"
+        }
+      ],
+      "journalLinks": []
+    },
+    {
+      "designId": "SIDE-OCC-04",
+      "name": "A Voz Que Consola",
+      "type": "side",
+      "status": "inactive",
+      "parent": "MQ-ATO1-01",
+      "priority": 20,
+      "description": "",
+      "gmnotes": "<h3>Papel na campanha</h3>\n<p>Permite investigar sonhos como religião, cuidado, manipulação ou erro.</p>\n<h3>Gatilho</h3>\n<p>Mael Theron ou Voidwatchers</p>\n<p><em>Esboço: texto para jogadores e objetivos ainda não escritos no documento-fonte.</em></p>",
+      "objectives": [],
+      "activationTriggers": [
+        {
+          "label": "Mael Theron ou Voidwatchers",
+          "grantsStatus": "available"
+        }
+      ],
+      "journalLinks": []
+    },
+    {
+      "designId": "SIDE-OCC-05",
+      "name": "O Homem Que Fechou a Porta",
+      "type": "side",
+      "status": "inactive",
+      "parent": "MQ-ATO1-01",
+      "priority": 20,
+      "description": "",
+      "gmnotes": "<h3>Papel na campanha</h3>\n<p>Reenquadra Khar-Volun como alguém que talvez tenha tentado conter o horror.</p>\n<h3>Gatilho</h3>\n<p>sinais defensivos da Torre</p>\n<p><em>Esboço: texto para jogadores e objetivos ainda não escritos no documento-fonte.</em></p>",
+      "objectives": [],
+      "activationTriggers": [
+        {
+          "label": "sinais defensivos da Torre",
+          "grantsStatus": "available"
+        }
+      ],
+      "journalLinks": []
+    }
+  ]
+}

@@ -1,0 +1,92 @@
+[
+  {
+    "id": "quest-visible",
+    "uuid": "JournalEntry.quest-visible",
+    "name": "Rust Under Stars",
+    "ownership": {
+      "default": 2
+    },
+    "flags": {
+      "forien-quest-log": {
+        "json": {
+          "name": "Rust Under Stars",
+          "status": "active",
+          "description": "The crew knows the convoy vanished near the old relay.",
+          "gmnotes": "Secret Cassian pressure is increasing. @JournalEntry[secretPage]{GM page}",
+          "playernotes": "The convoy case remains open and politically dangerous.",
+          "tasks": [
+            {
+              "name": "Find the relay survivor",
+              "completed": false,
+              "failed": false,
+              "hidden": false,
+              "uuidv4": "task-public"
+            },
+            {
+              "name": "Hidden leverage against Cassian",
+              "completed": false,
+              "failed": false,
+              "hidden": true,
+              "uuidv4": "task-hidden"
+            }
+          ],
+          "rewards": [
+            {
+              "type": "abstract",
+              "data": {
+                "name": "Public salvage access",
+                "uuid": "reward-public"
+              },
+              "hidden": false,
+              "locked": false,
+              "uuidv4": "reward-public-v4"
+            },
+            {
+              "type": "abstract",
+              "data": {
+                "name": "Faction secret",
+                "uuid": "reward-secret"
+              },
+              "hidden": true,
+              "locked": true,
+              "uuidv4": "reward-secret-v4"
+            }
+          ],
+          "customMystery": {
+            "preserve": true
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "quest-hidden",
+    "uuid": "JournalEntry.quest-hidden",
+    "name": "Hidden Faction Clock",
+    "ownership": {
+      "default": 0
+    },
+    "flags": {
+      "forien-quest-log": {
+        "json": {
+          "name": "Hidden Faction Clock",
+          "status": "active",
+          "description": "Players should not see this.",
+          "gmnotes": "The faction advances if ignored.",
+          "playernotes": "",
+          "tasks": [],
+          "rewards": []
+        }
+      }
+    }
+  },
+  {
+    "id": "ordinary-journal",
+    "uuid": "JournalEntry.ordinary-journal",
+    "name": "Ordinary Journal",
+    "ownership": {
+      "default": 2
+    },
+    "flags": {}
+  }
+]

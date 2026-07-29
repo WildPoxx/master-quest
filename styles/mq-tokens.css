@@ -1,0 +1,102 @@
+/* ---------------------------------------------------------------------------
+ * MasterQuest — Design Tokens (DEC-011, DEC-012)
+ *
+ * A aparencia do MasterQuest e um sistema de SKINS sobre estes tokens.
+ * Uma skin troca apenas VALORES; estrutura, layout e componentes nunca mudam.
+ * Regras (DEC-012):
+ *   1. Nenhum valor visual fora de tokens (nenhum hex/fonte/textura em componente).
+ *   2. Nomes descrevem PAPEL, nunca materia (--mq-chrome-bg, nao --mq-leather).
+ *   3. Toda skin passa na barra de contraste medida: >=4.5:1 texto, >=3:1 ornamento.
+ *   4. Fontes de skin embarcadas so com licenca redistribuivel (OFL ou equivalente).
+ *
+ * Skin padrao: "pergaminho" (pergaminho claro unico, bronze hyboriano — DEC-011).
+ * Skins futuras: definir os mesmos tokens sob [data-mq-skin="nome"].
+ * A ficha do Conan Legacy consome estes tokens via a classe .mq-tokens.
+ * ------------------------------------------------------------------------- */
+
+/* Cinzel — display epigrafica, SIL OFL 1.1 (ver styles/fonts/OFL-Cinzel.txt) */
+@font-face {
+  font-family: "Cinzel";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("fonts/cinzel-400.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Cinzel";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("fonts/cinzel-700.woff2") format("woff2");
+}
+
+/* Escopo raiz de componente, nunca o seletor raiz global do documento,     */
+/* para nao vazar para o resto do Foundry.                                  */
+/* Sem data-mq-skin (ou com "pergaminho"), vale a skin padrao.              */
+.masterquest,
+.mq-tokens,
+[data-mq-skin="pergaminho"].masterquest,
+[data-mq-skin="pergaminho"].mq-tokens {
+  /* Superficies (papel) */
+  --mq-surface-0: #E9DFC6;            /* base da janela                     */
+  --mq-surface-1: #F2EAD6;            /* elevado: cartoes, linhas           */
+  --mq-surface-2: #DACCAE;            /* rebaixado: cabecalhos, campos      */
+
+  /* Chrome (barra de titulo e cabecalho de janela; couro nesta skin)       */
+  --mq-chrome-bg: #3A2C1E;
+  --mq-on-chrome: #F2EAD6;            /* 11.2:1 */
+
+  /* Tinta */
+  --mq-text: #2A241A;                 /* 11.6 / 12.8 / 9.7                  */
+  --mq-text-muted: #6A5D46;           /* 4.9 / 5.4 — so em s0/s1            */
+
+  /* Acentos */
+  --mq-accent: #7A4E12;               /* acao, links, aba ativa  5.4/6.0/4.5*/
+  --mq-accent-bright: #9C6318;        /* ornamento, display >=20px  >=3:1   */
+  --mq-on-accent: #F2EAD6;            /* 6.0:1 sobre --mq-accent            */
+  --mq-danger: #8C2F26;               /* perigo, fracasso, selo GM 6.2/6.9  */
+  --mq-on-danger: #F2EAD6;            /* 6.9:1 sobre --mq-danger            */
+  --mq-focus: #33635C;                /* foco, selecao, informacao 5.1/5.7  */
+  --mq-highlight-bg: #D99A3A;         /* FUNDO de realce; nunca texto       */
+
+  /* Status de quest (SPEC-03; a cor nunca e o unico sinal) */
+  --mq-status-available: #33635C;
+  --mq-status-active: #7A4E12;
+  --mq-status-completed: #4A6532;     /* 5.0 / 5.5                          */
+  --mq-status-failed: #8C2F26;
+  --mq-status-inactive: #63594A;      /* 5.2 / 5.7                          */
+
+  /* Metais da moeda (DEC-009: nome por extenso; DEC-010: nome em aberto)   */
+  --mq-metal-bronze: #7E5024;         /* 5.2 / 5.7                          */
+  --mq-metal-silver: #5F5F5F;         /* 4.8 / 5.3                          */
+  --mq-metal-gold: #6E5507;           /* 5.3 / 5.9                          */
+
+  /* Bordas e sombras */
+  --mq-border: rgba(42, 36, 26, 0.25);
+  --mq-border-strong: rgba(42, 36, 26, 0.45);
+  --mq-shadow-1: 0 1px 3px rgba(42, 36, 26, 0.18);
+  --mq-shadow-2: 0 4px 14px rgba(42, 36, 26, 0.25);
+
+  /* Textura (grao restrito a chrome e cabecalhos; skin pode por "none")    */
+  --mq-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+
+  /* Tipografia */
+  --mq-font-display: "Cinzel", "Modesto Condensed", serif;
+  --mq-font-body: "Signika", sans-serif;
+  --mq-font-mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --mq-display-tracking: 0.02em;
+
+  /* Escala tipografica (uso denso de mesa) */
+  --mq-text-xs: 11px;   --mq-leading-xs: 1.35;
+  --mq-text-sm: 12px;   --mq-leading-sm: 1.4;
+  --mq-text-md: 14px;   --mq-leading-md: 1.45;
+  --mq-text-lg: 16px;   --mq-leading-lg: 1.4;
+  --mq-text-xl: 20px;   --mq-leading-xl: 1.25;
+  --mq-text-2xl: 26px;  --mq-leading-2xl: 1.15;
+
+  /* Espacamento e raio */
+  --mq-space-1: 4px;  --mq-space-2: 8px;  --mq-space-3: 12px;
+  --mq-space-4: 16px; --mq-space-5: 24px; --mq-space-6: 32px;
+  --mq-radius-1: 2px; --mq-radius-2: 4px; --mq-radius-3: 8px;
+  --mq-radius-pill: 999px;
+}

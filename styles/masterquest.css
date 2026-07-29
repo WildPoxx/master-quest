@@ -1,0 +1,858 @@
+/* ---------------------------------------------------------------------------
+ * MasterQuest — folha de componentes
+ *
+ * Toda aparencia vem de styles/mq-tokens.css (DEC-011/DEC-012): nenhum valor
+ * visual hardcoded aqui. Este arquivo so conhece PAPEIS (--mq-accent,
+ * --mq-chrome-bg...); a skin decide o que cada papel significa.
+ * Estrutura, rolagem e classes sao as mesmas da 0.12.0.
+ * ------------------------------------------------------------------------- */
+
+/* Janela: o documento sobre a mesa ---------------------------------------- */
+
+.masterquest.masterquest-authoring-console {
+  max-height: calc(100vh - 24px);
+}
+
+.masterquest .window-content {
+  display: flex;
+  height: 100%;
+  max-height: calc(100vh - 64px);
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+  background: var(--mq-surface-0);
+  color: var(--mq-text);
+  font-family: var(--mq-font-body);
+}
+
+/* Barra de titulo da janela = chrome da skin (couro com grao, display).     */
+.masterquest .window-header {
+  background: var(--mq-chrome-bg);
+  background-image: var(--mq-grain);
+  border-bottom: 2px solid var(--mq-accent-bright);
+  color: var(--mq-on-chrome);
+}
+
+.masterquest .window-header .window-title {
+  color: var(--mq-on-chrome);
+  font-family: var(--mq-font-display);
+  letter-spacing: var(--mq-display-tracking);
+}
+
+/* Console de criacao ------------------------------------------------------ */
+
+.masterquest-console {
+  color: var(--mq-text);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  gap: var(--mq-space-3);
+  max-height: calc(100vh - 64px);
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 14px;
+  scrollbar-gutter: stable;
+  background: var(--mq-surface-0);
+}
+
+.masterquest-console * {
+  box-sizing: border-box;
+}
+
+.masterquest-console h1,
+.masterquest-console h2,
+.masterquest-console h3,
+.masterquest-console p {
+  margin: 0;
+}
+
+.mq-header {
+  align-items: center;
+  display: flex;
+  gap: var(--mq-space-4);
+  justify-content: space-between;
+}
+
+.mq-header h1 {
+  font-family: var(--mq-font-display);
+  font-size: var(--mq-text-2xl);
+  font-weight: 700;
+  letter-spacing: var(--mq-display-tracking);
+}
+
+.mq-header p {
+  color: var(--mq-text-muted);
+  font-size: var(--mq-text-sm);
+  margin-top: var(--mq-space-1);
+}
+
+.mq-status,
+.mq-actions,
+.mq-assistant-bar,
+.mq-preview-toolbar,
+.mq-preview-toolbar div {
+  align-items: center;
+  display: flex;
+  gap: var(--mq-space-2);
+}
+
+.mq-pill {
+  border: 1px solid var(--mq-border);
+  border-radius: var(--mq-radius-pill);
+  color: var(--mq-text-muted);
+  font-size: var(--mq-text-sm);
+  padding: 4px 9px;
+}
+
+.mq-pill.ready {
+  border-color: var(--mq-focus);
+  color: var(--mq-focus);
+}
+
+.mq-pill.needs-work {
+  border-color: var(--mq-accent);
+  color: var(--mq-accent);
+}
+
+.mq-assistant-bar {
+  justify-content: space-between;
+  padding: 10px var(--mq-space-3);
+}
+
+.mq-assistant-bar h2 {
+  font-size: var(--mq-text-lg);
+  margin: 0;
+}
+.mq-grid {
+  display: grid;
+  gap: var(--mq-space-3);
+  grid-template-columns: minmax(0, 1fr) 310px;
+}
+
+.mq-panel {
+  background: var(--mq-surface-1);
+  border: 1px solid var(--mq-border);
+  border-radius: var(--mq-radius-3);
+  box-shadow: var(--mq-shadow-1);
+}
+
+.mq-form,
+.mq-review,
+.mq-previews {
+  padding: var(--mq-space-3);
+}
+
+.mq-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mq-two {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.mq-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.mq-field-label-row {
+  align-items: center;
+  display: flex;
+  gap: var(--mq-space-2);
+  justify-content: space-between;
+  min-height: 26px;
+}
+.mq-field label {
+  color: var(--mq-text-muted);
+  font-size: var(--mq-text-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.mq-field input,
+.mq-field textarea {
+  background: var(--mq-surface-1);
+  border: 1px solid var(--mq-border-strong);
+  border-radius: var(--mq-radius-2);
+  color: var(--mq-text);
+  font: inherit;
+  min-width: 0;
+  padding: 8px 9px;
+}
+
+.mq-field input:focus,
+.mq-field textarea:focus {
+  outline: 2px solid var(--mq-focus);
+  outline-offset: 1px;
+}
+
+.mq-field textarea {
+  line-height: 1.35;
+  resize: vertical;
+}
+
+.mq-actions {
+  background: linear-gradient(180deg, transparent, var(--mq-surface-0) 28%);
+  border-top: 1px solid var(--mq-border);
+  bottom: 0;
+  justify-content: flex-end;
+  margin-top: 2px;
+  padding-top: 10px;
+  position: sticky;
+  z-index: 3;
+}
+
+.masterquest-console button {
+  align-items: center;
+  background: var(--mq-surface-1);
+  border: 1px solid var(--mq-border-strong);
+  border-radius: var(--mq-radius-2);
+  color: var(--mq-accent);
+  cursor: pointer;
+  display: inline-flex;
+  font-weight: 700;
+  gap: 6px;
+  min-height: 32px;
+  padding: 6px 10px;
+}
+
+.masterquest-console button:hover {
+  background: var(--mq-surface-2);
+}
+.masterquest-console .mq-suggest-button {
+  background: var(--mq-surface-1);
+  border-color: var(--mq-border-strong);
+  color: var(--mq-focus);
+  font-size: var(--mq-text-xs);
+  min-height: 24px;
+  padding: 3px 7px;
+}
+
+.masterquest-journal-open {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+  justify-content: center;
+}
+
+
+.mq-review {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.mq-review h2,
+.mq-previews h2,
+.mq-previews h3 {
+  font-family: var(--mq-font-display);
+  font-size: var(--mq-text-lg);
+  letter-spacing: var(--mq-display-tracking);
+  margin-bottom: var(--mq-space-2);
+  padding-bottom: var(--mq-space-1);
+  border-bottom: 2px solid var(--mq-accent-bright);
+}
+
+.mq-question-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mq-space-2);
+  margin: 0;
+  padding-left: 20px;
+}
+
+.mq-question-list li strong,
+.mq-question-list li span {
+  display: block;
+}
+
+.mq-question-list li span,
+.mq-empty,
+.mq-copy-state {
+  color: var(--mq-text-muted);
+  font-size: var(--mq-text-sm);
+}
+
+.mq-counts,
+.mq-kv {
+  display: grid;
+  gap: 6px 10px;
+  grid-template-columns: 1fr auto;
+  margin: 0;
+}
+
+.mq-counts dt,
+.mq-kv dt {
+  color: var(--mq-text-muted);
+}
+
+.mq-counts dd,
+.mq-kv dd {
+  margin: 0;
+}
+
+.mq-preview-toolbar {
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.mq-copy-note {
+  color: var(--mq-text-muted);
+  font-size: var(--mq-text-xs);
+  margin: -2px 0 10px;
+}
+
+.mq-copy-note strong {
+  color: var(--mq-accent);
+}
+
+.mq-preview-grid {
+  display: grid;
+  gap: var(--mq-space-3);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.mq-preview-grid article {
+  background: var(--mq-surface-2);
+  border: 1px solid var(--mq-border);
+  border-radius: var(--mq-radius-3);
+  min-width: 0;
+  padding: 10px;
+}
+
+.mq-preview-grid pre {
+  color: var(--mq-text);
+  font-family: var(--mq-font-mono);
+  font-size: var(--mq-text-sm);
+  line-height: 1.45;
+  margin: 0;
+  max-height: 360px;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+
+.masterquest.masterquest-adventure-review {
+  max-height: calc(100vh - 24px);
+}
+
+.mq-review-doc {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: var(--mq-space-3);
+}
+
+.mq-doc-block h2 {
+  align-items: center;
+  display: flex;
+  font-size: var(--mq-text-md);
+  gap: var(--mq-space-2);
+  margin-bottom: 6px;
+}
+
+.mq-doc-count {
+  background: var(--mq-surface-2);
+  border-radius: var(--mq-radius-pill);
+  color: var(--mq-text-muted);
+  font-size: var(--mq-text-xs);
+  padding: 1px 8px;
+}
+
+.mq-doc-block p {
+  color: var(--mq-text);
+  font-size: var(--mq-text-sm);
+  line-height: 1.4;
+}
+
+.mq-doc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.mq-doc-list li {
+  color: var(--mq-text);
+  font-size: var(--mq-text-sm);
+  line-height: 1.4;
+}
+
+.mq-review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mq-space-2);
+  padding: 10px var(--mq-space-3);
+}
+
+@media (max-width: 900px) {
+  .mq-grid,
+  .mq-preview-grid,
+  .mq-two {
+    grid-template-columns: 1fr;
+  }
+
+  .mq-header,
+  .mq-assistant-bar,
+  .mq-preview-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Quest operations: hub, quest log and quest details (Foundry v14)
+ * ------------------------------------------------------------------ */
+
+.masterquest .mq-tabs {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--mq-border-strong);
+  margin-bottom: var(--mq-space-2);
+}
+
+.masterquest .mq-tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--mq-text-muted);
+  cursor: pointer;
+  font-size: var(--mq-text-sm);
+  padding: 6px 10px;
+  white-space: nowrap;
+  width: auto;
+}
+
+.masterquest .mq-tab:hover { color: var(--mq-accent); }
+.masterquest .mq-tab.is-active {
+  border-bottom-color: var(--mq-accent);
+  color: var(--mq-accent);
+  font-weight: 600;
+}
+
+.masterquest .mq-tab-count {
+  background: var(--mq-surface-2);
+  border-radius: var(--mq-radius-pill);
+  font-size: var(--mq-text-xs);
+  margin-left: var(--mq-space-1);
+  padding: 1px 6px;
+}
+
+.masterquest .mq-log-header,
+.masterquest .mq-objectives header,
+.masterquest .mq-rewards header,
+.masterquest .mq-subquests header {
+  align-items: center;
+  display: flex;
+  gap: var(--mq-space-2);
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.masterquest .mq-log-header h2,
+.masterquest .mq-objectives h2,
+.masterquest .mq-rewards h2,
+.masterquest .mq-subquests h2 {
+  border: none;
+  margin: 0;
+  font-family: var(--mq-font-display);
+  font-size: var(--mq-text-lg);
+  letter-spacing: var(--mq-display-tracking);
+  color: var(--mq-text);
+}
+
+.masterquest .mq-quest-list,
+.masterquest .mq-box { list-style: none; margin: 0; padding: 0; }
+
+.masterquest .mq-quest-row {
+  align-items: center;
+  border: 1px solid transparent;
+  border-bottom: 1px solid var(--mq-border);
+  cursor: grab;
+  display: flex;
+  gap: var(--mq-space-2);
+  padding: 6px 4px;
+}
+
+.masterquest .mq-quest-row:hover { background: var(--mq-surface-1); }
+.masterquest .mq-dragging { opacity: 0.45; }
+.masterquest .mq-drop-target { border: 1px dashed var(--mq-focus); }
+
+.masterquest .mq-quest-icon {
+  background-position: center;
+  background-size: cover;
+  border-radius: var(--mq-radius-2);
+  border: 1px solid var(--mq-border);
+  cursor: pointer;
+  flex: 0 0 40px;
+  height: 40px;
+  width: 40px;
+}
+
+.masterquest .mq-quest-icon-empty { background: var(--mq-surface-2); }
+.masterquest .mq-quest-title { cursor: pointer; flex: 1; min-width: 0; }
+.masterquest .mq-quest-title h3 {
+  border: none;
+  font-family: var(--mq-font-display);
+  font-size: var(--mq-text-md);
+  letter-spacing: var(--mq-display-tracking);
+  margin: 0;
+}
+.masterquest .mq-subquest { font-size: var(--mq-text-xs); margin: 0; color: var(--mq-text-muted); }
+
+.masterquest .mq-quest-count {
+  font-variant-numeric: tabular-nums;
+  flex: 0 0 auto;
+  color: var(--mq-text-muted);
+  padding: 0 6px;
+}
+
+.masterquest .mq-badge { font-size: var(--mq-text-xs); margin-left: var(--mq-space-1); }
+.masterquest .mq-primary { color: var(--mq-accent); }
+.masterquest .mq-hidden { opacity: 0.7; }
+
+.masterquest .mq-status-actions { display: flex; gap: 2px; }
+
+.masterquest .mq-icon-button,
+.masterquest .mq-status-action,
+.masterquest .mq-state {
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  flex: 0 0 auto;
+  opacity: 0.75;
+  padding: 3px 5px;
+  width: auto;
+}
+
+.masterquest .mq-icon-button:hover,
+.masterquest .mq-status-action:hover,
+.masterquest .mq-state:hover { opacity: 1; color: var(--mq-accent); }
+
+.masterquest .mq-danger:hover { color: var(--mq-danger); }
+.masterquest .mq-status-completed { color: var(--mq-status-completed); }
+.masterquest .mq-status-failed { color: var(--mq-status-failed); }
+
+.masterquest .mq-empty { font-style: italic; color: var(--mq-text-muted); padding: 10px 4px; }
+
+.masterquest .mq-new-quest,
+.masterquest .mq-add,
+.masterquest .mq-bulk {
+  background: var(--mq-surface-1);
+  border: 1px solid var(--mq-border-strong);
+  border-radius: var(--mq-radius-2);
+  color: var(--mq-accent);
+  cursor: pointer;
+  font-size: var(--mq-text-sm);
+  padding: 3px 8px;
+  white-space: nowrap;
+  width: auto;
+}
+
+.masterquest .mq-new-quest:hover,
+.masterquest .mq-add:hover,
+.masterquest .mq-bulk:hover { background: var(--mq-surface-2); }
+
+/* Details ---------------------------------------------------------- */
+
+.masterquest .mq-details-header {
+  align-items: flex-start;
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.masterquest .mq-giver {
+  background-position: center;
+  background-size: cover;
+  border-radius: var(--mq-radius-2);
+  border: 1px solid var(--mq-border);
+  flex: 0 0 64px;
+  height: 64px;
+}
+
+.masterquest .mq-details-heading { flex: 1; min-width: 0; }
+.masterquest .mq-details-heading h1 { border: none; margin: 0; }
+
+.masterquest .mq-title-input {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--mq-text);
+  font-family: var(--mq-font-display);
+  font-size: var(--mq-text-xl);
+  font-weight: 700;
+  letter-spacing: var(--mq-display-tracking);
+  padding: 2px 4px;
+  width: 100%;
+}
+
+.masterquest .mq-title-input:focus { border-color: var(--mq-focus); outline: none; }
+
+.masterquest .mq-status { font-size: var(--mq-text-sm); margin: 2px 0; color: var(--mq-text-muted); }
+.masterquest .mq-subquest-link { cursor: pointer; font-size: var(--mq-text-sm); margin: 2px 0; color: var(--mq-accent); }
+
+.masterquest .mq-details-columns {
+  display: grid;
+  gap: var(--mq-space-3);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.masterquest .mq-details-right { display: flex; flex-direction: column; gap: var(--mq-space-3); min-width: 0; }
+
+.masterquest .mq-editable-html,
+.masterquest .mq-readonly-html,
+.masterquest .mq-notes-editor {
+  background: var(--mq-surface-1);
+  border: 1px solid var(--mq-border);
+  border-radius: var(--mq-radius-2);
+  min-height: 120px;
+  overflow-y: auto;
+  padding: var(--mq-space-2);
+}
+
+.masterquest .mq-notes-editor { min-height: 320px; }
+.masterquest .mq-editable-html:focus { outline: 2px solid var(--mq-focus); outline-offset: 1px; }
+
+.masterquest .mq-objective,
+.masterquest .mq-reward,
+.masterquest .mq-subquest-item {
+  align-items: center;
+  border-bottom: 1px solid var(--mq-border);
+  display: flex;
+  gap: 6px;
+  padding: 4px 2px;
+}
+
+.masterquest .mq-objective.is-hidden,
+.masterquest .mq-reward.is-hidden { opacity: 0.55; }
+
+.masterquest .mq-objective-name,
+.masterquest .mq-reward-name { flex: 1; margin: 0; min-width: 0; }
+
+.masterquest .mq-objective-name[contenteditable]:focus,
+.masterquest .mq-reward-name[contenteditable]:focus {
+  background: var(--mq-surface-1);
+  outline: 2px solid var(--mq-focus);
+  outline-offset: 1px;
+}
+
+.masterquest .mq-reward-img {
+  background-position: center;
+  background-size: cover;
+  border-radius: var(--mq-radius-1);
+  border: 1px solid var(--mq-border);
+  flex: 0 0 28px;
+  height: 28px;
+}
+
+.masterquest .mq-reward-img-empty {
+  align-items: center;
+  background: var(--mq-surface-2);
+  display: flex;
+  justify-content: center;
+}
+
+.masterquest .mq-reward.is-locked .mq-reward-name { font-style: italic; opacity: 0.8; }
+
+.masterquest .mq-row-actions { align-items: center; display: flex; gap: 2px; }
+.masterquest .mq-handle { cursor: grab; opacity: 0.5; padding: 0 3px; }
+
+.masterquest .mq-management { display: flex; flex-direction: column; gap: 14px; }
+.masterquest .mq-field { display: flex; flex-direction: column; gap: 3px; margin: 8px 0; }
+.masterquest .mq-field span { font-size: var(--mq-text-sm); color: var(--mq-text-muted); }
+
+.masterquest .mq-splash {
+  background-size: cover;
+  border: 1px solid var(--mq-border-strong);
+  border-radius: var(--mq-radius-2);
+  height: 140px;
+}
+
+.masterquest .mq-splash-empty {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  color: var(--mq-text-muted);
+}
+
+.masterquest .mq-subquest-item h3 { border: none; cursor: pointer; flex: 1; font-size: var(--mq-text-sm); margin: 0; }
+
+/* Hub -------------------------------------------------------------- */
+
+.masterquest .mq-hub-header h1 {
+  border: none;
+  margin: 0 0 2px;
+  font-family: var(--mq-font-display);
+  font-size: var(--mq-text-2xl);
+  letter-spacing: var(--mq-display-tracking);
+  padding-bottom: var(--mq-space-1);
+  border-bottom: 2px solid var(--mq-accent-bright);
+  display: inline-block;
+}
+.masterquest .mq-hub-header p { font-size: var(--mq-text-sm); margin: 0 0 var(--mq-space-3); color: var(--mq-text-muted); }
+
+.masterquest .mq-hub-cards { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
+
+.masterquest .mq-hub-card {
+  background: var(--mq-surface-1);
+  border: 1px solid var(--mq-border-strong);
+  border-radius: var(--mq-radius-2);
+  box-shadow: var(--mq-shadow-1);
+  color: var(--mq-text);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: auto;
+  padding: var(--mq-space-4) var(--mq-space-3);
+  text-align: left;
+  width: 100%;
+}
+
+.masterquest .mq-hub-card:hover { border-color: var(--mq-accent); background: var(--mq-surface-2); }
+.masterquest .mq-hub-card i { font-size: 22px; color: var(--mq-accent); }
+.masterquest .mq-hub-card-title { font-family: var(--mq-font-display); font-size: var(--mq-text-lg); font-weight: 600; letter-spacing: var(--mq-display-tracking); }
+.masterquest .mq-hub-card-desc { font-size: var(--mq-text-sm); line-height: 1.35; color: var(--mq-text-muted); }
+
+.masterquest .mq-hub-import {
+  background: var(--mq-surface-1);
+  border: 1px solid var(--mq-border);
+  border-radius: var(--mq-radius-2);
+  margin-top: var(--mq-space-3);
+  padding: 10px;
+}
+
+.masterquest .mq-hub-import p { font-size: var(--mq-text-sm); margin: 0 0 6px; }
+.masterquest .mq-hint { font-size: var(--mq-text-xs); margin-top: 6px; color: var(--mq-text-muted); }
+
+@media (max-width: 720px) {
+  .masterquest .mq-details-columns,
+  .masterquest .mq-hub-cards { grid-template-columns: 1fr; }
+}
+
+/* ---------------------------------------------------------------------------
+ * Importar aventura
+ * ------------------------------------------------------------------------- */
+
+.mq-import { display: flex; flex-direction: column; gap: 0.9rem; padding: 0.5rem 0.2rem; }
+.mq-import-header h1 {
+  margin: 0 0 0.2rem;
+  font-family: var(--mq-font-display);
+  letter-spacing: var(--mq-display-tracking);
+}
+.mq-import-header p { margin: 0; color: var(--mq-text-muted); font-size: 0.9em; }
+
+.mq-import-sources { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+.mq-import-source {
+  display: flex; flex-direction: column; gap: 0.15rem;
+  padding: 0.55rem 0.6rem; border: 1px solid var(--mq-border-strong);
+  border-radius: var(--mq-radius-2); cursor: pointer; background: var(--mq-surface-1);
+}
+.mq-import-source.is-active { border-color: var(--mq-accent); background: var(--mq-surface-2); }
+.mq-import-source input { margin-right: 0.35rem; }
+.mq-import-source-label { font-weight: 600; }
+.mq-import-source-hint { font-size: 0.78em; color: var(--mq-text-muted); line-height: 1.25; }
+
+.mq-import-panel { display: flex; flex-direction: column; gap: 0.5rem; }
+.mq-import-panel:empty { display: none; }
+
+.mq-import-plan {
+  border: 1px solid var(--mq-border); border-radius: var(--mq-radius-2);
+  padding: 0.6rem 0.7rem; background: var(--mq-surface-1);
+}
+.mq-import-plan h2 { margin: 0 0 0.35rem; font-size: 1em; }
+.mq-import-plan p { margin: 0.2rem 0; font-size: 0.9em; }
+.mq-import-plan .mq-box { max-height: 220px; overflow-y: auto; margin-top: 0.4rem; }
+.mq-import-plan-error { border-color: var(--mq-danger); background: var(--mq-surface-2); }
+
+.mq-import-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
+.mq-import-actions button[disabled] { opacity: 0.45; cursor: not-allowed; }
+
+/* ---------------------------------------------------------------------------
+ * Imagem da quest e seletor de arquivo
+ * ------------------------------------------------------------------------- */
+
+.mq-file-field { display: flex; gap: 0.35rem; align-items: center; }
+.mq-file-field input { flex: 1 1 auto; }
+.mq-browse {
+  flex: 0 0 auto; padding: 0.25rem 0.5rem; border-radius: var(--mq-radius-2);
+  border: 1px solid var(--mq-border-strong); background: var(--mq-surface-1); cursor: pointer;
+}
+.mq-browse:hover { background: var(--mq-surface-2); }
+
+.mq-quest-image-wrap { margin: 0 0 0.7rem; display: flex; flex-direction: column; gap: 0.35rem; }
+.mq-quest-image {
+  width: 100%; height: 150px; border-radius: var(--mq-radius-2);
+  background-size: cover; background-repeat: no-repeat;
+  border: 1px solid var(--mq-border);
+}
+.mq-quest-image-empty {
+  display: flex; align-items: center; justify-content: center;
+  height: 90px; color: var(--mq-text-muted); font-size: 0.85em; border-style: dashed;
+}
+.mq-quest-image-pick { align-self: flex-start; }
+
+.mq-primary-action {
+  background: var(--mq-accent);
+  border-color: var(--mq-accent);
+  color: var(--mq-on-accent);
+}
+.mq-primary-action:hover { background: var(--mq-accent-bright); }
+
+/* ---------------------------------------------------------------------------
+ * Rolagem das janelas
+ *
+ * `.window-content` do MasterQuest e `overflow: hidden` de proposito: quem rola e o
+ * corpo da janela, nao o quadro. Sem estas regras a lista de quests simplesmente era
+ * cortada — 27 inativas e nenhuma barra de rolagem.
+ * ------------------------------------------------------------------------- */
+
+.masterquest .mq-log,
+.masterquest .mq-details,
+.masterquest .mq-hub,
+.masterquest .mq-import {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  padding: var(--mq-space-3);
+  width: 100%;
+}
+
+/* O corpo rola; o cabecalho e as abas ficam fixos. */
+.masterquest .mq-log-body,
+.masterquest .mq-details-body,
+.masterquest .mq-import-panel-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.masterquest .mq-tabs,
+.masterquest .mq-log-header { flex: 0 0 auto; }
+
+/* O hub e a importacao crescem com o conteudo, mas nunca passam da viewport. */
+.masterquest .mq-hub,
+.masterquest .mq-import { max-height: calc(100vh - 80px); overflow-y: auto; }
+
+/* Barras de rolagem sobre papel. */
+.masterquest ::-webkit-scrollbar { width: 10px; }
+.masterquest ::-webkit-scrollbar-track { background: var(--mq-surface-2); border-radius: 5px; }
+.masterquest ::-webkit-scrollbar-thumb {
+  background: var(--mq-border-strong); border-radius: 5px;
+}
+.masterquest ::-webkit-scrollbar-thumb:hover { background: var(--mq-text-muted); }

@@ -1,0 +1,117 @@
+{
+  "caseId": "module_2_planning_seed",
+  "moduleTitle": "A Sun for Each Destiny",
+  "status": "historical_planning_seed",
+  "sourceRoot": "../../../../../../",
+  "sourceFiles": [
+    {
+      "id": "module_1_final_closeout",
+      "kind": "continuity_closeout",
+      "path": "03. Aventuras/Registros/Relatório Final de Encerramento - Módulo 1 - Ferrugem sob as Estrelas.md"
+    },
+    {
+      "id": "hell_raiders_faction",
+      "kind": "faction_source",
+      "path": "05. Facções/Hell-Raiders/Hell Raiders — Cátedra da Porta Queimada.md"
+    },
+    {
+      "id": "hashmonn_consolidated_storyline",
+      "kind": "metaplot_source",
+      "path": "05. Facções/Hell-Raiders/Storyline Consolidada - Dominic Mirage, Hashmonn, Professor Ricochete, Séquito e Hell Raiders.md"
+    }
+  ],
+  "generatedDocs": [
+    {
+      "id": "module2_planning_seed",
+      "path": "12. IA e Foundry Tools/Modulo MasterQuest/master-quest/docs/13_Module2_Planning_Seed.md"
+    },
+    {
+      "id": "module2_journal_fql_seed",
+      "path": "12. IA e Foundry Tools/Modulo MasterQuest/master-quest/docs/14_Module2_Journal_And_FQL_Seed.md"
+    }
+  ],
+  "adventurePlanSources": [
+    {
+      "id": "module2_plan",
+      "kind": "module_plan",
+      "path": "03. Aventuras/Aventura 2 - A Sun for Each Destiny - Módulo 2/Módulo 2/Planos antigos/PLANO - MÓDULO 2 — TÍTULO A DEFINIR.md"
+    },
+    {
+      "id": "act_1_mainframe",
+      "kind": "act_source",
+      "path": "03. Aventuras/Aventura 2 - A Sun for Each Destiny - Módulo 2/Módulo 2/Planos antigos/ATO I - O MAINFRAME SOB AS ESTRELAS.md"
+    },
+    {
+      "id": "act_2_fragment_race",
+      "kind": "act_source",
+      "path": "03. Aventuras/Aventura 2 - A Sun for Each Destiny - Módulo 2/Módulo 2/Planos antigos/ATO II - A CORRIDA DOS FRAGMENTOS.md"
+    },
+    {
+      "id": "act_3_burned_door",
+      "kind": "act_source",
+      "path": "03. Aventuras/Aventura 2 - A Sun for Each Destiny - Módulo 2/Módulo 2/Planos antigos/ATO III - A PORTA QUEIMADA.md"
+    },
+    {
+      "id": "act_1_mainframe_encounters",
+      "kind": "act_appendix",
+      "path": "03. Aventuras/Aventura 2 - A Sun for Each Destiny - Módulo 2/Módulo 2/ANEXO ATO I - ENCONTROS E PRESSOES NO CAMINHO DO MAINFRAME.md"
+    }
+  ],
+  "mapReference": {
+    "providedByUser": true,
+    "description": "Campo das Estrelas Cadentes map crop with three satellite-fragment focal points. Exact canonical marker mapping remains an open decision."
+  },
+  "fragments": [
+    {
+      "id": "mainframe",
+      "name": "Mainframe",
+      "journalEntryRequired": true,
+      "playerChosenFirst": true,
+      "primaryFunction": "deep data source and first expedition objective"
+    },
+    {
+      "id": "energy_core",
+      "name": "Energy Core",
+      "journalEntryRequired": true,
+      "playerChosenFirst": false,
+      "primaryFunction": "Aethera power source and Anunnaki ignition key"
+    },
+    {
+      "id": "antenna_telemetry_hull",
+      "name": "Antenna / Telemetry Hull",
+      "journalEntryRequired": true,
+      "playerChosenFirst": false,
+      "primaryFunction": "Starwalker-IX nameplate, signal vector, and Outpost 87 clue"
+    }
+  ],
+  "outpost87DiscoveryRule": {
+    "oneFragment": "clues and foreshadowing only",
+    "twoFragments": "existence and rough direction of Outpost 87",
+    "threeFragments": "precise coordinates and technical proof",
+    "escapeValve": "two fragments plus strong Dramatic Task raises may substitute for the missing third fragment"
+  },
+  "clocks": [
+    "pc_mainframe_expedition",
+    "mainframe_approach_exploration",
+    "shizuka_to_hell_raiders",
+    "energy_core_extraction",
+    "tarekh_claim_over_third_fragment",
+    "hell_raiders_sequito_control",
+    "outpost87_signal_reconstruction",
+    "steel_vultures_on_the_trail",
+    "active_dimensional_rift_instability",
+    "rust_hollow_pressure"
+  ],
+  "journalEntries": [
+    "00. Como Usar este Módulo",
+    "01. Premissa e Estrutura Geral",
+    "02. Elenco, Facções e Relógios",
+    "03. Ponto 1 - Mainframe",
+    "04. Ponto 2 - Energy Core",
+    "05. Ponto 3 - Antenna / Telemetry Hull",
+    "06. Hell Raiders e Ruínas Anunnaki",
+    "07. Outpost 87 e Reconstrução do Sinal",
+    "08. Handouts - Módulo 2"
+  ],
+  "supersededBy": "fixtures/module_2/a_sun_for_each_destiny/journal-corpus.index.json"
+}

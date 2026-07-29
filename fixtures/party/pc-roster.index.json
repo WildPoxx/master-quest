@@ -1,0 +1,32 @@
+{
+  "title": "PC Anchor Baseline",
+  "sourceFolder": "04. Personagens/PCs/Fichas-FVTT-PCs",
+  "observedAt": "2026-06-23",
+  "files": [
+    {
+      "name": "fvtt-Actor-damaske-(11.06.26).json",
+      "label": "Damaske"
+    },
+    {
+      "name": "fvtt-Actor-Grit-(11.06.26).json",
+      "label": "Sh’tahr \"Grit\" Kryll"
+    },
+    {
+      "name": "fvtt-Actor-galen-namar-(11.06.26)json.json",
+      "label": "Galen Namar"
+    },
+    {
+      "name": "fvtt-Actor-jax-vale-(11.06.26).json",
+      "label": "Jax Vale"
+    },
+    {
+      "name": "fvtt-Actor-kaelen-(11.06.26).json",
+      "label": "Kaelen"
+    },
+    {
+      "name": "fvtt-Actor-veyriss-varkesh-(23.06.26).json",
+      "label": "Veyriss Varkesh"
+    }
+  ],
+  "usageRule": "Before using this roster as design guidance, confirm whether the folder still contains the current PC versions and whether the active adventure uses all of them or only a subset."
+}

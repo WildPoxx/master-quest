@@ -1,0 +1,87 @@
+{
+  "caseId": "module_2_a_sun_for_each_destiny_journal_corpus",
+  "moduleTitle": "A Sun for Each Destiny",
+  "status": "active_foundry_journal_baseline",
+  "sourceRoot": "../../../../../../",
+  "adventureRoot": "03. Aventuras/Aventura 2 - A Sun for Each Destiny - Módulo 2",
+  "journalFolderName": "Modulo 2 - A Sun for each Destiny",
+  "focus": "MasterQuest must treat these Journal exports as the current GM-control corpus for Module 2.",
+  "sourceFiles": [
+    {
+      "id": "act_1_junkyard_hounds",
+      "kind": "act_source",
+      "path": "03. Aventuras/Aventura 2 - A Sun for Each Destiny - Módulo 2/Módulo 2/ATO I - The Junkyard Hounds.md"
+    },
+    {
+      "id": "act_1_post_session_01_addendum",
+      "kind": "act_addendum",
+      "path": "03. Aventuras/Aventura 2 - A Sun for Each Destiny - Módulo 2/ATO I - The Junkyard Hounds - Adendo Pos-Sessao 01.md"
+    },
+    {
+      "id": "act_2_kryll_preview",
+      "kind": "act_source_preview",
+      "path": "03. Aventuras/Aventura 2 - A Sun for Each Destiny - Módulo 2/Módulo 2/Ato II - Bones, Blood and Honor/ATO II - A Cacada de Kryll - Versao Previa.md"
+    },
+    {
+      "id": "act_3_burned_door_preview",
+      "kind": "act_source_preview",
+      "path": "03. Aventuras/Aventura 2 - A Sun for Each Destiny - Módulo 2/Módulo 2/ATO III - A Porta Queimada - Versao Previa.md"
+    }
+  ],
+  "journalExports": [
+    {
+      "id": "module2_how_to_use",
+      "expectedName": "00. Como Usar este Módulo",
+      "expectedPageCount": 1,
+      "path": "03. Aventuras/Aventura 2 - A Sun for Each Destiny - Módulo 2/Journals/fvtt-JournalEntry-00.-como-usar-este-modulo-8JJrfdqSI3ITHTcx.json"
+    },
+    {
+      "id": "module2_premise_structure",
+      "expectedName": "01. Premissa e Estrutura Geral",
+      "expectedPageCount": 1,
+      "path": "03. Aventuras/Aventura 2 - A Sun for Each Destiny - Módulo 2/Journals/fvtt-JournalEntry-01.-premissa-e-estrutura-geral-MAw51sWAM05QEQeI.json"
+    },
+    {
+      "id": "module2_cast_factions_clocks",
+      "expectedName": "02. Elenco, Facções e Relógios",
+      "expectedPageCount": 2,
+      "path": "03. Aventuras/Aventura 2 - A Sun for Each Destiny - Módulo 2/Journals/fvtt-JournalEntry-02.-elenco,-faccoes-e-relogios-coSqWB9Icpa8SWoe.json"
+    },
+    {
+      "id": "module2_act_1_junkyard_hounds",
+      "expectedName": "03. Ato I — The Junkyard Hounds",
+      "expectedPageCount": 3,
+      "path": "03. Aventuras/Aventura 2 - A Sun for Each Destiny - Módulo 2/Journals/fvtt-JournalEntry-03.-ato-i-—-the-junkyard-hounds-Tgi4sfr3j2JN0yLd.json"
+    },
+    {
+      "id": "module2_act_2_kryll",
+      "expectedName": "04. Ato II — A Caçada de Kryll",
+      "expectedPageCount": 1,
+      "path": "03. Aventuras/Aventura 2 - A Sun for Each Destiny - Módulo 2/Journals/fvtt-JournalEntry-04.-ato-ii-—-a-cacada-de-kryll-IENfVxSZGLpizDhk.json"
+    },
+    {
+      "id": "module2_act_3_burned_door",
+      "expectedName": "05. Ato III — A Porta Queimada",
+      "expectedPageCount": 1,
+      "path": "03. Aventuras/Aventura 2 - A Sun for Each Destiny - Módulo 2/Journals/fvtt-JournalEntry-05.-ato-iii-—-a-porta-queimada-pvt88aQ62vHAkJgU.json"
+    },
+    {
+      "id": "module2_handouts",
+      "expectedName": "06. Handouts — Módulo 2",
+      "expectedPageCount": 1,
+      "path": "03. Aventuras/Aventura 2 - A Sun for Each Destiny - Módulo 2/Journals/fvtt-JournalEntry-06.-handouts-—-modulo-2-qRxdeUW4zdOlPXt8.json"
+    },
+    {
+      "id": "module2_post_session_update",
+      "expectedName": "07. Atualização Pós-Sessão",
+      "expectedPageCount": 1,
+      "path": "03. Aventuras/Aventura 2 - A Sun for Each Destiny - Módulo 2/Journals/fvtt-JournalEntry-07.-atualizacao-pos-sessao-Qa0sNBxwfEcezH7H.json"
+    }
+  ],
+  "controlPanelImplications": [
+    "The hack must index adventure Journals independently from FQL quest flags.",
+    "The index is metadata-first: entry names, folder, page names, page counts, sort order, and links.",
+    "Journal page text must not be exposed by default through public API calls.",
+    "FQL quests and Journal structure remain separate read models until a GM-approved update flow connects them."
+  ]
+}
