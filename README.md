@@ -98,4 +98,4 @@ manifest na aba [Releases](https://github.com/WildPoxx/master-quest/releases).
 Código sob licença [MIT](LICENSE). Fonte Cinzel (SIL OFL 1.1) embarcada em
 `styles/fonts/`; Signika é distribuída pelo próprio Foundry.
 
-— Mario Bastos / OutsiderS — Lost Frontier
+— WyldPoxx
