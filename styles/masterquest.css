@@ -39,6 +39,12 @@
   letter-spacing: var(--mq-display-tracking);
 }
 
+/* Headings dentro do documento usam tinta — sem isso herdam a cor de
+ * heading do tema escuro do core e somem no papel (visto em mesa, 0.14.0). */
+.masterquest .window-content :where(h1, h2, h3, h4, h5) {
+  color: var(--mq-text);
+}
+
 /* Console de criacao ------------------------------------------------------ */
 
 .masterquest-console {
@@ -502,6 +508,7 @@
 .masterquest .mq-quest-title { cursor: pointer; flex: 1; min-width: 0; }
 .masterquest .mq-quest-title h3 {
   border: none;
+  color: var(--mq-text);
   font-family: var(--mq-font-display);
   font-size: var(--mq-text-md);
   letter-spacing: var(--mq-display-tracking);
@@ -784,11 +791,14 @@
 
 .mq-file-field { display: flex; gap: 0.35rem; align-items: center; }
 .mq-file-field input { flex: 1 1 auto; }
-.mq-browse {
+.mq-browse,
+.mq-quest-image-pick {
+  color: var(--mq-accent);
   flex: 0 0 auto; padding: 0.25rem 0.5rem; border-radius: var(--mq-radius-2);
   border: 1px solid var(--mq-border-strong); background: var(--mq-surface-1); cursor: pointer;
 }
-.mq-browse:hover { background: var(--mq-surface-2); }
+.mq-browse:hover,
+.mq-quest-image-pick:hover { background: var(--mq-surface-2); }
 
 .mq-quest-image-wrap { margin: 0 0 0.7rem; display: flex; flex-direction: column; gap: 0.35rem; }
 .mq-quest-image {
