@@ -4,7 +4,7 @@
   "description": "Native Foundry VTT adventure and quest authoring module for GM operations, campaign continuity, and controlled export previews. FQL snapshots and SWADE support are optional profiles, not required dependencies.",
   "authors": [
     {
-      "name": "WyldPoxx"
+      "name": "WildPoxx"
     }
   ],
   "version": "0.15.0",
