@@ -161,12 +161,14 @@ export function buildQuestDetailsViewModel(quest, {
       revealed: isGM || !reward.locked
     }));
 
-  const tabs = [
-    { id: "details", label: "Detalhes", active: activeTab === "details" },
-    { id: "playernotes", label: "Notas de Jogador", active: activeTab === "playernotes" }
-  ];
-  if (isGM) tabs.push({ id: "gmnotes", label: "Notas do GM", active: activeTab === "gmnotes" });
-  if (canEdit) tabs.push({ id: "management", label: "Gerenciar", active: activeTab === "management" });
+  // Tab order is deliberate: the GM Panel sits SECOND, right after Details, because it is
+  // where the GM runs the quest at the table (DIR-05). The `gmnotes` key is unchanged —
+  // only the role and the label moved. Players never see it: the isGM guard below is the
+  // same visibility invariant as before.
+  const tabs = [{ id: "details", label: "Details", active: activeTab === "details" }];
+  if (isGM) tabs.push({ id: "gmnotes", label: "GM Panel", active: activeTab === "gmnotes" });
+  tabs.push({ id: "playernotes", label: "Player Notes", active: activeTab === "playernotes" });
+  if (canEdit) tabs.push({ id: "management", label: "Manage", active: activeTab === "management" });
 
   return {
     id: quest.id,

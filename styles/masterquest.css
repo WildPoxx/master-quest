@@ -678,11 +678,16 @@
 .masterquest .mq-field { display: flex; flex-direction: column; gap: 3px; margin: 8px 0; }
 .masterquest .mq-field span { font-size: var(--mq-text-sm); color: var(--mq-text-muted); }
 
+/* Splash art: 2:1 instead of a fixed 140px strip, which cropped wide art to a letterbox
+ * sliver at usual window widths (observed in play, OBS-01). */
 .masterquest .mq-splash {
   background-size: cover;
+  background-position: center;
   border: 1px solid var(--mq-border-strong);
   border-radius: var(--mq-radius-2);
-  height: 140px;
+  aspect-ratio: 2 / 1;
+  width: 100%;
+  max-height: 340px;
 }
 
 .masterquest .mq-splash-empty {
@@ -693,6 +698,140 @@
 }
 
 .masterquest .mq-subquest-item h3 { border: none; cursor: pointer; flex: 1; font-size: var(--mq-text-sm); margin: 0; }
+
+/* GM Panel ---------------------------------------------------------
+ *
+ * The panel holds the fascicle: sections, lists, a correlation table. It has to be
+ * skimmable mid-session, so headings must carry weight and the table must be readable
+ * at a glance. Every value is a token — the skin owns the look (DEC-018).
+ * ------------------------------------------------------------------ */
+
+.masterquest .mq-notes-header {
+  align-items: center;
+  display: flex;
+  gap: var(--mq-space-3);
+  justify-content: space-between;
+  margin-bottom: var(--mq-space-3);
+}
+
+.masterquest .mq-notes-header h2 {
+  border-bottom: 2px solid var(--mq-accent-bright);
+  color: var(--mq-text);
+  font-family: var(--mq-font-display);
+  font-size: var(--mq-text-xl);
+  letter-spacing: var(--mq-display-tracking);
+  margin: 0;
+  padding-bottom: var(--mq-space-1);
+}
+
+.masterquest .mq-notes-toggle {
+  background: var(--mq-surface-1);
+  border: 1px solid var(--mq-border-strong);
+  border-radius: var(--mq-radius-2);
+  color: var(--mq-accent);
+  cursor: pointer;
+  flex: 0 0 auto;
+  font-size: var(--mq-text-sm);
+  padding: 3px 10px;
+  width: auto;
+}
+
+.masterquest .mq-notes-toggle:hover { background: var(--mq-surface-2); }
+.masterquest .mq-notes-read { min-height: 120px; }
+
+/* Fascicle typography: the imported document, dressed as parchment. */
+.masterquest .mq-panel-doc h1,
+.masterquest .mq-panel-doc h2 {
+  border-bottom: 2px solid var(--mq-accent-bright);
+  color: var(--mq-text);
+  font-family: var(--mq-font-display);
+  font-size: var(--mq-text-lg);
+  letter-spacing: var(--mq-display-tracking);
+  margin: var(--mq-space-5) 0 var(--mq-space-2);
+  padding-bottom: 2px;
+}
+
+.masterquest .mq-panel-doc h1:first-child,
+.masterquest .mq-panel-doc h2:first-child { margin-top: 0; }
+
+.masterquest .mq-panel-doc h3,
+.masterquest .mq-panel-doc h4 {
+  color: var(--mq-accent);
+  font-family: var(--mq-font-display);
+  font-size: var(--mq-text-md);
+  letter-spacing: var(--mq-display-tracking);
+  margin: var(--mq-space-4) 0 var(--mq-space-1);
+}
+
+.masterquest .mq-panel-doc p { margin: 0 0 var(--mq-space-2); }
+.masterquest .mq-panel-doc ul,
+.masterquest .mq-panel-doc ol { margin: 0 0 var(--mq-space-3); padding-left: var(--mq-space-5); }
+.masterquest .mq-panel-doc li { margin-bottom: var(--mq-space-1); }
+
+.masterquest .mq-panel-doc hr {
+  border: none;
+  border-top: 1px solid var(--mq-border-strong);
+  margin: var(--mq-space-4) 0;
+}
+
+.masterquest .mq-panel-doc blockquote {
+  border-left: 3px solid var(--mq-accent-bright);
+  color: var(--mq-text-muted);
+  margin: 0 0 var(--mq-space-3);
+  padding: var(--mq-space-1) var(--mq-space-3);
+}
+
+.masterquest .mq-panel-doc table {
+  border-collapse: collapse;
+  margin: 0 0 var(--mq-space-3);
+  width: 100%;
+}
+
+.masterquest .mq-panel-doc th,
+.masterquest .mq-panel-doc td {
+  border: 1px solid var(--mq-border);
+  padding: var(--mq-space-2);
+  text-align: left;
+  vertical-align: top;
+}
+
+.masterquest .mq-panel-doc th {
+  background: var(--mq-surface-2);
+  font-family: var(--mq-font-display);
+  font-size: var(--mq-text-sm);
+  letter-spacing: var(--mq-display-tracking);
+}
+
+/* Live content links: the whole point of the panel. Bronze, underlined on hover, with
+ * the little document icon Foundry injects kept in the flow. */
+.masterquest .mq-panel-doc a.content-link,
+.masterquest .mq-panel-doc a.inline-roll,
+.masterquest .mq-notes-read a.content-link,
+.masterquest .mq-notes-read a.inline-roll {
+  background: var(--mq-surface-2);
+  border: 1px solid var(--mq-border-strong);
+  border-radius: var(--mq-radius-1);
+  color: var(--mq-accent);
+  padding: 0 4px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.masterquest .mq-panel-doc a.content-link:hover,
+.masterquest .mq-notes-read a.content-link:hover {
+  background: var(--mq-highlight-bg);
+  color: var(--mq-text);
+}
+
+.masterquest .mq-panel-doc a.content-link i,
+.masterquest .mq-notes-read a.content-link i { margin-right: 3px; }
+
+/* A broken link must look broken, or the GM trusts a dead reference at the table. */
+.masterquest .mq-panel-doc a.content-link.broken,
+.masterquest .mq-notes-read a.content-link.broken {
+  border-color: var(--mq-danger);
+  color: var(--mq-danger);
+}
 
 /* Hub -------------------------------------------------------------- */
 

@@ -8,6 +8,7 @@
 import { MODULE_ID } from "../constants.js";
 import { filterHeaderControls } from "../foundry/window-controls.js";
 import { notifyWarning } from "../foundry/environment.js";
+import { enrichQuestHtml } from "../foundry/enrich.js";
 import {
   createQuest,
   getPrimaryQuestId,
@@ -110,6 +111,10 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
       this.ui = ui;
       this.onChange = onChange;
       this.activeTab = "details";
+      // Which rich-text field is open for editing, if any. Reading and editing are two
+      // different views of the same field: reading shows live links, editing shows the
+      // author's source. Only one field edits at a time.
+      this.editingField = null;
     }
 
     get quest() {
@@ -123,16 +128,27 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
       if (!quest) return { ...context, model: null };
 
       const isGM = this.game?.user?.isGM === true;
-      return {
-        ...context,
-        model: buildQuestDetailsViewModel(quest, {
-          isGM,
-          canEdit: isGM || quest.entry?.canUserModify?.(this.game?.user, "update") === true,
-          primaryQuestId: getPrimaryQuestId({ game: this.game }),
-          allQuests: readAllQuests({ game: this.game }),
-          activeTab: this.activeTab
-        })
+      const model = buildQuestDetailsViewModel(quest, {
+        isGM,
+        canEdit: isGM || quest.entry?.canUserModify?.(this.game?.user, "update") === true,
+        primaryQuestId: getPrimaryQuestId({ game: this.game }),
+        allQuests: readAllQuests({ game: this.game }),
+        activeTab: this.activeTab
+      });
+
+      // Enrichment happens HERE, not inside the render functions. This step is async
+      // (Foundry resolves each UUID against the world) and this method is already async,
+      // so the string builders below stay synchronous and unit-testable outside Foundry.
+      model.editingField = this.editingField;
+      model.enriched = {
+        description: await enrichQuestHtml(model.description),
+        playernotes: await enrichQuestHtml(model.playernotes),
+        // secrets: true — the GM Panel tab only exists for GMs (isGM guard in the view
+        // model), so hiding the GM's own secret blocks from them would serve nobody.
+        gmnotes: isGM ? await enrichQuestHtml(model.gmnotes, { secrets: true }) : ""
       };
+
+      return { ...context, model };
     }
 
     async _renderHTML(context) {
@@ -165,6 +181,28 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
           event.preventDefault();
           this.activeTab = tab.dataset.tabTarget;
           this.render({ force: false });
+        });
+      });
+
+      // Edit / Done toggle for the rich-text tabs. Switching to editing shows the source;
+      // switching back re-renders, which re-runs enrichment and brings the links back.
+      root.querySelectorAll("[data-action='edit-notes'], [data-action='finish-notes']").forEach((button) => {
+        button.addEventListener("click", async (event) => {
+          event.preventDefault();
+          const opening = button.dataset.action === "edit-notes";
+          // Commit whatever is in the open editor before leaving edit mode; the blur
+          // handler usually fires first, but clicking Done directly can beat it.
+          if (!opening) {
+            const editor = root.querySelector(`[data-field='${button.dataset.field}'][contenteditable]`);
+            const quest = this.quest;
+            if (editor && quest && String(quest[button.dataset.field] ?? "") !== editor.innerHTML) {
+              this.editingField = null;
+              await this.commit((draft) => ({ ...draft, [button.dataset.field]: editor.innerHTML }));
+              return;
+            }
+          }
+          this.editingField = opening ? button.dataset.field : null;
+          await this.render({ force: false });
         });
       });
 
@@ -473,8 +511,8 @@ export function renderQuestDetails(model) {
 
   const bodies = {
     details: renderDetailsTab(model),
-    playernotes: renderNotesTab(model, "playernotes", "Notas de Jogador"),
-    gmnotes: renderNotesTab(model, "gmnotes", "Notas do GM"),
+    playernotes: renderNotesTab(model, "playernotes", "Player Notes"),
+    gmnotes: renderNotesTab(model, "gmnotes", "GM Panel"),
     management: renderManagementTab(model)
   };
 
@@ -629,14 +667,44 @@ function renderReward(reward, model) {
   `;
 }
 
+/**
+ * A rich-text tab has two states, and they must never be confused:
+ *
+ *   READING — enriched HTML. `@UUID[...]` has become a clickable link to the Journal,
+ *             Actor or macro. This is what the GM stares at while running the table.
+ *   EDITING — the raw stored source, in a contenteditable box. Links are inert here ON
+ *             PURPOSE: saving enriched HTML back would replace the author's `@UUID`
+ *             source with generated anchors and quietly destroy the link on next edit.
+ *
+ * Hence the explicit Edit / Done toggle rather than an always-editable box.
+ */
 function renderNotesTab(model, field, label) {
-  const value = model[field] ?? "";
+  const isEditing = model.canEdit && model.editingField === field;
+  const enriched = model.enriched?.[field] ?? safeHtml(model[field] ?? "");
+  const isPanel = field === "gmnotes";
+
+  const toggle = model.canEdit
+    ? `<button type="button" class="mq-notes-toggle" data-action="${isEditing ? "finish-notes" : "edit-notes"}"
+        data-field="${esc(field)}">
+        <i class="fa-solid ${isEditing ? "fa-check" : "fa-pen-to-square"}" inert></i>
+        ${isEditing ? "Done" : "Edit"}
+      </button>`
+    : "";
+
+  const body = isEditing
+    ? `<div class="mq-editable-html mq-notes-editor" contenteditable="true"
+        data-field="${esc(field)}">${safeHtml(model[field] ?? "")}</div>`
+    : `<div class="${cls("mq-readonly-html", "mq-notes-read", isPanel && "mq-panel-doc")}">${
+        enriched || `<p class="mq-empty">Nothing here yet.</p>`
+      }</div>`;
+
   return `
-    <section class="mq-notes">
-      <h2>${esc(label)}</h2>
-      ${model.canEdit
-        ? `<div class="mq-editable-html mq-notes-editor" contenteditable="true" data-field="${esc(field)}">${safeHtml(value)}</div>`
-        : `<div class="mq-readonly-html">${safeHtml(value)}</div>`}
+    <section class="${cls("mq-notes", isPanel && "mq-gm-panel")}">
+      <header class="mq-notes-header">
+        <h2>${esc(label)}</h2>
+        ${toggle}
+      </header>
+      ${body}
     </section>
   `;
 }
