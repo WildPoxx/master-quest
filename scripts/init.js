@@ -89,9 +89,17 @@ Hooks.on("getSceneControlButtons", (controls) => {
         button: true,
         onChange: () => api.masterQuest.openAuthoringConsole()
       },
+      "import-adventure": {
+        name: "import-adventure",
+        order: 3,
+        title: "Importar aventura",
+        icon: "fa-solid fa-book-atlas",
+        button: true,
+        onChange: () => api.masterQuest.openImport()
+      },
       hub: {
         name: "hub",
-        order: 3,
+        order: 4,
         title: "MasterQuest",
         icon: "fa-solid fa-scroll",
         button: true,

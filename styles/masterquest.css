@@ -1005,3 +1005,12 @@
   background: var(--mq-border-strong); border-radius: 5px;
 }
 .masterquest ::-webkit-scrollbar-thumb:hover { background: var(--mq-text-muted); }
+
+
+/* Zona de drop do GM Panel e do Player Notes (0.17.0).
+   Realce discreto: o painel e superficie de leitura em mesa, nao formulario. */
+.mq-notes [data-drop-field].mq-drop-hover {
+  outline: 2px dashed var(--mq-accent);
+  outline-offset: -4px;
+  background: var(--mq-surface-2);
+}

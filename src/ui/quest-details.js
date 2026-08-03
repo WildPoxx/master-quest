@@ -7,8 +7,9 @@
 
 import { MODULE_ID } from "../constants.js";
 import { filterHeaderControls } from "../foundry/window-controls.js";
-import { notifyWarning } from "../foundry/environment.js";
+import { notifyInfo, notifyWarning } from "../foundry/environment.js";
 import { enrichQuestHtml } from "../foundry/enrich.js";
+import { buildUuidLink, describeDrop, readDropPayload } from "../foundry/drop-link.js";
 import {
   createQuest,
   getPrimaryQuestId,
@@ -209,6 +210,7 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
       });
 
       this.activateFieldEditors(root);
+      this.activateNotesDrop(root);
       this.activateObjectiveHandlers(root);
       this.activateRewardHandlers(root);
       this.activateManagementHandlers(root);
@@ -267,6 +269,56 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
           const picked = await pickFilePath({ type: "image", current, title: "Imagem da quest" });
           if (!picked || picked === current) return;
           await this.commit((draft) => ({ ...draft, [key]: picked }));
+        });
+      });
+    }
+
+    /**
+     * Arrastar um documento do Foundry para dentro do painel e solta-lo como `@UUID[...]{Nome}`.
+     *
+     * Dois estados, dois comportamentos, pelo mesmo motivo que Edit e Done existem (DEC-025):
+     *   EDITANDO — insere no ponto exato onde o cursor soltou, e grava.
+     *   LENDO    — acrescenta ao fim do texto-fonte e grava, avisando. Nao ha cursor em modo
+     *              leitura, e obrigar a entrar em edicao so para receber um link seria atrito.
+     *
+     * Em ambos os casos gravamos a FONTE (`@UUID[...]`), nunca a ancora enriquecida.
+     */
+    activateNotesDrop(root) {
+      root.querySelectorAll("[data-drop-field]").forEach((zone) => {
+        zone.addEventListener("dragover", (event) => {
+          event.preventDefault(); // sem isto o navegador recusa o drop
+          zone.classList.add("mq-drop-hover");
+        });
+        zone.addEventListener("dragleave", () => zone.classList.remove("mq-drop-hover"));
+
+        zone.addEventListener("drop", async (event) => {
+          zone.classList.remove("mq-drop-hover");
+
+          const payload = readDropPayload(event.dataTransfer?.getData("text/plain"));
+          if (!payload) return; // texto solto ou arquivo: deixa o navegador seguir seu curso
+
+          event.preventDefault();
+          event.stopPropagation();
+
+          const field = zone.dataset.dropField;
+          const quest = this.quest;
+          if (!field || !quest) return;
+
+          const described = await describeDrop(payload);
+          const link = buildUuidLink(described?.uuid, described?.name);
+          if (!link) return;
+
+          if (zone.isContentEditable) {
+            insertTextAtDropPoint(zone, link, event);
+            await this.commit((draft) => ({ ...draft, [field]: zone.innerHTML }));
+          } else {
+            const current = String(quest[field] ?? "");
+            await this.commit((draft) => ({ ...draft, [field]: `${current}<p>${link}</p>` }));
+            notifyInfo(
+              `Link para ${described?.name ?? described?.uuid} adicionado ao fim do painel.`,
+              this.ui
+            );
+          }
         });
       });
     }
@@ -692,6 +744,26 @@ function renderReward(reward, model) {
  *
  * Hence the explicit Edit / Done toggle rather than an always-editable box.
  */
+/**
+ * Insere texto no ponto onde o documento foi solto. Sem isto o link cairia sempre no fim,
+ * que e util em leitura mas errado quando o Mestre mira um paragrafo especifico.
+ */
+function insertTextAtDropPoint(host, text, event) {
+  const doc = host.ownerDocument;
+  let range = null;
+
+  if (typeof doc.caretRangeFromPoint === "function") {
+    range = doc.caretRangeFromPoint(event.clientX, event.clientY);
+  }
+  // Fora da caixa, ou navegador sem caretRangeFromPoint: cai para o fim do conteudo.
+  if (!range || !host.contains(range.startContainer)) {
+    range = doc.createRange();
+    range.selectNodeContents(host);
+    range.collapse(false);
+  }
+  range.insertNode(doc.createTextNode(text));
+}
+
 function renderNotesTab(model, field, label) {
   const isEditing = model.canEdit && model.editingField === field;
   const enriched = model.enriched?.[field] ?? safeHtml(model[field] ?? "");
@@ -705,11 +777,17 @@ function renderNotesTab(model, field, label) {
       </button>`
     : "";
 
+  // data-drop-field marca a zona que aceita documentos arrastados. Vale nos DOIS estados:
+  // editando insere no ponto onde soltou; lendo acrescenta ao fim e salva (ver activateNotesDrop).
   const body = isEditing
     ? `<div class="mq-editable-html mq-notes-editor" contenteditable="true"
-        data-field="${esc(field)}">${safeHtml(model[field] ?? "")}</div>`
-    : `<div class="${cls("mq-readonly-html", "mq-notes-read", isPanel && "mq-panel-doc")}">${
-        enriched || `<p class="mq-empty">Nothing here yet.</p>`
+        data-field="${esc(field)}" data-drop-field="${esc(field)}">${safeHtml(model[field] ?? "")}</div>`
+    : `<div class="${cls("mq-readonly-html", "mq-notes-read", isPanel && "mq-panel-doc")}"
+        ${model.canEdit ? `data-drop-field="${esc(field)}"` : ""}>${
+        enriched ||
+        `<p class="mq-empty">${
+          model.canEdit ? "Arraste um Ator, Journal ou Macro aqui, ou clique em Edit." : "Nothing here yet."
+        }</p>`
       }</div>`;
 
   return `
