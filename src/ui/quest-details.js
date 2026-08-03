@@ -190,18 +190,20 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
         button.addEventListener("click", async (event) => {
           event.preventDefault();
           const opening = button.dataset.action === "edit-notes";
+          // O alvo vem em data-target-field, NUNCA em data-field: ver activateFieldEditors.
+          const target = button.dataset.targetField;
           // Commit whatever is in the open editor before leaving edit mode; the blur
           // handler usually fires first, but clicking Done directly can beat it.
           if (!opening) {
-            const editor = root.querySelector(`[data-field='${button.dataset.field}'][contenteditable]`);
+            const editor = root.querySelector(`[data-field='${target}'][contenteditable]`);
             const quest = this.quest;
-            if (editor && quest && String(quest[button.dataset.field] ?? "") !== editor.innerHTML) {
+            if (editor && quest && String(quest[target] ?? "") !== editor.innerHTML) {
               this.editingField = null;
-              await this.commit((draft) => ({ ...draft, [button.dataset.field]: editor.innerHTML }));
+              await this.commit((draft) => ({ ...draft, [target]: editor.innerHTML }));
               return;
             }
           }
-          this.editingField = opening ? button.dataset.field : null;
+          this.editingField = opening ? target : null;
           await this.render({ force: false });
         });
       });
@@ -222,10 +224,22 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
       });
     }
 
-    /** Inline text and rich-text fields commit on blur. */
+    /**
+     * Inline text and rich-text fields commit on blur.
+     *
+     * O SELETOR E ESTREITO DE PROPOSITO. Ate a 0.16.0 ele era `[data-field]`, e qualquer
+     * elemento com esse atributo entrava no commit-on-blur — inclusive <button>. Um botao
+     * tem `.value` == "" e nao e contenteditable, entao perder o foco gravava string vazia
+     * por cima do campo: o clique em "Edit" do GM Panel apagava o painel inteiro (DEC-026).
+     * So input, textarea, select e caixas contenteditable podem gravar. Botoes declaram seu
+     * alvo em `data-target-field`.
+     */
     activateFieldEditors(root) {
-      root.querySelectorAll("[data-field]").forEach((field) => {
+      const EDITABLE = "input[data-field], textarea[data-field], select[data-field], [data-field][contenteditable]";
+      root.querySelectorAll(EDITABLE).forEach((field) => {
         field.addEventListener("blur", async () => {
+          // Segunda trava, caso o seletor volte a afrouxar um dia.
+          if (field.tagName === "BUTTON") return;
           const key = field.dataset.field;
           const value = field.isContentEditable ? field.innerHTML : field.value;
           const quest = this.quest;
@@ -237,7 +251,7 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
       root.querySelectorAll("[data-action='pick-image']").forEach((button) => {
         button.addEventListener("click", async (event) => {
           event.preventDefault();
-          const key = button.dataset.field || "splash";
+          const key = button.dataset.targetField || "splash";
           const { hasFilePicker, pickFilePath } = await import("../foundry/file-picker.js");
 
           if (!hasFilePicker()) {
@@ -685,7 +699,7 @@ function renderNotesTab(model, field, label) {
 
   const toggle = model.canEdit
     ? `<button type="button" class="mq-notes-toggle" data-action="${isEditing ? "finish-notes" : "edit-notes"}"
-        data-field="${esc(field)}">
+        data-target-field="${esc(field)}">
         <i class="fa-solid ${isEditing ? "fa-check" : "fa-pen-to-square"}" inert></i>
         ${isEditing ? "Done" : "Edit"}
       </button>`
@@ -738,7 +752,7 @@ function renderManagementTab(model) {
           <span>Splash art</span>
           <span class="mq-file-field">
             <input type="text" data-field="splash" value="${esc(model.splash)}" placeholder="caminho/da/imagem.webp">
-            <button type="button" class="mq-browse" data-action="pick-image" data-field="splash"
+            <button type="button" class="mq-browse" data-action="pick-image" data-target-field="splash"
               title="Procurar no diretório do Foundry"><i class="fa-solid fa-folder-open" inert></i></button>
           </span>
         </label>
@@ -776,7 +790,7 @@ export function renderQuestImage(model, where = "details") {
     : `<div class="mq-quest-image mq-quest-image-empty"><span>Sem imagem</span></div>`;
 
   const control = model.canEdit
-    ? `<button type="button" class="mq-browse mq-quest-image-pick" data-action="pick-image" data-field="splash"
+    ? `<button type="button" class="mq-browse mq-quest-image-pick" data-action="pick-image" data-target-field="splash"
         data-where="${esc(where)}">
         <i class="fa-solid fa-image" inert></i> ${model.splash ? "Trocar imagem" : "Escolher imagem"}</button>`
     : "";
