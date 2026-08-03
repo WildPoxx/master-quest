@@ -9,7 +9,6 @@ import { MODULE_ID } from "../constants.js";
 import { filterHeaderControls } from "../foundry/window-controls.js";
 import { notifyInfo, notifyWarning } from "../foundry/environment.js";
 import { enrichQuestHtml } from "../foundry/enrich.js";
-import { buildUuidLink, describeDrop, readDropPayload } from "../foundry/drop-link.js";
 import {
   createQuest,
   getPrimaryQuestId,
@@ -112,10 +111,6 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
       this.ui = ui;
       this.onChange = onChange;
       this.activeTab = "details";
-      // Which rich-text field is open for editing, if any. Reading and editing are two
-      // different views of the same field: reading shows live links, editing shows the
-      // author's source. Only one field edits at a time.
-      this.editingField = null;
     }
 
     get quest() {
@@ -140,7 +135,6 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
       // Enrichment happens HERE, not inside the render functions. This step is async
       // (Foundry resolves each UUID against the world) and this method is already async,
       // so the string builders below stay synchronous and unit-testable outside Foundry.
-      model.editingField = this.editingField;
       model.enriched = {
         description: await enrichQuestHtml(model.description),
         playernotes: await enrichQuestHtml(model.playernotes),
@@ -185,32 +179,8 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
         });
       });
 
-      // Edit / Done toggle for the rich-text tabs. Switching to editing shows the source;
-      // switching back re-renders, which re-runs enrichment and brings the links back.
-      root.querySelectorAll("[data-action='edit-notes'], [data-action='finish-notes']").forEach((button) => {
-        button.addEventListener("click", async (event) => {
-          event.preventDefault();
-          const opening = button.dataset.action === "edit-notes";
-          // O alvo vem em data-target-field, NUNCA em data-field: ver activateFieldEditors.
-          const target = button.dataset.targetField;
-          // Commit whatever is in the open editor before leaving edit mode; the blur
-          // handler usually fires first, but clicking Done directly can beat it.
-          if (!opening) {
-            const editor = root.querySelector(`[data-field='${target}'][contenteditable]`);
-            const quest = this.quest;
-            if (editor && quest && String(quest[target] ?? "") !== editor.innerHTML) {
-              this.editingField = null;
-              await this.commit((draft) => ({ ...draft, [target]: editor.innerHTML }));
-              return;
-            }
-          }
-          this.editingField = opening ? target : null;
-          await this.render({ force: false });
-        });
-      });
-
       this.activateFieldEditors(root);
-      this.activateNotesDrop(root);
+      this.activateRichEditors(root);
       this.activateObjectiveHandlers(root);
       this.activateRewardHandlers(root);
       this.activateManagementHandlers(root);
@@ -274,51 +244,24 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
     }
 
     /**
-     * Arrastar um documento do Foundry para dentro do painel e solta-lo como `@UUID[...]{Nome}`.
+     * Campos de texto rico usam o elemento nativo do Foundry, <prose-mirror> (DEC-027).
      *
-     * Dois estados, dois comportamentos, pelo mesmo motivo que Edit e Done existem (DEC-025):
-     *   EDITANDO — insere no ponto exato onde o cursor soltou, e grava.
-     *   LENDO    — acrescenta ao fim do texto-fonte e grava, avisando. Nao ha cursor em modo
-     *              leitura, e obrigar a entrar em edicao so para receber um link seria atrito.
-     *
-     * Em ambos os casos gravamos a FONTE (`@UUID[...]`), nunca a ancora enriquecida.
+     * O elemento faz sozinho o que a 0.16.0 e a 0.17.0 fizeram a mao: alterna leitura e
+     * edicao (`toggled`), mostra barra de formatacao, aceita documentos arrastados
+     * convertendo em @UUID, e avisa por evento quando o Mestre salva. Aqui so resta ouvir
+     * esse evento e gravar. NAO gravamos em blur: o elemento define o momento do salvamento.
      */
-    activateNotesDrop(root) {
-      root.querySelectorAll("[data-drop-field]").forEach((zone) => {
-        zone.addEventListener("dragover", (event) => {
-          event.preventDefault(); // sem isto o navegador recusa o drop
-          zone.classList.add("mq-drop-hover");
-        });
-        zone.addEventListener("dragleave", () => zone.classList.remove("mq-drop-hover"));
-
-        zone.addEventListener("drop", async (event) => {
-          zone.classList.remove("mq-drop-hover");
-
-          const payload = readDropPayload(event.dataTransfer?.getData("text/plain"));
-          if (!payload) return; // texto solto ou arquivo: deixa o navegador seguir seu curso
-
-          event.preventDefault();
-          event.stopPropagation();
-
-          const field = zone.dataset.dropField;
+    activateRichEditors(root) {
+      root.querySelectorAll("prose-mirror[data-mq-field]").forEach((editor) => {
+        editor.addEventListener("save", async () => {
+          const field = editor.dataset.mqField;
           const quest = this.quest;
           if (!field || !quest) return;
 
-          const described = await describeDrop(payload);
-          const link = buildUuidLink(described?.uuid, described?.name);
-          if (!link) return;
+          const value = String(editor.value ?? "");
+          if (String(quest[field] ?? "") === value) return;
 
-          if (zone.isContentEditable) {
-            insertTextAtDropPoint(zone, link, event);
-            await this.commit((draft) => ({ ...draft, [field]: zone.innerHTML }));
-          } else {
-            const current = String(quest[field] ?? "");
-            await this.commit((draft) => ({ ...draft, [field]: `${current}<p>${link}</p>` }));
-            notifyInfo(
-              `Link para ${described?.name ?? described?.uuid} adicionado ao fim do painel.`,
-              this.ui
-            );
-          }
+          await this.commit((draft) => ({ ...draft, [field]: value }));
         });
       });
     }
@@ -599,7 +542,8 @@ function renderDetailsTab(model) {
     : "";
 
   const description = model.canEdit
-    ? `<div class="mq-editable-html" contenteditable="true" data-field="description">${safeHtml(model.description)}</div>`
+    ? `<prose-mirror name="description" data-mq-field="description"
+        value="${esc(model.description ?? "")}" toggled="true">${model.enriched?.description ?? ""}</prose-mirror>`
     : `<div class="mq-readonly-html">${safeHtml(model.description)}</div>`;
 
   const image = renderQuestImage(model, "details");
@@ -734,67 +678,31 @@ function renderReward(reward, model) {
 }
 
 /**
- * A rich-text tab has two states, and they must never be confused:
+ * Aba de texto rico.
  *
- *   READING — enriched HTML. `@UUID[...]` has become a clickable link to the Journal,
- *             Actor or macro. This is what the GM stares at while running the table.
- *   EDITING — the raw stored source, in a contenteditable box. Links are inert here ON
- *             PURPOSE: saving enriched HTML back would replace the author's `@UUID`
- *             source with generated anchors and quietly destroy the link on next edit.
- *
- * Hence the explicit Edit / Done toggle rather than an always-editable box.
+ * Quem pode editar recebe o <prose-mirror> do proprio Foundry: `value` carrega a FONTE
+ * (`@UUID[...]` intacto) e o conteudo interno carrega o HTML enriquecido que ele mostra
+ * enquanto fechado. `toggled` faz o ciclo ler/editar. Quem nao pode editar recebe HTML
+ * enriquecido e nada mais — nenhuma superficie de escrita.
  */
-/**
- * Insere texto no ponto onde o documento foi solto. Sem isto o link cairia sempre no fim,
- * que e util em leitura mas errado quando o Mestre mira um paragrafo especifico.
- */
-function insertTextAtDropPoint(host, text, event) {
-  const doc = host.ownerDocument;
-  let range = null;
-
-  if (typeof doc.caretRangeFromPoint === "function") {
-    range = doc.caretRangeFromPoint(event.clientX, event.clientY);
-  }
-  // Fora da caixa, ou navegador sem caretRangeFromPoint: cai para o fim do conteudo.
-  if (!range || !host.contains(range.startContainer)) {
-    range = doc.createRange();
-    range.selectNodeContents(host);
-    range.collapse(false);
-  }
-  range.insertNode(doc.createTextNode(text));
-}
-
 function renderNotesTab(model, field, label) {
-  const isEditing = model.canEdit && model.editingField === field;
   const enriched = model.enriched?.[field] ?? safeHtml(model[field] ?? "");
   const isPanel = field === "gmnotes";
 
-  const toggle = model.canEdit
-    ? `<button type="button" class="mq-notes-toggle" data-action="${isEditing ? "finish-notes" : "edit-notes"}"
-        data-target-field="${esc(field)}">
-        <i class="fa-solid ${isEditing ? "fa-check" : "fa-pen-to-square"}" inert></i>
-        ${isEditing ? "Done" : "Edit"}
-      </button>`
-    : "";
-
-  // data-drop-field marca a zona que aceita documentos arrastados. Vale nos DOIS estados:
-  // editando insere no ponto onde soltou; lendo acrescenta ao fim e salva (ver activateNotesDrop).
-  const body = isEditing
-    ? `<div class="mq-editable-html mq-notes-editor" contenteditable="true"
-        data-field="${esc(field)}" data-drop-field="${esc(field)}">${safeHtml(model[field] ?? "")}</div>`
-    : `<div class="${cls("mq-readonly-html", "mq-notes-read", isPanel && "mq-panel-doc")}"
-        ${model.canEdit ? `data-drop-field="${esc(field)}"` : ""}>${
-        enriched ||
-        `<p class="mq-empty">${
-          model.canEdit ? "Arraste um Ator, Journal ou Macro aqui, ou clique em Edit." : "Nothing here yet."
-        }</p>`
+  const body = model.canEdit
+    ? `<prose-mirror class="${cls("mq-notes-read", isPanel && "mq-panel-doc")}"
+        name="${esc(field)}" data-mq-field="${esc(field)}"
+        value="${esc(model[field] ?? "")}" toggled="true">${
+        enriched || ""
+      }</prose-mirror>`
+    : `<div class="${cls("mq-readonly-html", "mq-notes-read", isPanel && "mq-panel-doc")}">${
+        enriched || `<p class="mq-empty">Nothing here yet.</p>`
       }</div>`;
 
   return `
     <section class="${cls("mq-notes", isPanel && "mq-gm-panel")}">
       <header class="mq-notes-header">
         <h2>${esc(label)}</h2>
-        ${toggle}
       </header>
       ${body}
     </section>

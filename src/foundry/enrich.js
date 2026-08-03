@@ -50,7 +50,8 @@ export async function enrichQuestHtml(value, { secrets = false } = {}) {
   if (!editor) return sanitized;
 
   try {
-    return await editor.enrichHTML(sanitized, { secrets, async: true });
+    // Sem `async`: a opcao saiu do core; enrichHTML e sempre assincrono (DEC-027).
+    return await editor.enrichHTML(sanitized, { secrets });
   } catch (error) {
     console.warn("master-quest | enrichHTML failed; showing plain content", error);
     return sanitized;

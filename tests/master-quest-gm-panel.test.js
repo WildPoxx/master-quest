@@ -32,30 +32,21 @@ test("players never get the GM Panel tab", () => {
   assert.deepEqual(model.tabs.map((tab) => tab.id), ["details", "playernotes"]);
 });
 
-test("reading the panel shows enriched HTML; editing shows the author's source", () => {
-  const base = buildQuestDetailsViewModel(QUEST, { isGM: true, canEdit: true, activeTab: "gmnotes" });
-
-  // Reading: the enriched string produced in _prepareContext is what reaches the screen,
-  // and the box is not editable — otherwise the generated anchors would be saved back.
-  const reading = renderQuestDetails({
-    ...base,
+test("o painel entrega fonte e exibicao ao elemento nativo, nao a um toggle proprio", () => {
+  // Ate a 0.17.0 esta janela alternava leitura e edicao com um botao proprio (DEC-025), o que
+  // custou a perda de dados da DEC-026. A 0.18.0 delega ao <prose-mirror> (DEC-027).
+  const model = buildQuestDetailsViewModel(QUEST, { isGM: true, canEdit: true, activeTab: "gmnotes" });
+  const html = renderQuestDetails({
+    ...model,
     enriched: { gmnotes: '<h2>Function</h2><p>See <a class="content-link">Fascicle</a></p>' }
   });
-  assert.match(reading, /content-link/);
-  assert.match(reading, /mq-panel-doc/);
-  assert.equal(/mq-notes-editor/.test(reading), false);
-  assert.match(reading, /data-action="edit-notes"/);
 
-  // Editing: raw source with the @UUID intact, and no enriched anchor anywhere.
-  const editing = renderQuestDetails({
-    ...base,
-    editingField: "gmnotes",
-    enriched: { gmnotes: '<a class="content-link">Fascicle</a>' }
-  });
-  assert.match(editing, /mq-notes-editor/);
-  assert.match(editing, /@UUID\[JournalEntry\.abc\]/);
-  assert.equal(/content-link/.test(editing), false);
-  assert.match(editing, /data-action="finish-notes"/);
+  assert.match(html, /<prose-mirror[^>]*toggled="true"/);
+  assert.match(html, /content-link/, "fechado, o Mestre le o link vivo");
+  assert.match(html, /mq-panel-doc/, "tipografia de fasciculo preservada");
+
+  const value = html.match(/<prose-mirror[\s\S]*?value="([\s\S]*?)"/)?.[1] ?? "";
+  assert.match(value, /@UUID\[JournalEntry\.abc\]/, "aberto, o Mestre edita a fonte");
 });
 
 test("enrichment sanitizes first and degrades to plain content without an enricher", async () => {

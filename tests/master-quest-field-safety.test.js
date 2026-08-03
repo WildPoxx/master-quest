@@ -4,17 +4,20 @@ import { buildQuestDetailsViewModel } from "../src/quest/quest-view-model.js";
 import { renderQuestDetails } from "../src/ui/quest-details.js";
 
 /**
- * REGRESSAO 0.16.0 -> 0.16.1 (DEC-026).
+ * Invariantes de integridade dos campos de texto da janela de quest.
  *
- * O commit-on-blur do detalhe da quest casava `[data-field]` e gravava, para elementos nao
- * editaveis, `element.value`. Um <button> satisfaz o seletor e tem `.value` == "": ao perder
- * o foco, gravava string vazia por cima do campo. Como o botao Edit do GM Panel carregava
- * `data-field="gmnotes"`, clicar em Edit apagava o painel inteiro do banco — perda silenciosa,
- * sem erro no console. Ocorreu em producao com a quest "A Sombra de um Sonho de Crianca"
- * (3.804 caracteres), restaurada do backup de 2026-08-03 14:08.
+ * HISTORICO — vale ler antes de mexer aqui.
+ * A 0.16.0 implementou a mao um botao Edit/Done sobre uma caixa contenteditable. O botao
+ * carregava `data-field`, o commit-on-blur casava `[data-field]` e gravava `element.value`;
+ * um <button> tem value "", entao clicar em Edit apagava o GM Panel do banco em silencio
+ * (DEC-026, perda real de 3.804 caracteres). A 0.18.0 removeu o mecanismo inteiro e adotou
+ * o <prose-mirror> do proprio Foundry, que ja faz ler/editar, formatacao e drop de
+ * documentos (DEC-027).
  *
- * A invariante que estes testes trancam: `data-field` marca APENAS superficies onde o usuario
- * digita. Botoes declaram seu alvo em `data-target-field`, que nenhum handler de blur le.
+ * O que estes testes trancam, portanto, e a REGRA, nao a implementacao antiga:
+ *   1. gravacao automatica so pode nascer de superficie de digitacao, nunca de comando;
+ *   2. o que vai para o editor e a FONTE (@UUID intacto), nunca o HTML enriquecido;
+ *   3. quem nao pode editar nao recebe superficie de escrita nenhuma.
  */
 
 const QUEST = {
@@ -23,69 +26,86 @@ const QUEST = {
   status: "active",
   splash: "worlds/x/tower.webp",
   description: "<p>Arrival.</p>",
-  gmnotes: "<h2>Function</h2><p>Fascicle.</p>",
+  gmnotes: "<h2>Function</h2><p>See @UUID[JournalEntry.abc]{Fascicle}</p>",
   playernotes: "<p>What the table knows.</p>",
   objectives: [{ id: "o1", name: "Reach the tower", completed: false, failed: false, hidden: false }],
   rewards: [{ id: "r1", name: "A silver deed", type: "abstract", hidden: false, locked: false }]
 };
 
 const TABS = ["details", "gmnotes", "playernotes", "management"];
+const ENRICHED = { gmnotes: '<a class="content-link">Fascicle</a>', description: "<p>Arrival.</p>" };
 
-/** Todo <button ...> do HTML, como strings inteiras da tag de abertura. */
-function buttonTags(html) {
-  return html.match(/<button[\s\S]*?>/g) ?? [];
-}
+const buttonTags = (html) => html.match(/<button[\s\S]*?>/g) ?? [];
 
 for (const tab of TABS) {
   test(`nenhum botao carrega data-field na aba ${tab}`, () => {
     const model = buildQuestDetailsViewModel(QUEST, { isGM: true, canEdit: true, activeTab: tab });
+    const html = renderQuestDetails({ ...model, enriched: ENRICHED });
 
-    for (const editing of [null, tab]) {
-      const html = renderQuestDetails({ ...model, editingField: editing, enriched: {} });
-      const offenders = buttonTags(html).filter((tag) => /\sdata-field\s*=/.test(tag));
-
-      assert.deepEqual(
-        offenders,
-        [],
-        `botao com data-field grava "" no campo ao perder o foco (aba ${tab}, editingField=${editing})`
-      );
-    }
+    // DEC-026: `data-field` marca so onde o usuario digita. Um botao com esse atributo volta
+    // a ser porta para gravar string vazia por cima do campo.
+    const offenders = buttonTags(html).filter((tag) => /\sdata-(mq-)?field\s*=/.test(tag));
+    assert.deepEqual(offenders, [], `botao com data-field na aba ${tab}`);
   });
 }
 
-test("o botao Edit/Done aponta o alvo por data-target-field", () => {
+test("o campo rico e o elemento nativo do Foundry, em modo alternado", () => {
   const model = buildQuestDetailsViewModel(QUEST, { isGM: true, canEdit: true, activeTab: "gmnotes" });
+  const html = renderQuestDetails({ ...model, enriched: ENRICHED });
 
-  const reading = renderQuestDetails({ ...model, enriched: {} });
-  assert.match(reading, /data-action="edit-notes"[\s\S]*?data-target-field="gmnotes"/);
+  assert.match(html, /<prose-mirror[^>]*data-mq-field="gmnotes"/, "usa o elemento do core");
+  assert.match(html, /<prose-mirror[^>]*toggled="true"/, "ciclo ler/editar e do elemento");
 
-  const editing = renderQuestDetails({ ...model, editingField: "gmnotes", enriched: {} });
-  assert.match(editing, /data-action="finish-notes"[\s\S]*?data-target-field="gmnotes"/);
+  // Nada de mecanismo artesanal sobrevivendo em paralelo — foi ele que causou a perda.
+  assert.equal(/contenteditable/.test(html), false, "sem caixa contenteditable propria");
+  assert.equal(/data-action="edit-notes"/.test(html), false, "sem botao Edit proprio");
+  assert.equal(/data-action="finish-notes"/.test(html), false, "sem botao Done proprio");
 });
 
-test("as superficies que o usuario digita continuam marcadas com data-field", () => {
+test("o editor recebe a FONTE; a exibicao recebe o HTML enriquecido", () => {
+  const model = buildQuestDetailsViewModel(QUEST, { isGM: true, canEdit: true, activeTab: "gmnotes" });
+  const html = renderQuestDetails({ ...model, enriched: ENRICHED });
+
+  // `value` guarda o que o autor escreveu: se salvassemos a ancora gerada por cima do
+  // @UUID, o link morreria na proxima edicao.
+  const value = html.match(/<prose-mirror[\s\S]*?value="([\s\S]*?)"/)?.[1] ?? "";
+  assert.match(value, /@UUID\[JournalEntry\.abc\]/, "a fonte vai para o editor");
+  assert.equal(/content-link/.test(value), false, "ancora enriquecida nao vai para o editor");
+
+  // O conteudo interno e o que o Mestre le com o editor fechado: esse sim, enriquecido.
+  const inner = html.match(/<prose-mirror[\s\S]*?>([\s\S]*?)<\/prose-mirror>/)?.[1] ?? "";
+  assert.match(inner, /content-link/, "o que se le tem link vivo");
+});
+
+test("o painel mantem a tipografia de fasciculo", () => {
+  const model = buildQuestDetailsViewModel(QUEST, { isGM: true, canEdit: true, activeTab: "gmnotes" });
+  const html = renderQuestDetails({ ...model, enriched: ENRICHED });
+
+  // Titulos, listas e a tabela de correlacao dependem desta classe. Ao trocar o contêiner
+  // de leitura pelo elemento nativo, ela quase se perdeu.
+  assert.match(html, /<prose-mirror[^>]*class="[^"]*mq-panel-doc/);
+});
+
+test("as superficies simples continuam marcadas com data-field", () => {
   const model = buildQuestDetailsViewModel(QUEST, { isGM: true, canEdit: true, activeTab: "details" });
-  const html = renderQuestDetails({ ...model, enriched: {} });
+  const html = renderQuestDetails({ ...model, enriched: ENRICHED });
 
-  // Se o seletor de blur for estreitado demais um dia, estes quatro param de salvar.
   assert.match(html, /<input[^>]*data-field="name"/, "titulo editavel");
-  assert.match(html, /contenteditable="true" data-field="description"/, "descricao editavel");
+  assert.match(html, /<prose-mirror[^>]*data-mq-field="description"/, "descricao pelo editor nativo");
 
-  // O caminho da imagem mora na aba Manage, ao lado do botao que abre o FilePicker —
-  // e esse botao era o outro portador de data-field, anterior a 0.16.1.
   const manage = buildQuestDetailsViewModel(QUEST, { isGM: true, canEdit: true, activeTab: "management" });
-  const manageHtml = renderQuestDetails({ ...manage, enriched: {} });
-  assert.match(manageHtml, /<input[^>]*data-field="splash"/, "caminho da imagem editavel");
-
-  const panel = buildQuestDetailsViewModel(QUEST, { isGM: true, canEdit: true, activeTab: "gmnotes" });
-  const editor = renderQuestDetails({ ...panel, editingField: "gmnotes", enriched: {} });
-  assert.match(editor, /contenteditable="true"[\s\S]*?data-field="gmnotes"/, "editor do painel salva");
+  assert.match(
+    renderQuestDetails({ ...manage, enriched: ENRICHED }),
+    /<input[^>]*data-field="splash"/,
+    "caminho da imagem editavel"
+  );
 });
 
-test("o jogador sem permissao nao recebe superficie editavel alguma", () => {
-  const model = buildQuestDetailsViewModel(QUEST, { isGM: false, canEdit: false, activeTab: "details" });
-  const html = renderQuestDetails({ ...model, enriched: {} });
+test("quem nao pode editar nao recebe superficie de escrita alguma", () => {
+  const model = buildQuestDetailsViewModel(QUEST, { isGM: false, canEdit: false, activeTab: "playernotes" });
+  const html = renderQuestDetails({ ...model, enriched: ENRICHED });
 
+  assert.equal(/prose-mirror/.test(html), false, "jogador nao recebe editor");
   assert.equal(/data-field=/.test(html), false);
   assert.equal(/contenteditable/.test(html), false);
 });

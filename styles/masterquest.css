@@ -1007,10 +1007,21 @@
 .masterquest ::-webkit-scrollbar-thumb:hover { background: var(--mq-text-muted); }
 
 
-/* Zona de drop do GM Panel e do Player Notes (0.17.0).
-   Realce discreto: o painel e superficie de leitura em mesa, nao formulario. */
-.mq-notes [data-drop-field].mq-drop-hover {
-  outline: 2px dashed var(--mq-accent);
-  outline-offset: -4px;
-  background: var(--mq-surface-2);
+/* Editor nativo do Foundry (0.18.0, DEC-027).
+   A regra de drop artesanal da 0.17.0 saiu junto com o codigo que a servia: o
+   <prose-mirror> recebe documentos e desenha o proprio realce. */
+.mq-details prose-mirror {
+  display: block;
+  width: 100%;
+  min-height: 6em;
+  border: 1px solid var(--mq-border);
+  border-radius: 3px;
+  padding: 0.4em 0.6em;
+  background: var(--mq-surface-1);
+  color: var(--mq-text);
+}
+
+/* Fechado, o painel e pagina de leitura em mesa: sem cara de campo de formulario. */
+.mq-gm-panel prose-mirror.mq-panel-doc {
+  min-height: 12em;
 }
