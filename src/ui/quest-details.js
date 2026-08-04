@@ -723,7 +723,7 @@ function renderRewards(model) {
 function renderReward(reward, model) {
   const image = reward.img
     ? `<div class="mq-reward-img" style="background-image:url('${escUrl(reward.img)}')"></div>`
-    : `<div class="mq-reward-img mq-reward-img-empty"><i class="fa-solid fa-gift" inert></i></div>`;
+    : `<div class="mq-reward-img mq-reward-img-empty"><i class="fa-solid fa-treasure-chest" inert></i></div>`;
 
   const name = reward.revealed ? esc(reward.name) : "Recompensa não revelada";
 
