@@ -12,6 +12,7 @@
  */
 
 import { QUEST_STATUS, normalizeQuest } from "./quest-schema.js";
+import { AUTHORED_BY_DRAFT, mergeQuest } from "./merge-quest.js";
 
 /**
  * Convert an authoring draft into a Quest Log quest.
@@ -49,37 +50,12 @@ export function draftToQuest(draft = {}, { status = QUEST_STATUS.inactive } = {}
  */
 export function mergeDraftIntoQuest(current, draft) {
   const authored = draftToQuest(draft, { status: current?.status ?? QUEST_STATUS.inactive });
-  if (!isRecord(current)) return authored;
-
-  const previousByName = new Map(
-    toArray(current.objectives).map((objective) => [normalizeKey(objective?.name), objective])
-  );
-
-  return normalizeQuest({
-    ...authored,
-    // The table owns these; authoring never overwrites them.
-    status: current.status ?? authored.status,
-    giver: current.giver ?? null,
-    giverData: current.giverData ?? null,
-    giverName: current.giverName ?? "",
-    location: current.location ?? null,
-    priority: current.priority ?? 0,
-    parent: current.parent ?? null,
-    subquests: toArray(current.subquests),
-    playernotes: current.playernotes ?? "",
-    date: current.date ?? null,
-    objectives: authored.objectives.map((objective) => {
-      const previous = previousByName.get(normalizeKey(objective.name));
-      if (!previous) return objective;
-      return {
-        ...objective,
-        id: previous.id ?? objective.id,
-        completed: previous.completed === true,
-        failed: previous.failed === true,
-        hidden: previous.hidden === true
-      };
-    })
+  const { quest } = mergeQuest(current, authored, {
+    authoredBy: AUTHORED_BY_DRAFT,
+    // O rascunho de autoria nao tem id estavel por item: casa por nome normalizado.
+    matchBy: "name"
   });
+  return quest;
 }
 
 function buildDescription(draft) {
@@ -118,8 +94,9 @@ function toObjective(entry) {
     name: text(data.title) || text(data.label),
     completed: false,
     failed: false,
-    // GM-only elements stay hidden from the players' view of the log.
-    hidden: data.visibility === "gm"
+    // DEC-006 + DEC-031: na duvida, oculto. So visibilidade declarada como "player"
+    // nasce visivel — revelar sem contexto narrativo e spoiler.
+    hidden: data.visibility !== "player"
   };
 }
 
@@ -128,8 +105,9 @@ function toReward(entry) {
   return {
     id: text(data.id),
     name: text(data.title) || text(data.label),
-    hidden: data.visibility === "gm",
-    locked: true
+    // DEC-031: na duvida, oculta. So visibilidade declarada como "player" nasce visivel.
+    hidden: data.visibility !== "player",
+    granted: false
   };
 }
 

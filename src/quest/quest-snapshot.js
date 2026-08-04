@@ -233,6 +233,7 @@ function describeQuest(entry, quest) {
       type: reward?.type ?? null,
       uuid: reward?.uuid ?? null,
       hidden: reward?.hidden === true,
+      granted: reward?.granted === true,
       locked: reward?.locked !== false
     })),
     date: quest.date ?? null,

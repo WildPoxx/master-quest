@@ -376,7 +376,7 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
 
       for (const [action, patch] of [
         ["toggle-reward-hidden", (reward) => ({ ...reward, hidden: !reward.hidden })],
-        ["toggle-reward-locked", (reward) => ({ ...reward, locked: !reward.locked })]
+        ["toggle-reward-granted", (reward) => ({ ...reward, granted: !reward.granted })]
       ]) {
         root.querySelectorAll(`[data-action='${action}']`).forEach((node) => {
           node.addEventListener("click", async (event) => {
@@ -415,8 +415,8 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
       for (const [action, patch] of [
         ["show-all-rewards", (reward) => ({ ...reward, hidden: false })],
         ["hide-all-rewards", (reward) => ({ ...reward, hidden: true })],
-        ["unlock-all-rewards", (reward) => ({ ...reward, locked: false })],
-        ["lock-all-rewards", (reward) => ({ ...reward, locked: true })]
+        ["grant-all-rewards", (reward) => ({ ...reward, granted: true })],
+        ["ungrant-all-rewards", (reward) => ({ ...reward, granted: false })]
       ]) {
         root.querySelector(`[data-action='${action}']`)?.addEventListener("click", async (event) => {
           event.preventDefault();
@@ -702,10 +702,10 @@ function renderRewards(model) {
   const bulk = model.canEdit && model.rewards.length
     ? `<button type="button" class="mq-bulk" data-action="${model.allRewardsVisible ? "hide-all-rewards" : "show-all-rewards"}">
          <i class="fa-solid ${model.allRewardsVisible ? "fa-eye-slash" : "fa-eye"}" inert></i>
-         ${model.allRewardsVisible ? "Ocultar todas" : "Mostrar todas"}</button>
-       <button type="button" class="mq-bulk" data-action="${model.allRewardsUnlocked ? "lock-all-rewards" : "unlock-all-rewards"}">
-         <i class="fa-solid ${model.allRewardsUnlocked ? "fa-lock" : "fa-unlock"}" inert></i>
-         ${model.allRewardsUnlocked ? "Travar todas" : "Destravar todas"}</button>`
+         ${model.allRewardsVisible ? "Hide all" : "Reveal all"}</button>
+       <button type="button" class="mq-bulk" data-action="${model.allRewardsGranted ? "ungrant-all-rewards" : "grant-all-rewards"}">
+         <i class="fa-solid fa-trophy" inert></i>
+         ${model.allRewardsGranted ? "Ungrant all" : "Grant all"}</button>`
     : "";
 
   const addButton = model.canEdit
@@ -725,24 +725,26 @@ function renderReward(reward, model) {
     ? `<div class="mq-reward-img" style="background-image:url('${escUrl(reward.img)}')"></div>`
     : `<div class="mq-reward-img mq-reward-img-empty"><i class="fa-solid fa-treasure-chest" inert></i></div>`;
 
-  const name = reward.revealed ? esc(reward.name) : "Recompensa não revelada";
+  // DEC-031: nao existe mais meio-termo. Recompensa oculta simplesmente nao chega ao
+  // jogador (o view model ja a filtra); a que chega, chega com o nome aberto.
+  const name = esc(reward.name);
 
   const actions = model.canEdit
     ? `<div class="mq-row-actions">
         <i class="mq-handle fa-solid fa-grip-vertical" title="Arraste para reordenar" inert></i>
         <button type="button" class="mq-icon-button" data-action="toggle-reward-hidden" data-reward-id="${esc(reward.id)}"
-          title="${reward.hidden ? "Oculta dos jogadores" : "Visível aos jogadores"}">
+          title="${reward.hidden ? "Hidden from players" : "Visible to players"}">
           <i class="fa-solid ${reward.hidden ? "fa-eye-slash" : "fa-eye"}" inert></i></button>
-        <button type="button" class="mq-icon-button" data-action="toggle-reward-locked" data-reward-id="${esc(reward.id)}"
-          title="${reward.locked ? "Travada" : "Destravada"}">
-          <i class="fa-solid ${reward.locked ? "fa-lock" : "fa-unlock"}" inert></i></button>
+        <button type="button" class="mq-icon-button" data-action="toggle-reward-granted" data-reward-id="${esc(reward.id)}"
+          title="${reward.granted ? "Granted to the party" : "Not granted yet"}">
+          <i class="${reward.granted ? "fa-solid" : "fa-regular"} fa-trophy" inert></i></button>
         <button type="button" class="mq-icon-button mq-danger" data-action="delete-reward" data-reward-id="${esc(reward.id)}"
-          title="Excluir recompensa"><i class="fa-solid fa-trash" inert></i></button>
+          title="Delete reward"><i class="fa-solid fa-trash" inert></i></button>
       </div>`
     : "";
 
   return `
-    <li class="${cls("mq-reward", reward.hidden && "is-hidden", reward.locked && "is-locked")}"
+    <li class="${cls("mq-reward", reward.hidden && "is-hidden", reward.granted && "is-granted")}"
         data-entry-id="${esc(reward.id)}" ${model.canEdit ? 'draggable="true"' : ""}>
       ${image}
       <p class="mq-reward-name" ${model.canEdit ? `contenteditable="true" data-reward-name="${esc(reward.id)}"` : ""}>${name}</p>

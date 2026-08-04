@@ -129,9 +129,11 @@ test("completing a quest that never started still records a start date", () => {
 
 test("objective counts can exclude hidden entries", () => {
   const quest = normalizeQuest({
+    // DEC-006/DEC-031: o default do schema virou OCULTO, entao visibilidade agora se
+    // declara. O que este teste mede e a contagem, nao o default.
     objectives: [
-      { name: "a", completed: true },
-      { name: "b" },
+      { name: "a", completed: true, hidden: false },
+      { name: "b", hidden: false },
       { name: "c", completed: true, hidden: true }
     ]
   });
@@ -471,9 +473,9 @@ test("the details view hides GM-only material from players", () => {
     id: "q",
     name: "Q",
     status: "active",
-    objectives: [{ name: "visível" }, { name: "oculto", hidden: true }],
+    objectives: [{ name: "visível", hidden: false }, { name: "oculto", hidden: true }],
     rewards: [
-      { name: "aberta", hidden: false, locked: false },
+      { name: "aberta", hidden: false },
       { name: "escondida", hidden: true }
     ]
   });
@@ -490,11 +492,37 @@ test("the details view hides GM-only material from players", () => {
   assert.equal(player.tabs.some((t) => t.id === "management"), false);
 });
 
-test("a locked reward is not revealed to players but is to the GM", () => {
-  const quest = questFixture({ id: "q", rewards: [{ name: "Segredo", locked: true }] });
+test("DEC-031: recompensa oculta nao chega ao jogador; a visivel chega com o nome aberto", () => {
+  // O cadeado saiu na 0.20 e com ele o meio-termo "Recompensa nao revelada": ou o jogador
+  // nao ve a linha, ou ve a linha inteira. Quem decide e so `hidden`.
+  const quest = questFixture({
+    id: "q",
+    rewards: [
+      { name: "Segredo", hidden: true },
+      { name: "Aberta", hidden: false }
+    ]
+  });
 
-  assert.equal(buildQuestDetailsViewModel(quest, { isGM: true, canEdit: true }).rewards[0].revealed, true);
-  assert.equal(buildQuestDetailsViewModel(quest, { isGM: false }).rewards[0].revealed, false);
+  const gm = buildQuestDetailsViewModel(quest, { isGM: true, canEdit: true });
+  assert.equal(gm.rewards.length, 2);
+
+  const player = buildQuestDetailsViewModel(quest, { isGM: false });
+  assert.deepEqual(player.rewards.map((r) => r.name), ["Aberta"]);
+  assert.equal(player.rewards.every((r) => "revealed" in r), false, "`revealed` saiu do modelo");
+});
+
+test("DEC-031: `granted` e eixo proprio, sem relacao com visibilidade", () => {
+  const quest = questFixture({
+    id: "q",
+    rewards: [
+      { name: "Conquistada e visivel", hidden: false, granted: true },
+      { name: "Conquistada e oculta", hidden: true, granted: true }
+    ]
+  });
+
+  const gm = buildQuestDetailsViewModel(quest, { isGM: true, canEdit: true });
+  assert.equal(gm.allRewardsGranted, true);
+  assert.equal(gm.allRewardsVisible, false);
 });
 
 /* ------------------------------------------------------------------ *

@@ -155,11 +155,7 @@ export function buildQuestDetailsViewModel(quest, {
 
   const rewards = toArray(quest.rewards)
     .filter((reward) => isGM || !reward.hidden)
-    .map((reward) => ({
-      ...reward,
-      // Players only see what a reward is once the GM unlocks it.
-      revealed: isGM || !reward.locked
-    }));
+    .map((reward) => ({ ...reward }));
 
   // A ordem e deliberada: GM Panel em SEGUNDO, logo depois de Details, porque e de onde o
   // Mestre conduz a quest na mesa (DIR-05); GM Notes vem colado nele porque e o rascunho
@@ -197,7 +193,7 @@ export function buildQuestDetailsViewModel(quest, {
     rewards,
     subquests,
     allRewardsVisible: rewards.length > 0 && rewards.every((r) => !r.hidden),
-    allRewardsUnlocked: rewards.length > 0 && rewards.every((r) => !r.locked),
+    allRewardsGranted: rewards.length > 0 && rewards.every((r) => r.granted),
     statusActions: canEdit ? statusActionsFor(quest.status) : [],
     tabs,
     activeTab: tabs.some((tab) => tab.active) ? activeTab : "details",

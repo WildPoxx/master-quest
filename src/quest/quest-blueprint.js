@@ -18,6 +18,7 @@
 import { MODULE_ID } from "../constants.js";
 import { QUEST_FLAG, QUEST_FOLDER_NAME } from "./quest-store.js";
 import { QUEST_STATUS, normalizeQuest } from "./quest-schema.js";
+import { AUTHORED_BY_BLUEPRINT, mergeQuest } from "./merge-quest.js";
 
 const JOURNAL_ENTRY_TYPE = "JournalEntry";
 
@@ -115,13 +116,30 @@ export async function applyBlueprintImport({
 
   for (const spec of toArray(blueprint.quests)) {
     const existing = existingByDesignId.get(spec.designId) ?? null;
-    const merged = mergeBlueprintIntoQuest(existing ? readQuestFlag(existing) : null, spec);
+    const { quest: merged, orphans } = mergeBlueprintIntoQuestWithOrphans(
+      existing ? readQuestFlag(existing) : null,
+      spec
+    );
+    // Item que a mesa tem e o blueprint deixou de listar sobrevive na quest. Reportamos
+    // para o Mestre saber que a fonte e o mundo divergiram — nunca apagamos em silencio.
+    const orphanReport =
+      orphans.objectives.length || orphans.rewards.length
+        ? {
+            orphanObjectives: orphans.objectives.map((o) => o.name),
+            orphanRewards: orphans.rewards.map((r) => r.name)
+          }
+        : null;
 
     try {
       if (existing) {
         await writeQuest(existing, merged, { name: spec.name });
         idByDesignId.set(spec.designId, existing.id ?? existing._id);
-        results.push({ designId: spec.designId, outcome: "updated", journalEntryId: existing.id ?? existing._id });
+        results.push({
+          designId: spec.designId,
+          outcome: "updated",
+          journalEntryId: existing.id ?? existing._id,
+          ...(orphanReport ?? {})
+        });
         continue;
       }
 
@@ -164,6 +182,19 @@ export async function applyBlueprintImport({
  * @returns {object} A normalized quest.
  */
 export function mergeBlueprintIntoQuest(current, spec) {
+  return mergeBlueprintIntoQuestWithOrphans(current, spec).quest;
+}
+
+/**
+ * Como `mergeBlueprintIntoQuest`, mas devolve tambem os itens que a mesa tem e o blueprint
+ * deixou de listar. Eles NAO sao apagados — sobrevivem na quest e sao reportados, na mesma
+ * filosofia com que `journalLinks` ausente e reportado e nunca descartado em silencio.
+ *
+ * @param {object|null} current A quest gravada, se houver.
+ * @param {object} spec A entrada do blueprint.
+ * @returns {{quest: object, orphans: {objectives: object[], rewards: object[]}}}
+ */
+export function mergeBlueprintIntoQuestWithOrphans(current, spec) {
   const authored = normalizeQuest({
     designId: spec.designId,
     name: spec.name,
@@ -175,7 +206,7 @@ export function mergeBlueprintIntoQuest(current, spec) {
     objectives: toArray(spec.objectives).map((objective) => ({
       id: objective?.id ?? slugId(spec.designId, objective?.name),
       name: objective?.name ?? "",
-      hidden: objective?.hidden === true
+      hidden: objective?.hidden
     })),
     rewards: toArray(spec.rewards),
     activationTriggers: toArray(spec.activationTriggers),
@@ -183,33 +214,7 @@ export function mergeBlueprintIntoQuest(current, spec) {
     source: "blueprint"
   });
 
-  if (!isRecord(current)) return authored;
-
-  const previousById = new Map(toArray(current.objectives).map((objective) => [objective?.id, objective]));
-
-  return normalizeQuest({
-    ...authored,
-    // Owned by the table, never by the blueprint.
-    status: current.status ?? authored.status,
-    playernotes: current.playernotes ?? "",
-    giver: current.giver ?? null,
-    giverData: current.giverData ?? null,
-    giverName: current.giverName ?? "",
-    splash: current.splash ?? "",
-    date: current.date ?? null,
-    // Hierarchy is rebuilt by linkHierarchy; keep what is there meanwhile.
-    parent: current.parent ?? null,
-    subquests: toArray(current.subquests),
-    objectives: authored.objectives.map((objective) => {
-      const previous = previousById.get(objective.id);
-      if (!previous) return objective;
-      return {
-        ...objective,
-        completed: previous.completed === true,
-        failed: previous.failed === true
-      };
-    })
-  });
+  return mergeQuest(current, authored, { authoredBy: AUTHORED_BY_BLUEPRINT, matchBy: "id" });
 }
 
 async function linkHierarchy({ blueprint, game, idByDesignId, results }) {

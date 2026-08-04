@@ -697,7 +697,9 @@
   justify-content: center;
 }
 
-.masterquest .mq-reward.is-locked .mq-reward-name { font-style: italic; opacity: 0.8; }
+/* DEC-031: conquistada e conquista, nao restricao — ganha peso, nao perde. */
+.masterquest .mq-reward.is-granted .mq-reward-name { font-weight: 600; }
+.masterquest .mq-reward.is-granted .mq-reward-img { box-shadow: inset 0 0 0 2px var(--mq-accent-bright); }
 
 .masterquest .mq-row-actions { align-items: center; display: flex; gap: 2px; }
 .masterquest .mq-handle { cursor: grab; opacity: 0.5; padding: 0 3px; }

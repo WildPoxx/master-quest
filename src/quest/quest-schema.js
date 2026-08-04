@@ -160,7 +160,10 @@ export function normalizeObjective(input = {}) {
     // An objective cannot be both completed and failed; completion wins.
     completed,
     failed: completed ? false : failed,
-    hidden: data.hidden === true
+    // DEC-006 + DEC-031: objetivo nasce OCULTO. Revelar sem contexto narrativo e spoiler;
+    // o primeiro contato do Mestre com a quest transposta e uma triagem manual, item a
+    // item. Dado ja gravado traz a chave e nao muda de valor — nao ha migracao retroativa.
+    hidden: data.hidden !== false
   };
 }
 
@@ -178,8 +181,15 @@ export function normalizeReward(input = {}) {
     name: text(data.name) || text(data.data?.name),
     img: text(data.img) || text(data.data?.img),
     uuid: text(data.uuid) || text(data.data?.uuid) || null,
-    hidden: data.hidden === true,
-    // Rewards start locked: the party has not earned them yet.
+    // DEC-031: recompensa nasce OCULTA, pela mesma razao do objetivo.
+    hidden: data.hidden !== false,
+    // DEC-031: os PCs conquistaram isto. NAO dispara nada — o MasterQuest registra, nao
+    // executa: nenhuma ficha e tocada, nenhum item e criado. Serve ao relatorio de saida.
+    granted: data.granted === true,
+    // DEPRECADO pela DEC-031. O `locked` do FQL era gambiarra: destravar era o unico jeito
+    // de dizer a macro de relatorio que os PCs tinham recebido a recompensa. Agora existe
+    // `granted` para isso. Segue sendo LIDO e propagado para nao quebrar snapshot nem
+    // consumidor legado; nada na interface o escreve. Sai do schema numa versao futura.
     locked: data.locked === undefined ? true : data.locked === true,
     data: isRecord(data.data) ? { ...data.data } : {}
   };
