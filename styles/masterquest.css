@@ -419,17 +419,22 @@
 
 .masterquest .mq-tabs {
   display: flex;
-  gap: 2px;
+  gap: 4px;
   align-items: center;
   flex-wrap: wrap;
   border-bottom: 1px solid var(--mq-border-strong);
   margin-bottom: var(--mq-space-2);
+  padding-bottom: 4px;
 }
 
+/* A estrela de quest principal nao e aba: vai para a ponta da fileira. */
+.masterquest .mq-tabs > .mq-icon-button { margin-left: auto; }
+
+/* Aba como chip emoldurado (DEC-030). */
 .masterquest .mq-tab {
   background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
+  border: 1px solid var(--mq-chip-outline);
+  border-radius: var(--mq-radius-2);
   color: var(--mq-text-muted);
   cursor: pointer;
   font-size: var(--mq-text-sm);
@@ -438,11 +443,34 @@
   width: auto;
 }
 
-.masterquest .mq-tab:hover { color: var(--mq-accent); }
+/* A fileira nao pode dançar quando o Mestre troca de aba. Compensar a borda resolve so
+   metade: o rotulo em bold e ~3px mais largo que em peso normal. Esta copia invisivel do
+   texto ja nasce em bold e fixa a caixa na largura maior, valendo para os dois estados.
+   Medido: com ela, ativa e inativa dao exatamente a mesma caixa. */
+.masterquest .mq-tab::after {
+  content: attr(data-label);
+  display: block;
+  font-weight: 700;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+}
+
+.masterquest .mq-tab:hover { background: var(--mq-surface-1); color: var(--mq-accent); }
+
+/* A ativa muda por ACUMULO de sinais: moldura mais grossa, fundo amarelado e peso.
+   Um sinal so falha para quem nao distingue bem a cor; tres nao falham juntos.
+
+   O padding perde exatamente o 1px que a borda ganha, para a caixa nao mudar de tamanho.
+
+   O rotulo fica em --mq-text, e nao no marrom da moldura: sobre o amarelo a 65% o marrom
+   da 3.8:1 em 12px, abaixo do minimo que o resto da skin cumpre. */
 .masterquest .mq-tab.is-active {
-  border-bottom-color: var(--mq-accent);
-  color: var(--mq-accent);
-  font-weight: 600;
+  background: var(--mq-chip-active-bg);
+  border-width: 2px;
+  color: var(--mq-text);
+  font-weight: 700;
+  padding: 5px 9px;
 }
 
 .masterquest .mq-tab-count {
@@ -1063,29 +1091,54 @@
   gap: 4px;
 }
 
-/* Rodape: o botao grande de snapshot, no canto inferior direito do corpo. */
+/* Rodape: o botao de snapshot, no canto inferior direito do corpo.
+   O padding de baixo e o conserto do rotulo decepado: o rodape mora dentro do corpo que
+   rola, e sem folga a ultima linha encostava no limite do scroll. */
 .masterquest .mq-details-footer {
   display: flex;
+  flex: 0 0 auto;
   justify-content: flex-end;
   margin-top: var(--mq-space-4);
+  padding: 0 2px var(--mq-space-2);
 }
 
+/* Botao de captura (DEC-030). 65x40 e PISO, nao medida fixa: "Snapshot" em Cinzel 10px
+   com o tracking do modulo chega perto de 65px, e travar a largura devolveria justamente
+   o corte que esta versao conserta. */
 .masterquest .mq-snapshot-button {
   align-items: center;
-  background: var(--mq-surface-2);
-  border: 1px solid var(--mq-border-strong);
-  border-radius: var(--mq-radius-2);
-  color: var(--mq-accent);
+  background: var(--mq-capture-bg);
+  border: 1px solid var(--mq-chip-outline);
+  border-radius: var(--mq-radius-3);
+  color: var(--mq-capture-ink);
   cursor: pointer;
   display: flex;
   flex-direction: column;
   font-family: var(--mq-font-display);
-  font-size: var(--mq-text-sm);
-  gap: 2px;
+  font-size: 10px;
+  font-variant-caps: small-caps;
+  font-weight: 700;
+  gap: 3px;
+  justify-content: center;
   letter-spacing: var(--mq-display-tracking);
-  padding: var(--mq-space-2) var(--mq-space-4);
-  text-transform: uppercase;
+  line-height: 1;
+  min-height: 40px;
+  min-width: 65px;
+  padding: 4px 8px;
+  white-space: nowrap;
 }
 
-.masterquest .mq-snapshot-button:hover { background: var(--mq-highlight-bg); color: var(--mq-text); }
-.masterquest .mq-snapshot-button i { font-size: var(--mq-text-lg); }
+/* O icone e glifo de fonte, entao o contorno escuro do mockup sai de text-stroke.
+   Se um dia sair sujo em tamanho pequeno, o substituto e um SVG inline — nao engrossar. */
+.masterquest .mq-snapshot-button i {
+  color: var(--mq-capture-ink);
+  font-size: 15px;
+  -webkit-text-stroke: 0.5px var(--mq-capture-ink-edge);
+}
+
+/* Hover escurece a moldura em vez do fundo: fundo mais forte derrubaria o contraste do
+   rotulo, que e marrom sobre amarelo claro. */
+.masterquest .mq-snapshot-button:hover {
+  border-color: var(--mq-capture-ink-edge);
+  box-shadow: var(--mq-shadow-1);
+}

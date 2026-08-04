@@ -71,6 +71,13 @@
   --mq-metal-silver: #5F5F5F;         /* 4.8 / 5.3                          */
   --mq-metal-gold: #6E5507;           /* 5.3 / 5.9                          */
 
+  /* Chip de aba e botao de captura (DEC-030; valores do mockup Illustrator) */
+  --mq-chip-outline: #815140;         /* contorno de aba e do botao         */
+  --mq-chip-active-bg: rgba(220, 177, 39, 0.65);  /* #DCB127 a 65%          */
+  --mq-capture-bg: #ECDD9D;           /* preenchimento do botao Snapshot    */
+  --mq-capture-ink: #815140;          /* rotulo e corpo do icone  4.8:1     */
+  --mq-capture-ink-edge: #3A1E10;     /* contorno do icone                  */
+
   /* Bordas e sombras */
   --mq-border: rgba(42, 36, 26, 0.25);
   --mq-border-strong: rgba(42, 36, 26, 0.45);

@@ -543,7 +543,7 @@ export function renderQuestDetails(model) {
   const tabs = model.tabs
     .map(
       (tab) => `<button type="button" class="${cls("mq-tab", tab.active && "is-active")}"
-        data-tab-target="${esc(tab.id)}">${esc(tab.label)}</button>`
+        data-tab-target="${esc(tab.id)}" data-label="${esc(tab.label)}">${esc(tab.label)}</button>`
     )
     .join("");
 
