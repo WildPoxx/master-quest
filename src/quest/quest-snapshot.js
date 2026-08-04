@@ -12,7 +12,10 @@
 import { MODULE_ID, MODULE_TITLE, FQL_MODULE_ID } from "../constants.js";
 import { QUEST_FLAG } from "./quest-store.js";
 
-export const SNAPSHOT_SCHEMA_VERSION = 1;
+/**
+ * 1 -> 2 (0.19.0): o payload ganhou `scope` e cada quest ganhou `gmcomments`.
+ */
+export const SNAPSHOT_SCHEMA_VERSION = 2;
 
 /**
  * Build the snapshot payload.
@@ -20,9 +23,10 @@ export const SNAPSHOT_SCHEMA_VERSION = 1;
  * @param {object} [options]
  * @param {object} [options.game] The Foundry game object.
  * @param {string} [options.capturedAt] ISO timestamp, injectable for tests.
+ * @param {string|null} [options.questId] Capture only this quest and its subquest tree.
  * @returns {object} The snapshot.
  */
-export function buildQuestSnapshot({ game = globalThis.game, capturedAt = null } = {}) {
+export function buildQuestSnapshot({ game = globalThis.game, capturedAt = null, questId = null } = {}) {
   const entries = collectionToArray(game?.journal);
   const quests = [];
   const legacyFqlQuests = [];
@@ -38,10 +42,24 @@ export function buildQuestSnapshot({ game = globalThis.game, capturedAt = null }
 
   quests.sort((left, right) => String(left.name).localeCompare(String(right.name)));
 
+  // Recorte por quest (0.19.0): a janela de uma quest exporta ELA e a arvore de subquests
+  // abaixo dela, nao o log inteiro. O snapshot geral continua sendo o do Hub. Quando ha
+  // recorte, o corpus legado do FQL fica de fora: ele nao pertence a esta arvore, e
+  // arrasta-lo junto faria o arquivo mentir sobre o proprio escopo.
+  const scoped = questId ? scopeToQuestTree(quests, questId) : quests;
+  const scopedLegacy = questId ? [] : legacyFqlQuests;
+
   return {
     schemaVersion: SNAPSHOT_SCHEMA_VERSION,
     app: MODULE_TITLE,
     capturedAt: capturedAt ?? new Date().toISOString(),
+    scope: questId
+      ? {
+          mode: "single-quest",
+          rootQuestId: questId,
+          rootQuestName: scoped.find((quest) => quest.id === questId)?.name ?? null
+        }
+      : { mode: "all-quests", rootQuestId: null, rootQuestName: null },
     source: {
       worldId: game?.world?.id ?? null,
       worldTitle: game?.world?.title ?? null,
@@ -61,18 +79,51 @@ export function buildQuestSnapshot({ game = globalThis.game, capturedAt = null }
     },
     summary: {
       journalEntryCount: entries.length,
-      questCount: quests.length,
-      statusCounts: countBy(quests, (quest) => quest.status),
-      objectiveCount: quests.reduce((total, quest) => total + quest.objectives.length, 0),
-      completedObjectiveCount: quests.reduce(
+      questCount: scoped.length,
+      statusCounts: countBy(scoped, (quest) => quest.status),
+      objectiveCount: scoped.reduce((total, quest) => total + quest.objectives.length, 0),
+      completedObjectiveCount: scoped.reduce(
         (total, quest) => total + quest.objectives.filter((objective) => objective.completed).length,
         0
       ),
-      legacyFqlQuestCount: legacyFqlQuests.length
+      legacyFqlQuestCount: scopedLegacy.length
     },
-    quests,
-    legacyFqlQuests
+    quests: scoped,
+    legacyFqlQuests: scopedLegacy
   };
+}
+
+/**
+ * A quest pedida e tudo que pende dela, por travessia em largura.
+ *
+ * `seen` existe porque a arvore de quests e desenhada a mao pelo Mestre e nada impede
+ * que uma subquest apareca em dois pais, ou que um ciclo se forme numa reorganizacao.
+ * Sem a guarda, um ciclo travaria o Foundry; com ela, o snapshot sai com cada quest uma
+ * vez so. Uma raiz inexistente devolve lista vazia, nao o log inteiro.
+ *
+ * @param {object[]} quests Every described quest in the world.
+ * @param {string} rootId The quest to start from.
+ * @returns {object[]} The root and its subquest tree.
+ */
+function scopeToQuestTree(quests, rootId) {
+  const byId = new Map(quests.map((quest) => [quest.id, quest]));
+  const tree = [];
+  const seen = new Set();
+  const queue = [rootId];
+
+  while (queue.length > 0) {
+    const id = queue.shift();
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+
+    const quest = byId.get(id);
+    if (!quest) continue;
+
+    tree.push(quest);
+    for (const child of toArray(quest.subquests)) queue.push(child);
+  }
+
+  return tree;
 }
 
 /**
@@ -124,7 +175,24 @@ export function downloadQuestSnapshot(options = {}) {
 export function makeSnapshotFilename(snapshot) {
   const world = String(snapshot?.source?.worldId ?? "world").replace(/[^a-z0-9_-]+/gi, "-");
   const stamp = String(snapshot?.capturedAt ?? "").replace(/[:.]/g, "-");
-  return `masterquest-snapshot-${world}-${stamp}.json`;
+  // Com recorte, o nome da quest entra no arquivo: dois snapshots do mesmo mundo no mesmo
+  // minuto sao coisas diferentes, e quem for procurar depois procura pelo nome da quest.
+  const quest = slugForFilename(snapshot?.scope?.rootQuestName);
+  return `masterquest-snapshot-${world}${quest ? `-${quest}` : ""}-${stamp}.json`;
+}
+
+/**
+ * @param {*} value A quest name, or nothing.
+ * @returns {string} An ASCII, filesystem-safe slug, or "".
+ */
+function slugForFilename(value) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/gi, "-")
+    .replace(/^-+|-+$/g, "")
+    .toLowerCase()
+    .slice(0, 48);
 }
 
 function describeQuest(entry, quest) {
@@ -150,7 +218,11 @@ function describeQuest(entry, quest) {
     location: quest.location ?? null,
     priority: quest.priority ?? 0,
     description: quest.description ?? "",
+    // DEC-028: os dois campos saem marcados pela origem. `gmnotes` e fonte (fasciculo,
+    // sobrescrito por reimportacao); `gmcomments` e mesa, e so existe a partir da 0.19.0 —
+    // flag antigo o entrega vazio, que e a verdade sobre ele.
     gmnotes: quest.gmnotes ?? "",
+    gmcomments: quest.gmcomments ?? "",
     playernotes: quest.playernotes ?? "",
     objectiveCount: objectives.length,
     completedObjectiveCount: objectives.filter((objective) => objective.completed).length,

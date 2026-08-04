@@ -161,12 +161,15 @@ export function buildQuestDetailsViewModel(quest, {
       revealed: isGM || !reward.locked
     }));
 
-  // Tab order is deliberate: the GM Panel sits SECOND, right after Details, because it is
-  // where the GM runs the quest at the table (DIR-05). The `gmnotes` key is unchanged —
-  // only the role and the label moved. Players never see it: the isGM guard below is the
-  // same visibility invariant as before.
+  // A ordem e deliberada: GM Panel em SEGUNDO, logo depois de Details, porque e de onde o
+  // Mestre conduz a quest na mesa (DIR-05); GM Notes vem colado nele porque e o rascunho
+  // do mesmo trabalho. Os dois sao um par, e nenhum dos dois existe para o jogador — a
+  // guarda isGM abaixo e a mesma invariante de visibilidade de sempre.
   const tabs = [{ id: "details", label: "Details", active: activeTab === "details" }];
-  if (isGM) tabs.push({ id: "gmnotes", label: "GM Panel", active: activeTab === "gmnotes" });
+  if (isGM) {
+    tabs.push({ id: "gmnotes", label: "GM Panel", active: activeTab === "gmnotes" });
+    tabs.push({ id: "gmcomments", label: "GM Notes", active: activeTab === "gmcomments" });
+  }
   tabs.push({ id: "playernotes", label: "Player Notes", active: activeTab === "playernotes" });
   if (canEdit) tabs.push({ id: "management", label: "Manage", active: activeTab === "management" });
 
@@ -177,6 +180,7 @@ export function buildQuestDetailsViewModel(quest, {
     statusLabel: QUEST_STATUS_LABEL[quest.status] ?? quest.status,
     description: quest.description,
     gmnotes: quest.gmnotes,
+    gmcomments: quest.gmcomments,
     playernotes: quest.playernotes,
     splash: quest.splash,
     splashPos: quest.splashPos,

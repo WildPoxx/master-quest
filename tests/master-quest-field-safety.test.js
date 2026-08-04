@@ -27,13 +27,18 @@ const QUEST = {
   splash: "worlds/x/tower.webp",
   description: "<p>Arrival.</p>",
   gmnotes: "<h2>Function</h2><p>See @UUID[JournalEntry.abc]{Fascicle}</p>",
+  gmcomments: "<p>Rascunho de mesa.</p>",
   playernotes: "<p>What the table knows.</p>",
   objectives: [{ id: "o1", name: "Reach the tower", completed: false, failed: false, hidden: false }],
   rewards: [{ id: "r1", name: "A silver deed", type: "abstract", hidden: false, locked: false }]
 };
 
-const TABS = ["details", "gmnotes", "playernotes", "management"];
-const ENRICHED = { gmnotes: '<a class="content-link">Fascicle</a>', description: "<p>Arrival.</p>" };
+const TABS = ["details", "gmnotes", "gmcomments", "playernotes", "management"];
+const ENRICHED = {
+  gmnotes: '<a class="content-link">Fascicle</a>',
+  gmcomments: "<p>Rascunho de mesa.</p>",
+  description: "<p>Arrival.</p>"
+};
 
 const buttonTags = (html) => html.match(/<button[\s\S]*?>/g) ?? [];
 

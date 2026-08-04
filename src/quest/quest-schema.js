@@ -9,7 +9,11 @@
  * `objectives` instead of `tasks`, `id` instead of `uuidv4`.
  */
 
-export const QUEST_SCHEMA_VERSION = 1;
+/**
+ * 1 -> 2 (0.19.0, DEC-028): `gmcomments` nasce ao lado de `gmnotes`. Sem migracao: quest
+ * gravada pela 0.18.0 sobe intacta e apenas ganha um campo vazio.
+ */
+export const QUEST_SCHEMA_VERSION = 2;
 
 export const QUEST_STATUS = Object.freeze({
   available: "available",
@@ -80,7 +84,11 @@ export function normalizeQuest(input = {}) {
     giverName: text(data.giverName),
     image: data.image === "token" ? "token" : "actor",
     description: html(data.description),
+    // DEC-028. `gmnotes` e o GM Panel: FONTE, vem do fasciculo, e reimportar blueprint o
+    // sobrescreve. `gmcomments` e o GM Notes: mesa, livre, e a importacao nunca escreve
+    // nele. O campo novo ser o de mesa e o que dispensa migracao — nada se move.
     gmnotes: html(data.gmnotes),
+    gmcomments: html(data.gmcomments),
     playernotes: html(data.playernotes),
     splash: text(data.splash),
     splashPos: SPLASH_POSITIONS.includes(data.splashPos) ? data.splashPos : "center",

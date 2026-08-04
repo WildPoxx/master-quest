@@ -138,9 +138,10 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
       model.enriched = {
         description: await enrichQuestHtml(model.description),
         playernotes: await enrichQuestHtml(model.playernotes),
-        // secrets: true — the GM Panel tab only exists for GMs (isGM guard in the view
-        // model), so hiding the GM's own secret blocks from them would serve nobody.
-        gmnotes: isGM ? await enrichQuestHtml(model.gmnotes, { secrets: true }) : ""
+        // secrets: true — as abas do Mestre so existem para o Mestre (guarda isGM no view
+        // model), entao esconder dele os proprios blocos secretos nao serviria a ninguem.
+        gmnotes: isGM ? await enrichQuestHtml(model.gmnotes, { secrets: true }) : "",
+        gmcomments: isGM ? await enrichQuestHtml(model.gmcomments, { secrets: true }) : ""
       };
 
       return { ...context, model };
@@ -192,6 +193,40 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
           await setQuestStatus(this.questId, button.dataset.status, { game: this.game });
           await this.render({ force: false });
           this.onChange?.();
+        });
+      });
+
+      this.activateSnapshotHandlers(root);
+    }
+
+    /**
+     * A camera do cabecalho e o botao do rodape, ambos ligados na mesma acao.
+     *
+     * Leitura pura: nada aqui grava flag, muda status ou toca documento. Se o download
+     * falhar, o Mestre e avisado — um snapshot que falha em silencio e pior que nenhum,
+     * porque ele so descobre quando for procurar o arquivo que nao existe.
+     *
+     * @param {HTMLElement} root The rendered window body.
+     */
+    activateSnapshotHandlers(root) {
+      root.querySelectorAll("[data-action='snapshot-quest']").forEach((button) => {
+        button.addEventListener("click", async (event) => {
+          event.preventDefault();
+          const { downloadQuestSnapshot } = await import("../quest/quest-snapshot.js");
+
+          try {
+            const result = downloadQuestSnapshot({ game: this.game, questId: this.questId });
+            notifyInfo(
+              `MasterQuest: snapshot de ${result.questCount} quest(s) gerado (${result.filename}).`,
+              this.ui
+            );
+          } catch (error) {
+            console.error(`${MODULE_ID} | falha ao gerar o snapshot da quest`, error);
+            notifyWarning(
+              `MasterQuest não conseguiu gerar o snapshot: ${error?.message ?? error}`,
+              this.ui
+            );
+          }
         });
       });
     }
@@ -522,6 +557,7 @@ export function renderQuestDetails(model) {
     details: renderDetailsTab(model),
     playernotes: renderNotesTab(model, "playernotes", "Player Notes"),
     gmnotes: renderNotesTab(model, "gmnotes", "GM Panel"),
+    gmcomments: renderNotesTab(model, "gmcomments", "GM Notes"),
     management: renderManagementTab(model)
   };
 
@@ -558,7 +594,10 @@ function renderDetailsTab(model) {
         <p class="mq-status mq-status-${esc(model.status)}">${esc(model.statusLabel)}</p>
         ${parentLine}
       </div>
-      ${renderStatusActions(model.statusActions, model.id)}
+      <div class="mq-header-actions">
+        ${renderSnapshotIcon(model)}
+        ${renderStatusActions(model.statusActions, model.id)}
+      </div>
     </header>
 
     <div class="mq-details-columns">
@@ -573,7 +612,42 @@ function renderDetailsTab(model) {
         ${renderRewards(model)}
       </div>
     </div>
+
+    ${renderSnapshotFooter(model)}
   `;
+}
+
+/**
+ * Snapshot da quest, em dois lugares e um so ato.
+ *
+ * A camera pequena mora na fileira de status, ao alcance de quem ja esta marcando
+ * objetivo; o botao grande mora no rodape, onde a mao vai quando a cena fecha. Os dois
+ * disparam a MESMA acao — `snapshot-quest` — e capturam esta quest e as subquests dela,
+ * nao o log inteiro: o snapshot geral continua no Hub, que e onde se pensa a campanha.
+ *
+ * Nao aparece para jogador: o snapshot carrega objetivo oculto e recompensa travada.
+ *
+ * @param {object} model The quest details view model.
+ * @returns {string} HTML.
+ */
+function renderSnapshotIcon(model) {
+  if (!model.isGM) return "";
+  return `<button type="button" class="mq-icon-button mq-snapshot-icon" data-action="snapshot-quest"
+      title="Snapshot desta quest" aria-label="Snapshot desta quest">
+      <i class="fa-solid fa-camera" inert></i></button>`;
+}
+
+/**
+ * @param {object} model The quest details view model.
+ * @returns {string} HTML.
+ */
+function renderSnapshotFooter(model) {
+  if (!model.isGM) return "";
+  return `<footer class="mq-details-footer">
+      <button type="button" class="mq-snapshot-button" data-action="snapshot-quest"
+        title="Baixar o estado desta quest e das subquests em JSON">
+        <i class="fa-solid fa-camera" inert></i><span>Snapshot</span></button>
+    </footer>`;
 }
 
 function renderObjectives(model) {
@@ -687,6 +761,8 @@ function renderReward(reward, model) {
  */
 function renderNotesTab(model, field, label) {
   const enriched = model.enriched?.[field] ?? safeHtml(model[field] ?? "");
+  // So o fasciculo recebe a tipografia de documento. GM Notes e rascunho: fica com a
+  // caixa comum, porque tratar rabisco de mesa como pagina impressa mente sobre o que ele e.
   const isPanel = field === "gmnotes";
 
   const body = model.canEdit

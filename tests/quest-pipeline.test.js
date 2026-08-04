@@ -194,7 +194,7 @@ test("downloading a snapshot falls back gracefully with no browser target", () =
   assert.equal(result.status, "no-download-target");
   assert.ok(result.filename.startsWith("masterquest-snapshot-conan-legacy-"));
   assert.ok(result.filename.endsWith(".json"));
-  assert.equal(result.snapshot.schemaVersion, 1);
+  assert.equal(result.snapshot.schemaVersion, 2);
 });
 
 test("no scene control button is declared as the group's activeTool", () => {
