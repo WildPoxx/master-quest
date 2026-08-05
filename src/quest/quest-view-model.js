@@ -163,9 +163,17 @@ export function buildQuestDetailsViewModel(quest, {
       spoiler: !reward.hidden && !reward.known
     }));
 
-  const problems = toArray(quest.problems)
-    .filter((problem) => isGM || !problem.hidden)
-    .map((problem) => ({ ...problem, spoiler: !problem.hidden && !problem.known }));
+  const dilemmas = toArray(quest.dilemmas)
+    .filter((dilemma) => isGM || !dilemma.hidden)
+    .map((dilemma) => ({ ...dilemma, spoiler: !dilemma.hidden && !dilemma.known }));
+
+  const clues = toArray(quest.clues)
+    .filter((clue) => isGM || !clue.hidden)
+    .map((clue) => ({ ...clue, spoiler: !clue.hidden && !clue.known }));
+
+  const outcomes = toArray(quest.outcomes)
+    .filter((outcome) => isGM || !outcome.hidden)
+    .map((outcome) => ({ ...outcome, spoiler: !outcome.hidden && !outcome.known }));
 
   const complications = toArray(quest.complications)
     .filter((complication) => isGM || !complication.hidden)
@@ -181,6 +189,8 @@ export function buildQuestDetailsViewModel(quest, {
     tabs.push({ id: "gmcomments", label: "GM Notes", active: activeTab === "gmcomments" });
   }
   tabs.push({ id: "playernotes", label: "Player Notes", active: activeTab === "playernotes" });
+  // DEC-032: a sexta aba. So o Mestre — o Log e instrumento de conducao e de export.
+  if (isGM) tabs.push({ id: "log", label: "Log", active: activeTab === "log" });
   if (canEdit) tabs.push({ id: "management", label: "Manage", active: activeTab === "management" });
 
   return {
@@ -205,8 +215,11 @@ export function buildQuestDetailsViewModel(quest, {
     parentName: parent?.name ?? "",
     objectives,
     rewards,
-    problems,
+    clues,
+    dilemmas,
     complications,
+    outcomes,
+    log: toArray(quest.log),
     subquests,
     allRewardsVisible: rewards.length > 0 && rewards.every((r) => !r.hidden),
     allRewardsGranted: rewards.length > 0 && rewards.every((r) => r.granted),

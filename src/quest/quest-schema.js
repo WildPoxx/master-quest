@@ -112,8 +112,18 @@ export function normalizeQuest(input = {}) {
     // DEC-035: Problema nao se cumpre — resolve-se, e toda saida tem preco. Complicacao
     // nao se resolve — incide. Irmas de objectives/rewards; antes disto viviam como
     // tabelas de HTML no gmnotes, frageis por construcao (ProseMirror, 2026-08-04).
-    problems: toArray(data.problems).map(normalizeProblem).filter((x) => x.name !== ""),
+    // Ordem canonica da Details (Mario, 2026-08-05): Objectives -> Clues -> Rewards ->
+    // Dilemmas -> Complications -> Outcomes. Pista aponta o caminho; recompensa fica com
+    // a mesa; dilema e a pergunta que a quest poe; complicacao incide; outcome registra
+    // como pode terminar. Outcome NAO e recompensa: posse e registro sao categorias
+    // diferentes.
+    clues: toArray(data.clues).map(normalizeClue).filter((x) => x.name !== ""),
+    dilemmas: toArray(data.dilemmas ?? data.problems).map(normalizeDilemma).filter((x) => x.name !== ""),
     complications: toArray(data.complications).map(normalizeComplication).filter((x) => x.name !== ""),
+    outcomes: toArray(data.outcomes).map(normalizeOutcome).filter((x) => x.name !== ""),
+    // Append-only, escrito pelo modulo a cada mudanca de estado (DEC-032). A unica coluna
+    // que aceita mao humana e `reason` — e a que da sentido ao resto.
+    log: toArray(data.log).map(normalizeLogEntry),
     date: normalizeDate(data.date),
     source: text(data.source) || "master-quest"
   };
@@ -208,24 +218,87 @@ export function normalizeReward(input = {}) {
 }
 
 /**
- * DEC-035. `state` e binario e nao e checkbox: a saida de um Problema e um TEXTO
- * (`outcome`), nunca um ganho limpo. `table` aponta a Tabela de Desfecho por nome/UUID.
+ * DEC-035, renomeada por Mario em 2026-08-05: a regua de admissao (nenhuma saida neutra,
+ * toda saida custa) define um DILEMA, nao um problema generico. E a pergunta que a quest
+ * poe — de design, estrutural, rara. `state` e binario e nao e checkbox: a saida e um
+ * TEXTO (`resolution`), nunca um ganho limpo. `table` aponta a Tabela de Desfecho.
  *
- * @param {object} [input] Raw problem data.
- * @returns {object} A normalized problem.
+ * @param {object} [input] Raw dilemma data.
+ * @returns {object} A normalized dilemma.
  */
-export function normalizeProblem(input = {}) {
+export function normalizeDilemma(input = {}) {
   const data = isRecord(input) ? input : {};
   return {
     id: text(data.id) || makeId(),
     name: text(data.name),
     state: data.state === "resolved" ? "resolved" : "open",
     // O que de fato aconteceu quando resolveu. Da mesa, escrito pelo Mestre.
-    outcome: text(data.outcome),
+    resolution: text(data.resolution ?? data.outcome),
     // Ponteiro descritivo para a Tabela de Desfecho (nome ou @UUID). Da fonte.
     table: text(data.table),
     hidden: data.hidden !== false,
     known: data.known === true
+  };
+}
+
+/**
+ * Pista (Mario, 2026-08-05): informacao que aponta o caminho — gancho que leva a
+ * objetivo ou recompensa. Nao e posse. `found` registra que a mesa a obteve.
+ * Desenhada para a futura DEC das Descobertas ESTENDER (metodo, custo, camadas),
+ * nao substituir.
+ *
+ * @param {object} [input] Raw clue data.
+ * @returns {object} A normalized clue.
+ */
+export function normalizeClue(input = {}) {
+  const data = isRecord(input) ? input : {};
+  return {
+    id: text(data.id) || makeId(),
+    name: text(data.name),
+    found: data.found === true,
+    hidden: data.hidden !== false,
+    known: data.known === true
+  };
+}
+
+/**
+ * Outcome (Mario, 2026-08-05): como a quest PODE terminar, e como terminou. Nao e
+ * recompensa — posse e registro sao categorias diferentes. Secao final da Details.
+ * `occurred` marca que aconteceu em ficcao; `record` guarda o que de fato se deu.
+ *
+ * @param {object} [input] Raw outcome data.
+ * @returns {object} A normalized outcome.
+ */
+export function normalizeOutcome(input = {}) {
+  const data = isRecord(input) ? input : {};
+  return {
+    id: text(data.id) || makeId(),
+    name: text(data.name),
+    occurred: data.occurred === true,
+    record: text(data.record),
+    table: text(data.table),
+    hidden: data.hidden !== false,
+    known: data.known === true
+  };
+}
+
+/**
+ * DEC-032. Uma linha do Log: alvo · mudanca · razao. `at` e epoch ms; `reason` nasce
+ * vazia e VISIVELMENTE pendente — exigir o motivo no clique quebraria o gesto unico da
+ * DEC-031, entao o modulo grava o fato e cobra o sentido depois.
+ *
+ * @param {object} [input] Raw log entry.
+ * @returns {object} A normalized log entry.
+ */
+export function normalizeLogEntry(input = {}) {
+  const data = isRecord(input) ? input : {};
+  return {
+    id: text(data.id) || makeId(),
+    at: Number.isFinite(Number(data.at)) ? Number(data.at) : 0,
+    target: text(data.target),
+    targetType: text(data.targetType),
+    change: text(data.change),
+    reason: text(data.reason)
   };
 }
 

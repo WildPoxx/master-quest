@@ -484,6 +484,10 @@
 .masterquest .mq-log-header,
 .masterquest .mq-objectives header,
 .masterquest .mq-rewards header,
+.masterquest .mq-clues header,
+.masterquest .mq-dilemmas header,
+.masterquest .mq-complications header,
+.masterquest .mq-outcomes header,
 .masterquest .mq-subquests header {
   align-items: center;
   display: flex;
@@ -495,6 +499,10 @@
 .masterquest .mq-log-header h2,
 .masterquest .mq-objectives h2,
 .masterquest .mq-rewards h2,
+.masterquest .mq-clues h2,
+.masterquest .mq-dilemmas h2,
+.masterquest .mq-complications h2,
+.masterquest .mq-outcomes h2,
 .masterquest .mq-subquests h2 {
   border: none;
   margin: 0;
@@ -1198,59 +1206,62 @@
 
 .masterquest .mq-objective.is-spoiler,
 .masterquest .mq-reward.is-spoiler,
-.masterquest .mq-problem.is-spoiler,
-.masterquest .mq-complication.is-spoiler {
+.masterquest .mq-clue.is-spoiler,
+.masterquest .mq-dilemma.is-spoiler,
+.masterquest .mq-complication.is-spoiler,
+.masterquest .mq-outcome.is-spoiler {
   border-left: 3px solid var(--mq-danger);
   padding-left: 5px;
 }
 
-.masterquest .mq-problems header h2,
-.masterquest .mq-complications header h2 { margin-right: auto; }
-
-.masterquest .mq-problem,
-.masterquest .mq-complication {
+.masterquest .mq-clue,
+.masterquest .mq-dilemma,
+.masterquest .mq-complication,
+.masterquest .mq-outcome {
   display: block;
   padding: 6px 4px;
   border-bottom: 1px solid var(--mq-border);
 }
-.masterquest .mq-problem.is-hidden,
-.masterquest .mq-complication.is-hidden { opacity: 0.55; }
+.masterquest .mq-clue.is-hidden,
+.masterquest .mq-dilemma.is-hidden,
+.masterquest .mq-complication.is-hidden,
+.masterquest .mq-outcome.is-hidden { opacity: 0.55; }
 
-.masterquest .mq-problem-row {
+.masterquest .mq-knot-row {
   display: flex;
   align-items: center;
   gap: 8px;
   min-width: 0;
 }
-.masterquest .mq-problem-name { flex: 1; margin: 0; min-width: 0; }
-.masterquest .mq-problem-name[contenteditable]:focus {
+.masterquest .mq-knot-name { flex: 1; margin: 0; min-width: 0; }
+.masterquest .mq-knot-name[contenteditable]:focus {
   outline: 1px solid var(--mq-accent-bright);
   border-radius: 2px;
 }
 
-.masterquest .mq-problem-marker {
+.masterquest .mq-knot-marker {
   flex: 0 0 18px;
   display: grid;
   place-items: center;
   color: var(--mq-accent);
   font-size: 12px;
 }
-.masterquest .mq-problem-marker.is-resolved { color: var(--mq-text-muted); }
+.masterquest .mq-knot-marker.is-resolved { color: var(--mq-text-muted); }
 
-.masterquest .mq-problem-outcome {
+.masterquest .mq-knot-text {
   margin: 4px 0 0 52px;
   font-size: 12px;
   font-style: italic;
   color: var(--mq-text-muted);
 }
-.masterquest .mq-problem-outcome[contenteditable]:focus {
+.masterquest .mq-knot-text[contenteditable]:focus {
   outline: 1px solid var(--mq-accent-bright);
   border-radius: 2px;
   font-style: normal;
   color: var(--mq-text);
 }
 
-.masterquest .mq-problem-table,
+.masterquest .mq-knot-ref,
 .masterquest .mq-complication-trigger {
   flex: 0 0 auto;
   font-size: 11px;
@@ -1286,3 +1297,68 @@
 .masterquest .mq-severity-severa { border-width: 2px; box-shadow: inset 0 0 0 1px var(--mq-chip-outline); }
 
 .masterquest .mq-icon-button.is-fired { color: var(--mq-accent); }
+
+/* 0.22.0 — Clues, Outcomes, Log e o bloco derivado do Player Notes. */
+.masterquest .mq-found { color: var(--mq-border-strong); }
+.masterquest .mq-found.is-found { color: var(--mq-accent); }
+
+.masterquest .mq-log-day {
+  font-family: var(--mq-font-display);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mq-text-muted);
+  border-bottom: 1px solid var(--mq-border);
+  margin: 12px 0 4px;
+  padding-bottom: 2px;
+}
+.masterquest .mq-log-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.masterquest .mq-log-table td {
+  padding: 5px 6px;
+  border-bottom: 1px solid var(--mq-border);
+  vertical-align: top;
+}
+.masterquest .mq-log-target { width: 40%; }
+.masterquest .mq-log-type {
+  font-family: var(--mq-font-display);
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--mq-text-muted);
+  margin-left: 6px;
+}
+.masterquest .mq-log-change { width: 24%; color: var(--mq-text-muted); white-space: nowrap; }
+.masterquest .mq-log-reason { width: 36%; }
+.masterquest .mq-log-reason-text { display: block; min-height: 1.2em; border-radius: 3px; padding: 1px 5px; }
+.masterquest .mq-log-reason-text.is-pending {
+  border: 1px dashed var(--mq-border-strong);
+  color: var(--mq-text-muted);
+  font-style: italic;
+}
+.masterquest .mq-log-reason-text.is-pending:empty::before { content: "why? — click to write"; }
+.masterquest .mq-log-reason-text:focus { outline: 1px solid var(--mq-accent-bright); font-style: normal; }
+.masterquest .mq-log-actions { display: flex; gap: 6px; }
+.masterquest .mq-log-body { overflow-y: auto; }
+
+/* O bloco derivado: inconfundivel com o campo editavel — moldura propria, titulo em
+   versalete, e NENHUMA superficie de escrita. Reverter granted faz a linha sumir. */
+.masterquest .mq-derived {
+  background: var(--mq-surface-1);
+  border: 1px solid var(--mq-border-strong);
+  border-left: 3px solid var(--mq-accent);
+  border-radius: var(--mq-radius-2);
+  padding: 8px 12px;
+  margin: 0 0 8px;
+}
+.masterquest .mq-derived h3 {
+  font-family: var(--mq-font-display);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mq-accent);
+  border: none;
+  margin: 0 0 4px;
+}
+.masterquest .mq-derived ul { list-style: none; margin: 0; padding: 0; }
+.masterquest .mq-derived li { font-size: 12px; padding: 2px 0; color: var(--mq-text); }
+.masterquest .mq-derived li i { color: var(--mq-accent); width: 16px; }

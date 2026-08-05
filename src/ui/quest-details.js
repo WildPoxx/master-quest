@@ -19,7 +19,8 @@ import {
   unlinkSubquest
 } from "../quest/quest-store.js";
 import { buildQuestDetailsViewModel } from "../quest/quest-view-model.js";
-import { COMPLICATION_SEVERITIES, makeId, normalizeComplication, normalizeObjective, normalizeProblem, normalizeReward, reorderById } from "../quest/quest-schema.js";
+import { diffQuestForLog, logToMarkdown } from "../quest/quest-log-diff.js";
+import { COMPLICATION_SEVERITIES, makeId, normalizeClue, normalizeComplication, normalizeDilemma, normalizeLogEntry, normalizeObjective, normalizeOutcome, normalizeReward, reorderById } from "../quest/quest-schema.js";
 import { readAllQuests } from "../quest/quest-store.js";
 import { cls, esc, escUrl, renderEmpty, renderStatusActions, safeHtml } from "./render-utils.js";
 
@@ -166,12 +167,21 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
       this.activateListeners(result);
     }
 
-    /** Persist a change and refresh both this window and the log. */
+    /**
+     * Persist a change and refresh both this window and the log.
+     *
+     * DEC-032: toda mutacao passa por aqui, entao o diff do Log mora AQUI — nenhum
+     * handler precisa lembrar de logar, nenhum handler esquece. A razao nasce vazia.
+     */
     async commit(mutate) {
       const quest = this.quest;
       if (!quest) return;
 
-      await saveQuest(mutate({ ...quest }));
+      let next = mutate({ ...quest });
+      const entries = diffQuestForLog(quest, next, Date.now());
+      if (entries.length) next = { ...next, log: [...(next.log ?? []), ...entries] };
+
+      await saveQuest(next);
       await this.render({ force: false });
       this.onChange?.();
     }
@@ -199,6 +209,31 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
           await this.render({ force: false });
           this.onChange?.();
         });
+      });
+
+      root.querySelectorAll("[data-log-reason]").forEach((node) => {
+        node.addEventListener("blur", async () => {
+          const id = node.dataset.logReason;
+          const reason = node.textContent.trim();
+          await this.commit((draft) => ({
+            ...draft,
+            log: (draft.log ?? []).map((item) => (item.id === id ? { ...item, reason } : item))
+          }));
+        });
+      });
+
+      root.querySelector("[data-action='log-copy-markdown']")?.addEventListener("click", async (event) => {
+        event.preventDefault();
+        const quest = this.quest;
+        await navigator.clipboard?.writeText(logToMarkdown(quest?.name ?? "", quest?.log ?? []));
+        notifyInfo("Log copied as Markdown.", this.ui);
+      });
+
+      root.querySelector("[data-action='log-copy-json']")?.addEventListener("click", async (event) => {
+        event.preventDefault();
+        const quest = this.quest;
+        await navigator.clipboard?.writeText(JSON.stringify(quest?.log ?? [], null, 2));
+        notifyInfo("Log copied as JSON.", this.ui);
       });
 
       root.querySelectorAll("[data-action='toc-jump']").forEach((node) => {
@@ -438,12 +473,28 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
         });
       });
 
-      // ------- DEC-035: problems & complications -------
-      root.querySelector("[data-action='add-problem']")?.addEventListener("click", async (event) => {
+      // ------- DEC-035: dilemmas, complications, clues, outcomes -------
+      root.querySelector("[data-action='add-dilemma']")?.addEventListener("click", async (event) => {
         event.preventDefault();
         await this.commit((draft) => ({
           ...draft,
-          problems: [...(draft.problems ?? []), normalizeProblem({ id: makeId(), name: "New problem" })]
+          dilemmas: [...(draft.dilemmas ?? []), normalizeDilemma({ id: makeId(), name: "New dilemma" })]
+        }));
+      });
+
+      root.querySelector("[data-action='add-clue']")?.addEventListener("click", async (event) => {
+        event.preventDefault();
+        await this.commit((draft) => ({
+          ...draft,
+          clues: [...(draft.clues ?? []), normalizeClue({ id: makeId(), name: "New clue" })]
+        }));
+      });
+
+      root.querySelector("[data-action='add-outcome']")?.addEventListener("click", async (event) => {
+        event.preventDefault();
+        await this.commit((draft) => ({
+          ...draft,
+          outcomes: [...(draft.outcomes ?? []), normalizeOutcome({ id: makeId(), name: "New outcome" })]
         }));
       });
 
@@ -456,14 +507,20 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
       });
 
       for (const [action, collection, patch] of [
-        ["toggle-problem-hidden", "problems", (item) => ({ ...item, hidden: !item.hidden })],
-        ["toggle-problem-known", "problems", (item) => ({ ...item, known: !item.known })],
+        ["toggle-dilemma-hidden", "dilemmas", (item) => ({ ...item, hidden: !item.hidden })],
+        ["toggle-dilemma-known", "dilemmas", (item) => ({ ...item, known: !item.known })],
         // Problema nao tem checkbox: resolve-se. O gesto e reversivel — reabrir preserva
         // o texto do desfecho ja escrito.
-        ["toggle-problem-state", "problems", (item) => ({ ...item, state: item.state === "resolved" ? "open" : "resolved" })],
+        ["toggle-dilemma-state", "dilemmas", (item) => ({ ...item, state: item.state === "resolved" ? "open" : "resolved" })],
         ["toggle-complication-hidden", "complications", (item) => ({ ...item, hidden: !item.hidden })],
         ["toggle-complication-known", "complications", (item) => ({ ...item, known: !item.known })],
         ["toggle-complication-fired", "complications", (item) => ({ ...item, fired: !item.fired })],
+        ["toggle-clue-hidden", "clues", (item) => ({ ...item, hidden: !item.hidden })],
+        ["toggle-clue-known", "clues", (item) => ({ ...item, known: !item.known })],
+        ["toggle-clue-found", "clues", (item) => ({ ...item, found: !item.found })],
+        ["toggle-outcome-hidden", "outcomes", (item) => ({ ...item, hidden: !item.hidden })],
+        ["toggle-outcome-known", "outcomes", (item) => ({ ...item, known: !item.known })],
+        ["toggle-outcome-occurred", "outcomes", (item) => ({ ...item, occurred: !item.occurred })],
         ["cycle-complication-severity", "complications", (item) => ({
           ...item,
           severity: COMPLICATION_SEVERITIES[(COMPLICATION_SEVERITIES.indexOf(item.severity) + 1) % COMPLICATION_SEVERITIES.length]
@@ -482,8 +539,10 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
       }
 
       for (const [action, collection] of [
-        ["delete-problem", "problems"],
-        ["delete-complication", "complications"]
+        ["delete-dilemma", "dilemmas"],
+        ["delete-complication", "complications"],
+        ["delete-clue", "clues"],
+        ["delete-outcome", "outcomes"]
       ]) {
         root.querySelectorAll(`[data-action='${action}']`).forEach((node) => {
           node.addEventListener("click", async (event) => {
@@ -498,13 +557,16 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
       }
 
       for (const [selector, collection, field] of [
-        ["[data-problem-name]", "problems", "name"],
-        ["[data-problem-outcome]", "problems", "outcome"],
-        ["[data-complication-name]", "complications", "name"]
+        ["[data-dilemma-name]", "dilemmas", "name"],
+        ["[data-dilemma-resolution]", "dilemmas", "resolution"],
+        ["[data-complication-name]", "complications", "name"],
+        ["[data-clue-name]", "clues", "name"],
+        ["[data-outcome-name]", "outcomes", "name"],
+        ["[data-outcome-record]", "outcomes", "record"]
       ]) {
         root.querySelectorAll(selector).forEach((node) => {
           node.addEventListener("blur", async () => {
-            const id = node.dataset.problemName ?? node.dataset.problemOutcome ?? node.dataset.complicationName;
+            const id = node.dataset.dilemmaName ?? node.dataset.dilemmaResolution ?? node.dataset.complicationName ?? node.dataset.clueName ?? node.dataset.outcomeName ?? node.dataset.outcomeRecord;
             const value = node.textContent.trim();
             await this.commit((draft) => ({
               ...draft,
@@ -660,6 +722,7 @@ export function renderQuestDetails(model) {
     playernotes: renderNotesTab(model, "playernotes", "Player Notes"),
     gmnotes: renderNotesTab(model, "gmnotes", "GM Panel"),
     gmcomments: renderNotesTab(model, "gmcomments", "GM Notes"),
+    log: renderLogTab(model),
     management: renderManagementTab(model)
   };
 
@@ -711,9 +774,11 @@ function renderDetailsTab(model) {
 
       <div class="mq-details-right">
         ${renderObjectives(model)}
+        ${renderClues(model)}
         ${renderRewards(model)}
-        ${renderProblems(model)}
+        ${renderDilemmas(model)}
         ${renderComplications(model)}
+        ${renderOutcomes(model)}
       </div>
     </div>
 
@@ -760,68 +825,198 @@ function renderSnapshotFooter(model) {
  * A linha usa marcador proprio (losango) e o gesto "Resolve" abre espaco para o desfecho —
  * se a linha parecesse objetivo, o Mestre tentaria marca-la como concluida.
  */
-function renderProblems(model) {
-  if (!model.isGM && !model.problems.length) return "";
 
-  const items = model.problems.length
-    ? model.problems.map((problem) => renderProblem(problem, model)).join("")
-    : renderEmpty("No problems yet.");
+/**
+ * Pistas (Mario, 2026-08-05): informacao que aponta o caminho. Nao e posse — vem antes de
+ * Rewards na ordem canonica porque e o que LEVA a elas. A lupa registra "a mesa achou".
+ */
+function renderClues(model) {
+  if (!model.isGM && !model.clues.length) return "";
+
+  const items = model.clues.length
+    ? model.clues.map((clue) => renderClue(clue, model)).join("")
+    : renderEmpty("No clues yet.");
 
   const addButton = model.canEdit
-    ? `<button type="button" class="mq-add" data-action="add-problem"><i class="fa-solid fa-plus" inert></i> Problem</button>`
+    ? `<button type="button" class="mq-add" data-action="add-clue"><i class="fa-solid fa-plus" inert></i> Clue</button>`
     : "";
 
   return `
-    <section class="mq-problems">
-      <header><h2>Problems</h2>${addButton}</header>
+    <section class="mq-clues">
+      <header><h2>Clues</h2>${addButton}</header>
       <ul class="mq-box">${items}</ul>
     </section>
   `;
 }
 
-function renderProblem(problem, model) {
+function renderClue(clue, model) {
   const known = model.isGM
     ? model.canEdit
-      ? `<button type="button" class="${cls("mq-known", problem.known && "is-known")}" data-action="toggle-problem-known" data-item-id="${esc(problem.id)}"
-          title="${problem.known ? "The PCs know of this, in fiction" : "The PCs do not know of this yet"}">
-          <i class="${problem.known ? "fa-solid" : "fa-regular"} fa-lightbulb" inert></i></button>`
-      : `<span class="${cls("mq-known", problem.known && "is-known")}"><i class="${problem.known ? "fa-solid" : "fa-regular"} fa-lightbulb" inert></i></span>`
+      ? `<button type="button" class="${cls("mq-known", clue.known && "is-known")}" data-action="toggle-clue-known" data-item-id="${esc(clue.id)}"
+          title="${clue.known ? "The PCs know of this, in fiction" : "The PCs do not know of this yet"}">
+          <i class="${clue.known ? "fa-solid" : "fa-regular"} fa-lightbulb" inert></i></button>`
+      : `<span class="${cls("mq-known", clue.known && "is-known")}"><i class="${clue.known ? "fa-solid" : "fa-regular"} fa-lightbulb" inert></i></span>`
     : "";
 
-  const resolved = problem.state === "resolved";
-  const marker = `<span class="${cls("mq-problem-marker", resolved && "is-resolved")}" title="${resolved ? "Resolved" : "Open"}">
-      <i class="fa-solid ${resolved ? "fa-diamond" : "fa-diamond-exclamation"}" inert></i></span>`;
-
-  const outcome = resolved
-    ? `<p class="mq-problem-outcome" ${model.canEdit ? `contenteditable="true" data-problem-outcome="${esc(problem.id)}"` : ""}>${
-        esc(problem.outcome) || (model.canEdit ? "How did it resolve? Write the outcome." : "")
-      }</p>`
-    : "";
-
-  const table = problem.table
-    ? `<span class="mq-problem-table" title="Outcome table"><i class="fa-solid fa-dice" inert></i> ${esc(problem.table)}</span>`
-    : "";
+  const found = model.canEdit
+    ? `<button type="button" class="${cls("mq-icon-button", "mq-found", clue.found && "is-found")}" data-action="toggle-clue-found" data-item-id="${esc(clue.id)}"
+        title="${clue.found ? "The party has this clue" : "Not found yet"}">
+        <i class="fa-solid ${clue.found ? "fa-magnifying-glass-plus" : "fa-magnifying-glass"}" inert></i></button>`
+    : `<span class="${cls("mq-icon-button", "mq-found", clue.found && "is-found")}"><i class="fa-solid ${clue.found ? "fa-magnifying-glass-plus" : "fa-magnifying-glass"}" inert></i></span>`;
 
   const actions = model.canEdit
     ? `<div class="mq-row-actions">
-        <button type="button" class="mq-bulk mq-resolve" data-action="toggle-problem-state" data-item-id="${esc(problem.id)}">${resolved ? "Reopen" : "Resolve"}</button>
-        <button type="button" class="mq-icon-button" data-action="toggle-problem-hidden" data-item-id="${esc(problem.id)}"
-          title="${problem.hidden ? "Hidden from players" : "Visible to players"}">
-          <i class="fa-solid ${problem.hidden ? "fa-eye-slash" : "fa-eye"}" inert></i></button>
-        <button type="button" class="mq-icon-button mq-danger" data-action="delete-problem" data-item-id="${esc(problem.id)}"
-          title="Delete problem"><i class="fa-solid fa-trash" inert></i></button>
+        <button type="button" class="mq-icon-button" data-action="toggle-clue-hidden" data-item-id="${esc(clue.id)}"
+          title="${clue.hidden ? "Hidden from players" : "Visible to players"}">
+          <i class="fa-solid ${clue.hidden ? "fa-eye-slash" : "fa-eye"}" inert></i></button>
+        <button type="button" class="mq-icon-button mq-danger" data-action="delete-clue" data-item-id="${esc(clue.id)}"
+          title="Delete clue"><i class="fa-solid fa-trash" inert></i></button>
       </div>`
     : "";
 
   return `
-    <li class="${cls("mq-problem", problem.hidden && "is-hidden", resolved && "is-resolved", model.isGM && problem.spoiler && "is-spoiler")}" data-entry-id="${esc(problem.id)}">
-      <div class="mq-problem-row">
+    <li class="${cls("mq-clue", clue.hidden && "is-hidden", clue.found && "is-found", model.isGM && clue.spoiler && "is-spoiler")}" data-entry-id="${esc(clue.id)}">
+      <div class="mq-knot-row">
+        ${known}${found}
+        <p class="mq-knot-name" ${model.canEdit ? `contenteditable="true" data-clue-name="${esc(clue.id)}"` : ""}>${esc(clue.name)}</p>
+        ${actions}
+      </div>
+    </li>
+  `;
+}
+
+/**
+ * Outcomes (Mario, 2026-08-05): como a quest pode terminar — e como terminou. Secao FINAL
+ * da Details, sempre. Outcome nao e recompensa: posse e registro sao categorias
+ * diferentes. `occurred` marca o acontecido; `record` guarda o que de fato se deu.
+ */
+function renderOutcomes(model) {
+  if (!model.isGM && !model.outcomes.length) return "";
+
+  const items = model.outcomes.length
+    ? model.outcomes.map((outcome) => renderOutcome(outcome, model)).join("")
+    : renderEmpty("No outcomes yet.");
+
+  const addButton = model.canEdit
+    ? `<button type="button" class="mq-add" data-action="add-outcome"><i class="fa-solid fa-plus" inert></i> Outcome</button>`
+    : "";
+
+  return `
+    <section class="mq-outcomes">
+      <header><h2>Outcomes</h2>${addButton}</header>
+      <ul class="mq-box">${items}</ul>
+    </section>
+  `;
+}
+
+function renderOutcome(outcome, model) {
+  const known = model.isGM
+    ? model.canEdit
+      ? `<button type="button" class="${cls("mq-known", outcome.known && "is-known")}" data-action="toggle-outcome-known" data-item-id="${esc(outcome.id)}"
+          title="${outcome.known ? "The PCs know this ending is possible" : "The PCs do not know of this yet"}">
+          <i class="${outcome.known ? "fa-solid" : "fa-regular"} fa-lightbulb" inert></i></button>`
+      : `<span class="${cls("mq-known", outcome.known && "is-known")}"><i class="${outcome.known ? "fa-solid" : "fa-regular"} fa-lightbulb" inert></i></span>`
+    : "";
+
+  const marker = `<span class="${cls("mq-knot-marker", outcome.occurred && "is-resolved")}" title="${outcome.occurred ? "Occurred" : "Possible"}">
+      <i class="fa-solid ${outcome.occurred ? "fa-flag-checkered" : "fa-flag"}" inert></i></span>`;
+
+  const record = outcome.occurred
+    ? `<p class="mq-knot-text" ${model.canEdit ? `contenteditable="true" data-outcome-record="${esc(outcome.id)}"` : ""}>${
+        esc(outcome.record) || (model.canEdit ? "What actually happened? Write the record." : "")
+      }</p>`
+    : "";
+
+  const table = outcome.table
+    ? `<span class="mq-knot-ref" title="Outcome table"><i class="fa-solid fa-dice" inert></i> ${esc(outcome.table)}</span>`
+    : "";
+
+  const actions = model.canEdit
+    ? `<div class="mq-row-actions">
+        <button type="button" class="mq-bulk mq-resolve" data-action="toggle-outcome-occurred" data-item-id="${esc(outcome.id)}">${outcome.occurred ? "Undo" : "It happened"}</button>
+        <button type="button" class="mq-icon-button" data-action="toggle-outcome-hidden" data-item-id="${esc(outcome.id)}"
+          title="${outcome.hidden ? "Hidden from players" : "Visible to players"}">
+          <i class="fa-solid ${outcome.hidden ? "fa-eye-slash" : "fa-eye"}" inert></i></button>
+        <button type="button" class="mq-icon-button mq-danger" data-action="delete-outcome" data-item-id="${esc(outcome.id)}"
+          title="Delete outcome"><i class="fa-solid fa-trash" inert></i></button>
+      </div>`
+    : "";
+
+  return `
+    <li class="${cls("mq-outcome", outcome.hidden && "is-hidden", outcome.occurred && "is-resolved", model.isGM && outcome.spoiler && "is-spoiler")}" data-entry-id="${esc(outcome.id)}">
+      <div class="mq-knot-row">
         ${known}${marker}
-        <p class="mq-problem-name" ${model.canEdit ? `contenteditable="true" data-problem-name="${esc(problem.id)}"` : ""}>${esc(problem.name)}</p>
+        <p class="mq-knot-name" ${model.canEdit ? `contenteditable="true" data-outcome-name="${esc(outcome.id)}"` : ""}>${esc(outcome.name)}</p>
         ${table}
         ${actions}
       </div>
-      ${outcome}
+      ${record}
+    </li>
+  `;
+}
+
+function renderDilemmas(model) {
+  if (!model.isGM && !model.dilemmas.length) return "";
+
+  const items = model.dilemmas.length
+    ? model.dilemmas.map((dilemma) => renderDilemma(dilemma, model)).join("")
+    : renderEmpty("No dilemmas yet.");
+
+  const addButton = model.canEdit
+    ? `<button type="button" class="mq-add" data-action="add-dilemma"><i class="fa-solid fa-plus" inert></i> Dilemma</button>`
+    : "";
+
+  return `
+    <section class="mq-dilemmas">
+      <header><h2>Dilemmas</h2>${addButton}</header>
+      <ul class="mq-box">${items}</ul>
+    </section>
+  `;
+}
+
+function renderDilemma(dilemma, model) {
+  const known = model.isGM
+    ? model.canEdit
+      ? `<button type="button" class="${cls("mq-known", dilemma.known && "is-known")}" data-action="toggle-dilemma-known" data-item-id="${esc(dilemma.id)}"
+          title="${dilemma.known ? "The PCs know of this, in fiction" : "The PCs do not know of this yet"}">
+          <i class="${dilemma.known ? "fa-solid" : "fa-regular"} fa-lightbulb" inert></i></button>`
+      : `<span class="${cls("mq-known", dilemma.known && "is-known")}"><i class="${dilemma.known ? "fa-solid" : "fa-regular"} fa-lightbulb" inert></i></span>`
+    : "";
+
+  const resolved = dilemma.state === "resolved";
+  const marker = `<span class="${cls("mq-knot-marker", resolved && "is-resolved")}" title="${resolved ? "Resolved" : "Open"}">
+      <i class="fa-solid ${resolved ? "fa-diamond" : "fa-diamond-exclamation"}" inert></i></span>`;
+
+  const resolution = resolved
+    ? `<p class="mq-knot-text" ${model.canEdit ? `contenteditable="true" data-dilemma-resolution="${esc(dilemma.id)}"` : ""}>${
+        esc(dilemma.resolution) || (model.canEdit ? "How did it resolve? Write the outcome." : "")
+      }</p>`
+    : "";
+
+  const table = dilemma.table
+    ? `<span class="mq-knot-ref" title="Outcome table"><i class="fa-solid fa-dice" inert></i> ${esc(dilemma.table)}</span>`
+    : "";
+
+  const actions = model.canEdit
+    ? `<div class="mq-row-actions">
+        <button type="button" class="mq-bulk mq-resolve" data-action="toggle-dilemma-state" data-item-id="${esc(dilemma.id)}">${resolved ? "Reopen" : "Resolve"}</button>
+        <button type="button" class="mq-icon-button" data-action="toggle-dilemma-hidden" data-item-id="${esc(dilemma.id)}"
+          title="${dilemma.hidden ? "Hidden from players" : "Visible to players"}">
+          <i class="fa-solid ${dilemma.hidden ? "fa-eye-slash" : "fa-eye"}" inert></i></button>
+        <button type="button" class="mq-icon-button mq-danger" data-action="delete-dilemma" data-item-id="${esc(dilemma.id)}"
+          title="Delete dilemma"><i class="fa-solid fa-trash" inert></i></button>
+      </div>`
+    : "";
+
+  return `
+    <li class="${cls("mq-dilemma", dilemma.hidden && "is-hidden", resolved && "is-resolved", model.isGM && dilemma.spoiler && "is-spoiler")}" data-entry-id="${esc(dilemma.id)}">
+      <div class="mq-knot-row">
+        ${known}${marker}
+        <p class="mq-knot-name" ${model.canEdit ? `contenteditable="true" data-dilemma-name="${esc(dilemma.id)}"` : ""}>${esc(dilemma.name)}</p>
+        ${table}
+        ${actions}
+      </div>
+      ${resolution}
     </li>
   `;
 }
@@ -882,9 +1077,9 @@ function renderComplication(complication, model) {
 
   return `
     <li class="${cls("mq-complication", complication.hidden && "is-hidden", complication.fired && "is-fired", model.isGM && complication.spoiler && "is-spoiler")}" data-entry-id="${esc(complication.id)}">
-      <div class="mq-problem-row">
+      <div class="mq-knot-row">
         ${known}${severity}
-        <p class="mq-problem-name" ${model.canEdit ? `contenteditable="true" data-complication-name="${esc(complication.id)}"` : ""}>${esc(complication.name)}</p>
+        <p class="mq-knot-name" ${model.canEdit ? `contenteditable="true" data-complication-name="${esc(complication.id)}"` : ""}>${esc(complication.name)}</p>
         ${trigger}
         ${actions}
       </div>
@@ -1087,14 +1282,102 @@ function renderNotesTab(model, field, label) {
           .join("")}</nav>`
       : "";
 
+  const derived = field === "playernotes" ? renderDerivedProgress(model) : "";
+
   return `
     <section class="${cls("mq-notes", isPanel && "mq-gm-panel")}">
       <header class="mq-notes-header">
         <h2>${esc(label)}</h2>
       </header>
       ${toc}
+      ${derived}
       ${body}
     </section>
+  `;
+}
+
+
+/**
+ * DEC-032, a sexta aba. Append-only, escrito pelo modulo via diffQuestForLog; a unica
+ * coluna que aceita mao humana e a RAZAO — tracejada enquanto vazia, porque linha sem
+ * razao e fato sem sentido, e o export para IA depende do sentido.
+ */
+function renderLogTab(model) {
+  const log = [...(model.log ?? [])].reverse();
+
+  const groups = [];
+  let day = null;
+  for (const item of log) {
+    const d = item.at ? new Date(item.at).toISOString().slice(0, 10) : "undated";
+    if (d !== day) {
+      day = d;
+      groups.push({ day: d, items: [] });
+    }
+    groups[groups.length - 1].items.push(item);
+  }
+
+  const body = groups.length
+    ? groups
+        .map(
+          (group) => `
+        <h3 class="mq-log-day">${esc(group.day)}</h3>
+        <table class="mq-log-table"><tbody>
+          ${group.items
+            .map(
+              (item) => `<tr>
+              <td class="mq-log-target">${esc(item.target)}<span class="mq-log-type">${esc(item.targetType)}</span></td>
+              <td class="mq-log-change">${esc(item.change)}</td>
+              <td class="mq-log-reason">${
+                model.canEdit
+                  ? `<span class="${cls("mq-log-reason-text", !item.reason && "is-pending")}" contenteditable="true" data-log-reason="${esc(item.id)}">${esc(item.reason)}</span>`
+                  : esc(item.reason)
+              }</td>
+            </tr>`
+            )
+            .join("")}
+        </tbody></table>`
+        )
+        .join("")
+    : renderEmpty("Nothing logged yet. State changes land here on their own.");
+
+  const exportBar = `
+    <div class="mq-log-actions">
+      <button type="button" class="mq-bulk" data-action="log-copy-markdown"><i class="fa-brands fa-markdown" inert></i> Copy Markdown</button>
+      <button type="button" class="mq-bulk" data-action="log-copy-json"><i class="fa-solid fa-code" inert></i> Copy JSON</button>
+    </div>`;
+
+  return `
+    <section class="mq-notes mq-log">
+      <header class="mq-notes-header">
+        <h2>Log</h2>
+        ${exportBar}
+      </header>
+      <div class="mq-log-body">${body}</div>
+    </section>
+  `;
+}
+
+/**
+ * DEC-031: o bloco derivado do Player Notes. Montado a CADA render a partir de
+ * completed/granted; nada e gravado em playernotes — derivado que se grava vira
+ * duplicata na proxima edicao. Objetivo oculto nunca entra, mesmo completo. Bloco
+ * vazio nao se desenha.
+ */
+function renderDerivedProgress(model) {
+  const objectives = model.objectives.filter((o) => o.completed && !o.hidden);
+  const rewards = model.rewards.filter((r) => r.granted && !r.hidden);
+  if (!objectives.length && !rewards.length) return "";
+
+  const rows = [
+    ...objectives.map((o) => `<li><i class="fa-solid fa-check" inert></i> ${esc(o.name)}</li>`),
+    ...rewards.map((r) => `<li><i class="fa-solid fa-trophy" inert></i> ${esc(r.name)}</li>`)
+  ].join("");
+
+  return `
+    <aside class="mq-derived" aria-label="Progress so far">
+      <h3>Progress so far</h3>
+      <ul>${rows}</ul>
+    </aside>
   `;
 }
 

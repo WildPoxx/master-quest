@@ -24,7 +24,8 @@ test("GM Panel is the second tab, right after Details", () => {
 
   assert.deepEqual(
     model.tabs.map((tab) => tab.id),
-    ["details", "gmnotes", "gmcomments", "playernotes", "management"]
+    // 0.22.0 (DEC-032): a sexta aba, Log, GM-only, entre Player Notes e Manage.
+    ["details", "gmnotes", "gmcomments", "playernotes", "log", "management"]
   );
   assert.equal(model.tabs[1].label, "GM Panel");
   assert.equal(model.tabs[2].label, "GM Notes");

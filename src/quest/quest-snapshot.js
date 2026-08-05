@@ -241,16 +241,34 @@ function describeQuest(entry, quest) {
       known: reward?.known === true,
       locked: reward?.locked !== false
     })),
-    // DEC-035 (0.21.0): aditivo, como designId — leitores antigos ignoram.
-    problems: toArray(quest.problems).map((problem) => ({
-      id: problem?.id ?? null,
-      name: problem?.name ?? "",
-      state: problem?.state === "resolved" ? "resolved" : "open",
-      outcome: problem?.outcome ?? "",
-      table: problem?.table ?? "",
-      hidden: problem?.hidden !== false,
-      known: problem?.known === true
+    // DEC-035/0.22.0: problems virou dilemmas (Mario, 2026-08-05); clues, outcomes e log
+    // entram aditivos — leitores antigos ignoram.
+    dilemmas: toArray(quest.dilemmas).map((dilemma) => ({
+      id: dilemma?.id ?? null,
+      name: dilemma?.name ?? "",
+      state: dilemma?.state === "resolved" ? "resolved" : "open",
+      resolution: dilemma?.resolution ?? "",
+      table: dilemma?.table ?? "",
+      hidden: dilemma?.hidden !== false,
+      known: dilemma?.known === true
     })),
+    clues: toArray(quest.clues).map((clue) => ({
+      id: clue?.id ?? null,
+      name: clue?.name ?? "",
+      found: clue?.found === true,
+      hidden: clue?.hidden !== false,
+      known: clue?.known === true
+    })),
+    outcomes: toArray(quest.outcomes).map((outcome) => ({
+      id: outcome?.id ?? null,
+      name: outcome?.name ?? "",
+      occurred: outcome?.occurred === true,
+      record: outcome?.record ?? "",
+      table: outcome?.table ?? "",
+      hidden: outcome?.hidden !== false,
+      known: outcome?.known === true
+    })),
+    log: toArray(quest.log).map((entry) => ({ ...entry })),
     complications: toArray(quest.complications).map((complication) => ({
       id: complication?.id ?? null,
       name: complication?.name ?? "",

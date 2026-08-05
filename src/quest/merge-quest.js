@@ -26,7 +26,7 @@
  * nao esteja em nenhuma das listas deste arquivo. E o que impede a reincidencia.
  */
 
-import { normalizeQuest, normalizeObjective, normalizeReward, normalizeProblem, normalizeComplication } from "./quest-schema.js";
+import { normalizeQuest, normalizeObjective, normalizeReward, normalizeDilemma, normalizeComplication, normalizeClue, normalizeOutcome } from "./quest-schema.js";
 
 const isRecord = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 const toArray = (value) => (Array.isArray(value) ? value : []);
@@ -39,8 +39,10 @@ export const AUTHORED_BY_DRAFT = Object.freeze({
   quest: Object.freeze(["name", "description", "gmnotes"]),
   objective: Object.freeze(["name"]),
   reward: Object.freeze(["name", "type", "img", "uuid", "data"]),
-  problem: Object.freeze(["name", "table"]),
-  complication: Object.freeze(["name", "trigger", "severity"])
+  dilemma: Object.freeze(["name", "table"]),
+  complication: Object.freeze(["name", "trigger", "severity"]),
+  clue: Object.freeze(["name"]),
+  outcome: Object.freeze(["name", "table"])
 });
 
 /**
@@ -57,8 +59,10 @@ export const AUTHORED_BY_BLUEPRINT = Object.freeze({
   ]),
   objective: Object.freeze(["name"]),
   reward: Object.freeze(["name", "type", "img", "uuid", "data"]),
-  problem: Object.freeze(["name", "table"]),
-  complication: Object.freeze(["name", "trigger", "severity"])
+  dilemma: Object.freeze(["name", "table"]),
+  complication: Object.freeze(["name", "trigger", "severity"]),
+  clue: Object.freeze(["name"]),
+  outcome: Object.freeze(["name", "table"])
 });
 
 /**
@@ -71,14 +75,16 @@ export const TABLE_OWNED = Object.freeze({
   quest: Object.freeze([
     "schemaVersion", "status", "giver", "giverData", "giverName", "image",
     "gmcomments", "playernotes", "splash", "splashPos", "splashAsIcon",
-    "location", "parent", "subquests", "date", "source"
+    "location", "parent", "subquests", "date", "source", "log"
   ]),
   objective: Object.freeze(["id", "completed", "failed", "hidden", "known"]),
   reward: Object.freeze(["id", "hidden", "granted", "known", "locked"]),
-  // `state` e `outcome` sao o desfecho vivido; `fired` e registro de mesa. A fonte
+  // `state`/`resolution`/`occurred`/`record`/`found`/`fired` sao o vivido; a fonte
   // governa so a definicao (nome, tabela, gatilho, severidade).
-  problem: Object.freeze(["id", "state", "outcome", "hidden", "known"]),
-  complication: Object.freeze(["id", "fired", "hidden", "known"])
+  dilemma: Object.freeze(["id", "state", "resolution", "hidden", "known"]),
+  complication: Object.freeze(["id", "fired", "hidden", "known"]),
+  clue: Object.freeze(["id", "found", "hidden", "known"]),
+  outcome: Object.freeze(["id", "occurred", "record", "hidden", "known"])
 });
 
 /**
@@ -133,7 +139,7 @@ const byName = (item) =>
  * @returns {{quest: object, orphans: {objectives: object[], rewards: object[]}}}
  */
 export function mergeQuest(current, authored, { authoredBy, matchBy = "id" } = {}) {
-  const empty = { objectives: [], rewards: [], problems: [], complications: [] };
+  const empty = { objectives: [], rewards: [], dilemmas: [], complications: [], clues: [], outcomes: [] };
   if (!isRecord(current)) return { quest: normalizeQuest(authored), orphans: empty };
   if (!isRecord(authoredBy)) throw new TypeError("mergeQuest: authoredBy e obrigatorio");
 
@@ -151,10 +157,10 @@ export function mergeQuest(current, authored, { authoredBy, matchBy = "id" } = {
     normalize: normalizeReward
   });
 
-  const problems = mergeCollection(current.problems, authored.problems, {
-    fields: authoredBy.problem,
+  const dilemmas = mergeCollection(current.dilemmas, authored.dilemmas, {
+    fields: authoredBy.dilemma,
     keyOf,
-    normalize: normalizeProblem
+    normalize: normalizeDilemma
   });
 
   const complications = mergeCollection(current.complications, authored.complications, {
@@ -163,19 +169,35 @@ export function mergeQuest(current, authored, { authoredBy, matchBy = "id" } = {
     normalize: normalizeComplication
   });
 
+  const clues = mergeCollection(current.clues, authored.clues, {
+    fields: authoredBy.clue,
+    keyOf,
+    normalize: normalizeClue
+  });
+
+  const outcomes = mergeCollection(current.outcomes, authored.outcomes, {
+    fields: authoredBy.outcome,
+    keyOf,
+    normalize: normalizeOutcome
+  });
+
   const merged = overlay(current, authored, authoredBy.quest);
   merged.objectives = objectives.items;
   merged.rewards = rewards.items;
-  merged.problems = problems.items;
+  merged.dilemmas = dilemmas.items;
   merged.complications = complications.items;
+  merged.clues = clues.items;
+  merged.outcomes = outcomes.items;
 
   return {
     quest: normalizeQuest(merged),
     orphans: {
       objectives: objectives.orphans,
       rewards: rewards.orphans,
-      problems: problems.orphans,
-      complications: complications.orphans
+      dilemmas: dilemmas.orphans,
+      complications: complications.orphans,
+      clues: clues.orphans,
+      outcomes: outcomes.orphans
     }
   };
 }

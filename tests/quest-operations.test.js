@@ -622,20 +622,20 @@ test("importing works with the FQL module disabled, without calling getFlag on i
  * DEC-035 — Problems, Complications e os dois eixos
  * ------------------------------------------------------------------ */
 
-test("DEC-035: a linha de Problema nao tem checkbox, e resolve preserva o desfecho", () => {
+test("DEC-035: a linha de Dilema nao tem checkbox, e resolve preserva o desfecho", () => {
   const quest = questFixture({
     id: "q",
     name: "Q",
     status: "active",
-    problems: [{ id: "p1", name: "O destino de Ygerr", state: "open", table: "Cofre", hidden: false, known: true }]
+    dilemmas: [{ id: "p1", name: "O destino de Ygerr", state: "open", table: "Cofre", hidden: false, known: true }]
   });
 
   const gm = buildQuestDetailsViewModel(quest, { isGM: true, canEdit: true });
   const html = renderQuestDetails(gm);
 
-  assert.ok(html.includes("Problems"), "a secao existe");
+  assert.ok(html.includes("Dilemmas"), "a secao existe");
   assert.equal(html.includes('data-action="cycle-objective" data-objective-id="p1"'), false, "problema nunca usa o controle de objetivo");
-  assert.ok(html.includes('data-action="toggle-problem-state"'), "o gesto e Resolve, nao checkbox");
+  assert.ok(html.includes('data-action="toggle-dilemma-state"'), "o gesto e Resolve, nao checkbox");
   assert.ok(html.includes(">Resolve<"), "problema aberto oferece Resolve");
 });
 
@@ -665,12 +665,12 @@ test("DEC-035: 'nao sabe mas ve' marca a linha; 'sabe mas nao ve' nao marca", ()
   assert.equal(playerHtml.includes("is-spoiler"), false);
 });
 
-test("DEC-035: jogador ve problema/complicacao nao-ocultos, sem controles", () => {
+test("DEC-035: jogador ve dilema/complicacao nao-ocultos, sem controles", () => {
   const quest = questFixture({
     id: "q",
     name: "Q",
     status: "active",
-    problems: [
+    dilemmas: [
       { id: "p1", name: "visivel", hidden: false },
       { id: "p2", name: "oculto", hidden: true }
     ],
@@ -678,10 +678,98 @@ test("DEC-035: jogador ve problema/complicacao nao-ocultos, sem controles", () =
   });
 
   const player = buildQuestDetailsViewModel(quest, { isGM: false, canEdit: false });
-  assert.deepEqual(player.problems.map((p) => p.name), ["visivel"]);
+  assert.deepEqual(player.dilemmas.map((p) => p.name), ["visivel"]);
   assert.equal(player.complications.length, 1);
 
   const html = renderQuestDetails(player);
-  assert.equal(html.includes("toggle-problem-state"), false, "sem gesto de resolver para jogador");
+  assert.equal(html.includes("toggle-dilemma-state"), false, "sem gesto de resolver para jogador");
   assert.equal(html.includes("delete-complication"), false);
+});
+
+/* ------------------------------------------------------------------ *
+ * 0.22.0 — Clues, Outcomes, Log e o bloco derivado
+ * ------------------------------------------------------------------ */
+
+import { diffQuestForLog, logToMarkdown } from "../src/quest/quest-log-diff.js";
+
+test("0.22: Clues antes de Rewards, Outcomes por ultimo, na Details do GM", () => {
+  const quest = questFixture({
+    id: "q", name: "Q", status: "active",
+    clues: [{ id: "c1", name: "A pagina arrancada", hidden: false }],
+    outcomes: [{ id: "o1", name: "O desfecho do cofre", hidden: false }]
+  });
+  const html = renderQuestDetails(buildQuestDetailsViewModel(quest, { isGM: true, canEdit: true }));
+  const ordem = ["Objectives", ">Clues<", ">Rewards", ">Dilemmas<", ">Complications<", ">Outcomes<"];
+  let pos = -1;
+  for (const marca of ordem) {
+    const i = html.indexOf(marca);
+    assert.ok(i > pos, `${marca} fora de ordem`);
+    pos = i;
+  }
+});
+
+test("0.22: o diff do Log registra concessao, revelacao e resolucao com razao pendente", () => {
+  const before = normalizeQuest({
+    name: "Q",
+    rewards: [{ id: "r1", name: "Mapa", hidden: true, granted: false }],
+    dilemmas: [{ id: "d1", name: "Ygerr", state: "open" }]
+  });
+  const after = normalizeQuest({
+    ...before,
+    rewards: [{ id: "r1", name: "Mapa", hidden: false, granted: true }],
+    dilemmas: [{ id: "d1", name: "Ygerr", state: "resolved" }]
+  });
+
+  const entries = diffQuestForLog(before, after, 1754400000000);
+  const changes = entries.map((e) => `${e.target}: ${e.change}`).sort();
+  assert.deepEqual(changes, ["Mapa: granted", "Mapa: revealed", "Ygerr: open \u2192 resolved"]);
+  assert.ok(entries.every((e) => e.reason === ""), "a razao nasce vazia e pendente");
+
+  const md = logToMarkdown("Q", entries);
+  assert.ok(md.includes("reason pending"));
+});
+
+test("0.22: o bloco derivado do Player Notes mostra so o nao-oculto concluido/concedido, e nada e gravado", () => {
+  const quest = questFixture({
+    id: "q", name: "Q", status: "active",
+    playernotes: "<p>anotacao do jogador</p>",
+    objectives: [
+      { id: "o1", name: "feito e visivel", completed: true, hidden: false },
+      { id: "o2", name: "feito e oculto", completed: true, hidden: true }
+    ],
+    rewards: [
+      { id: "r1", name: "ganho visivel", granted: true, hidden: false },
+      { id: "r2", name: "ganho oculto", granted: true, hidden: true }
+    ]
+  });
+
+  const player = buildQuestDetailsViewModel(quest, { isGM: false, canEdit: false, activeTab: "playernotes" });
+  const html = renderQuestDetails(player);
+  assert.ok(html.includes("Progress so far"));
+  assert.ok(html.includes("feito e visivel"));
+  assert.equal(html.includes("feito e oculto"), false, "objetivo oculto nunca entra, mesmo completo");
+  assert.ok(html.includes("ganho visivel"));
+  assert.equal(html.includes("ganho oculto"), false);
+  assert.equal(html.includes('contenteditable="true" data-log'), false);
+
+  // bloco vazio nao se desenha
+  const semNada = questFixture({ id: "q2", name: "Q2", status: "active", playernotes: "" });
+  const html2 = renderQuestDetails(buildQuestDetailsViewModel(semNada, { isGM: false, activeTab: "playernotes" }));
+  assert.equal(html2.includes("Progress so far"), false);
+});
+
+test("0.22: aba Log existe so para o GM e a razao pendente e visivel", () => {
+  const quest = questFixture({
+    id: "q", name: "Q", status: "active",
+    log: [{ id: "l1", at: 1754400000000, target: "Mapa", targetType: "reward", change: "granted", reason: "" }]
+  });
+
+  const gm = buildQuestDetailsViewModel(quest, { isGM: true, canEdit: true, activeTab: "log" });
+  assert.ok(gm.tabs.some((t) => t.id === "log"));
+  const html = renderQuestDetails(gm);
+  assert.ok(html.includes("is-pending"), "razao vazia aparece tracejada");
+  assert.ok(html.includes("Copy Markdown"));
+
+  const player = buildQuestDetailsViewModel(quest, { isGM: false, activeTab: "log" });
+  assert.equal(player.tabs.some((t) => t.id === "log"), false, "jogador nao tem a aba");
 });
