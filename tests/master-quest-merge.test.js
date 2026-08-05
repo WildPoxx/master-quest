@@ -6,7 +6,7 @@ import {
   TABLE_OWNED,
   mergeQuest
 } from "../src/quest/merge-quest.js";
-import { normalizeObjective, normalizeQuest, normalizeReward } from "../src/quest/quest-schema.js";
+import { normalizeComplication, normalizeObjective, normalizeProblem, normalizeQuest, normalizeReward } from "../src/quest/quest-schema.js";
 import { mergeDraftIntoQuest } from "../src/quest/quest-from-draft.js";
 import { mergeBlueprintIntoQuestWithOrphans } from "../src/quest/quest-blueprint.js";
 
@@ -22,7 +22,7 @@ import { mergeBlueprintIntoQuestWithOrphans } from "../src/quest/quest-blueprint
  * quando alguem acrescenta campo sem decidir de quem ele e.
  */
 
-const COLLECTIONS = ["objectives", "rewards"];
+const COLLECTIONS = ["objectives", "rewards", "problems", "complications"];
 
 function tableQuest(overrides = {}) {
   return normalizeQuest({
@@ -147,7 +147,7 @@ test("quest nova, sem estado anterior, entra inteira", () => {
     authoredBy: AUTHORED_BY_BLUEPRINT
   });
   assert.equal(quest.name, "Nova");
-  assert.deepEqual(orphans, { objectives: [], rewards: [] });
+  assert.deepEqual(orphans, { objectives: [], rewards: [], problems: [], complications: [] });
 });
 
 test("DEC-006 e DEC-031: objetivo e recompensa nascem ocultos", () => {
@@ -170,7 +170,9 @@ test("todo campo do schema tem dono declarado", () => {
   const cases = [
     ["quest", Object.keys(normalizeQuest({})).filter((f) => !COLLECTIONS.includes(f))],
     ["objective", Object.keys(normalizeObjective({}))],
-    ["reward", Object.keys(normalizeReward({}))]
+    ["reward", Object.keys(normalizeReward({}))],
+    ["problem", Object.keys(normalizeProblem({}))],
+    ["complication", Object.keys(normalizeComplication({}))]
   ];
 
   for (const [kind, fields] of cases) {
@@ -185,4 +187,37 @@ test("todo campo do schema tem dono declarado", () => {
         "para impedir."
     );
   }
+});
+
+test("DEC-035: problema e complicacao nascem ocultos e nao-sabidos; estado de mesa sobrevive a reimportacao", () => {
+  const current = normalizeQuest({
+    name: "Q",
+    designId: "d1",
+    problems: [{ id: "p1", name: "O destino de Ygerr", state: "resolved", outcome: "O cofre abriu tarde.", hidden: false, known: true }],
+    complications: [{ id: "c1", name: "A inimizade dos Chacais", trigger: "KS5 por aco", severity: "grave", fired: true, hidden: false }]
+  });
+
+  // defaults de nascimento
+  assert.equal(normalizeProblem({ name: "x" }).hidden, true);
+  assert.equal(normalizeProblem({ name: "x" }).known, false);
+  assert.equal(normalizeProblem({ name: "x" }).state, "open");
+  assert.equal(normalizeComplication({ name: "x" }).severity, "leve");
+
+  const { quest } = mergeQuest(current, normalizeQuest({
+    name: "Q",
+    designId: "d1",
+    problems: [{ id: "p1", name: "O destino de Ygerr, revisto", table: "Tabela Cofre" }],
+    complications: [{ id: "c1", name: "A inimizade dos Chacais", trigger: "KS5 por aco", severity: "severa" }]
+  }), { authoredBy: AUTHORED_BY_BLUEPRINT });
+
+  const [p] = quest.problems;
+  assert.equal(p.name, "O destino de Ygerr, revisto", "a fonte manda no nome");
+  assert.equal(p.table, "Tabela Cofre", "a fonte manda na tabela");
+  assert.equal(p.state, "resolved", "o desfecho vivido e da mesa");
+  assert.equal(p.outcome, "O cofre abriu tarde.", "o texto do desfecho e da mesa");
+  assert.equal(p.known, true, "o eixo diegetico e da mesa");
+
+  const [c] = quest.complications;
+  assert.equal(c.severity, "severa", "severidade e definicao: da fonte");
+  assert.equal(c.fired, true, "fired e registro de mesa");
 });

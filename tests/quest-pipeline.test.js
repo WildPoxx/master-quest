@@ -257,5 +257,5 @@ test("um objetivo criado a mao nasce oculto dos jogadores", () => {
   const source = readFileSync(fileURLToPath(new URL("../src/ui/quest-details.js", import.meta.url)), "utf8");
   const trecho = source.slice(source.indexOf("data-action='add-objective'"), source.indexOf("data-action='cycle-objective'"));
 
-  assert.ok(/name: "Novo objetivo", hidden: true/.test(trecho), "o objetivo novo precisa nascer oculto");
+  assert.ok(/name: "New objective", hidden: true/.test(trecho), "o objetivo novo precisa nascer oculto");
 });

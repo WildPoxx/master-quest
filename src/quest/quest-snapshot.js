@@ -201,7 +201,8 @@ function describeQuest(entry, quest) {
     name: objective?.name ?? "",
     completed: objective?.completed === true,
     failed: objective?.failed === true,
-    hidden: objective?.hidden === true
+    hidden: objective?.hidden === true,
+    known: objective?.known === true
   }));
 
   return {
@@ -237,7 +238,27 @@ function describeQuest(entry, quest) {
       uuid: reward?.uuid ?? null,
       hidden: reward?.hidden === true,
       granted: reward?.granted === true,
+      known: reward?.known === true,
       locked: reward?.locked !== false
+    })),
+    // DEC-035 (0.21.0): aditivo, como designId — leitores antigos ignoram.
+    problems: toArray(quest.problems).map((problem) => ({
+      id: problem?.id ?? null,
+      name: problem?.name ?? "",
+      state: problem?.state === "resolved" ? "resolved" : "open",
+      outcome: problem?.outcome ?? "",
+      table: problem?.table ?? "",
+      hidden: problem?.hidden !== false,
+      known: problem?.known === true
+    })),
+    complications: toArray(quest.complications).map((complication) => ({
+      id: complication?.id ?? null,
+      name: complication?.name ?? "",
+      trigger: complication?.trigger ?? "",
+      severity: complication?.severity ?? "leve",
+      fired: complication?.fired === true,
+      hidden: complication?.hidden !== false,
+      known: complication?.known === true
     })),
     date: quest.date ?? null,
     ownership: entry?.ownership ? { ...entry.ownership } : {}

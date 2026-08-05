@@ -210,11 +210,11 @@ test("a imagem da quest aparece para quem edita, mesmo sem imagem definida", () 
   const comImagem = renderQuestImage({ splash: "worlds/x/img.webp", splashPos: "center", canEdit: true });
   assert.ok(comImagem.includes("worlds/x/img.webp"));
   assert.ok(comImagem.includes("data-action=\"pick-image\""));
-  assert.ok(comImagem.includes("Trocar imagem"));
+  assert.ok(comImagem.includes("Change image"));
 
   const vazioEditavel = renderQuestImage({ splash: "", splashPos: "center", canEdit: true });
-  assert.ok(vazioEditavel.includes("Escolher imagem"));
-  assert.ok(vazioEditavel.includes("Sem imagem"));
+  assert.ok(vazioEditavel.includes("Choose image"));
+  assert.ok(vazioEditavel.includes("No image"));
 
   // Jogador sem imagem definida não vê moldura vazia nenhuma.
   assert.equal(renderQuestImage({ splash: "", splashPos: "center", canEdit: false }), "");

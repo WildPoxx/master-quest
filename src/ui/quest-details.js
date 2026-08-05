@@ -19,7 +19,7 @@ import {
   unlinkSubquest
 } from "../quest/quest-store.js";
 import { buildQuestDetailsViewModel } from "../quest/quest-view-model.js";
-import { makeId, normalizeObjective, normalizeReward, reorderById } from "../quest/quest-schema.js";
+import { COMPLICATION_SEVERITIES, makeId, normalizeComplication, normalizeObjective, normalizeProblem, normalizeReward, reorderById } from "../quest/quest-schema.js";
 import { readAllQuests } from "../quest/quest-store.js";
 import { cls, esc, escUrl, renderEmpty, renderStatusActions, safeHtml } from "./render-utils.js";
 
@@ -157,7 +157,7 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
       element.className = "mq-details";
       element.innerHTML = context.model
         ? renderQuestDetails(context.model)
-        : `<p class="mq-empty">Esta quest não existe mais.</p>`;
+        : `<p class="mq-empty">This quest no longer exists.</p>`;
       return element;
     }
 
@@ -278,7 +278,7 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
           if (!hasFilePicker()) {
             // Degrade instead of failing: the text field is still there to type into.
             notifyWarning(
-              "O navegador de arquivos do Foundry não está disponível neste build; use o campo de caminho.",
+              "The Foundry file browser is not available in this build; use the path field.",
               this.ui
             );
             return;
@@ -323,7 +323,7 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
           // Nasce oculto: revelar é ato deliberado do Mestre, não o padrão.
           objectives: [
             ...draft.objectives,
-            normalizeObjective({ id: makeId(), name: "Novo objetivo", hidden: true })
+            normalizeObjective({ id: makeId(), name: "New objective", hidden: true })
           ]
         }));
       });
@@ -337,6 +337,17 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
             objectives: draft.objectives.map((objective) =>
               objective.id === id ? cycleObjectiveState(objective) : objective
             )
+          }));
+        });
+      });
+
+      root.querySelectorAll("[data-action='toggle-objective-known']").forEach((node) => {
+        node.addEventListener("click", async (event) => {
+          event.preventDefault();
+          const id = node.dataset.objectiveId;
+          await this.commit((draft) => ({
+            ...draft,
+            objectives: draft.objectives.map((o) => (o.id === id ? { ...o, known: !o.known } : o))
           }));
         });
       });
@@ -384,13 +395,14 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
         event.preventDefault();
         await this.commit((draft) => ({
           ...draft,
-          rewards: [...draft.rewards, normalizeReward({ id: makeId(), type: "abstract", name: "Nova recompensa" })]
+          rewards: [...draft.rewards, normalizeReward({ id: makeId(), type: "abstract", name: "New reward" })]
         }));
       });
 
       for (const [action, patch] of [
         ["toggle-reward-hidden", (reward) => ({ ...reward, hidden: !reward.hidden })],
-        ["toggle-reward-granted", (reward) => ({ ...reward, granted: !reward.granted })]
+        ["toggle-reward-granted", (reward) => ({ ...reward, granted: !reward.granted })],
+        ["toggle-reward-known", (reward) => ({ ...reward, known: !reward.known })]
       ]) {
         root.querySelectorAll(`[data-action='${action}']`).forEach((node) => {
           node.addEventListener("click", async (event) => {
@@ -425,6 +437,82 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
           }));
         });
       });
+
+      // ------- DEC-035: problems & complications -------
+      root.querySelector("[data-action='add-problem']")?.addEventListener("click", async (event) => {
+        event.preventDefault();
+        await this.commit((draft) => ({
+          ...draft,
+          problems: [...(draft.problems ?? []), normalizeProblem({ id: makeId(), name: "New problem" })]
+        }));
+      });
+
+      root.querySelector("[data-action='add-complication']")?.addEventListener("click", async (event) => {
+        event.preventDefault();
+        await this.commit((draft) => ({
+          ...draft,
+          complications: [...(draft.complications ?? []), normalizeComplication({ id: makeId(), name: "New complication" })]
+        }));
+      });
+
+      for (const [action, collection, patch] of [
+        ["toggle-problem-hidden", "problems", (item) => ({ ...item, hidden: !item.hidden })],
+        ["toggle-problem-known", "problems", (item) => ({ ...item, known: !item.known })],
+        // Problema nao tem checkbox: resolve-se. O gesto e reversivel — reabrir preserva
+        // o texto do desfecho ja escrito.
+        ["toggle-problem-state", "problems", (item) => ({ ...item, state: item.state === "resolved" ? "open" : "resolved" })],
+        ["toggle-complication-hidden", "complications", (item) => ({ ...item, hidden: !item.hidden })],
+        ["toggle-complication-known", "complications", (item) => ({ ...item, known: !item.known })],
+        ["toggle-complication-fired", "complications", (item) => ({ ...item, fired: !item.fired })],
+        ["cycle-complication-severity", "complications", (item) => ({
+          ...item,
+          severity: COMPLICATION_SEVERITIES[(COMPLICATION_SEVERITIES.indexOf(item.severity) + 1) % COMPLICATION_SEVERITIES.length]
+        })]
+      ]) {
+        root.querySelectorAll(`[data-action='${action}']`).forEach((node) => {
+          node.addEventListener("click", async (event) => {
+            event.preventDefault();
+            const id = node.dataset.itemId;
+            await this.commit((draft) => ({
+              ...draft,
+              [collection]: (draft[collection] ?? []).map((item) => (item.id === id ? patch(item) : item))
+            }));
+          });
+        });
+      }
+
+      for (const [action, collection] of [
+        ["delete-problem", "problems"],
+        ["delete-complication", "complications"]
+      ]) {
+        root.querySelectorAll(`[data-action='${action}']`).forEach((node) => {
+          node.addEventListener("click", async (event) => {
+            event.preventDefault();
+            const id = node.dataset.itemId;
+            await this.commit((draft) => ({
+              ...draft,
+              [collection]: (draft[collection] ?? []).filter((item) => item.id !== id)
+            }));
+          });
+        });
+      }
+
+      for (const [selector, collection, field] of [
+        ["[data-problem-name]", "problems", "name"],
+        ["[data-problem-outcome]", "problems", "outcome"],
+        ["[data-complication-name]", "complications", "name"]
+      ]) {
+        root.querySelectorAll(selector).forEach((node) => {
+          node.addEventListener("blur", async () => {
+            const id = node.dataset.problemName ?? node.dataset.problemOutcome ?? node.dataset.complicationName;
+            const value = node.textContent.trim();
+            await this.commit((draft) => ({
+              ...draft,
+              [collection]: (draft[collection] ?? []).map((item) => (item.id === id ? { ...item, [field]: value } : item))
+            }));
+          });
+        });
+      }
 
       for (const [action, patch] of [
         ["show-all-rewards", (reward) => ({ ...reward, hidden: false })],
@@ -481,7 +569,7 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
         const quest = this.quest;
         const OwnershipConfig = globalThis.foundry?.applications?.apps?.DocumentOwnershipConfig;
         if (!quest?.entry || !OwnershipConfig) {
-          notifyWarning("Configuração de permissões indisponível nesta versão.", this.ui);
+          notifyWarning("Permission configuration is unavailable in this build.", this.ui);
           return;
         }
         new OwnershipConfig({ document: quest.entry }).render({ force: true });
@@ -588,7 +676,7 @@ function renderDetailsTab(model) {
 
   const parentLine = model.isSubquest
     ? `<p class="mq-subquest-link" data-action="open-quest" data-quest-id="${esc(model.parentId)}">
-        Subquest de ${esc(model.parentName)} <i class="fa-solid fa-link" inert></i></p>`
+        Subquest of ${esc(model.parentName)} <i class="fa-solid fa-link" inert></i></p>`
     : "";
 
   const description = model.canEdit
@@ -617,13 +705,15 @@ function renderDetailsTab(model) {
     <div class="mq-details-columns">
       <section class="mq-description">
         ${image}
-        <h2>Descrição</h2>
+        <h2>Description</h2>
         ${description}
       </section>
 
       <div class="mq-details-right">
         ${renderObjectives(model)}
         ${renderRewards(model)}
+        ${renderProblems(model)}
+        ${renderComplications(model)}
       </div>
     </div>
 
@@ -664,18 +754,156 @@ function renderSnapshotFooter(model) {
     </footer>`;
 }
 
+
+/**
+ * DEC-035. Problema nao tem checkbox: nao se cumpre, RESOLVE-SE, e a saida e um texto.
+ * A linha usa marcador proprio (losango) e o gesto "Resolve" abre espaco para o desfecho —
+ * se a linha parecesse objetivo, o Mestre tentaria marca-la como concluida.
+ */
+function renderProblems(model) {
+  if (!model.isGM && !model.problems.length) return "";
+
+  const items = model.problems.length
+    ? model.problems.map((problem) => renderProblem(problem, model)).join("")
+    : renderEmpty("No problems yet.");
+
+  const addButton = model.canEdit
+    ? `<button type="button" class="mq-add" data-action="add-problem"><i class="fa-solid fa-plus" inert></i> Problem</button>`
+    : "";
+
+  return `
+    <section class="mq-problems">
+      <header><h2>Problems</h2>${addButton}</header>
+      <ul class="mq-box">${items}</ul>
+    </section>
+  `;
+}
+
+function renderProblem(problem, model) {
+  const known = model.isGM
+    ? model.canEdit
+      ? `<button type="button" class="${cls("mq-known", problem.known && "is-known")}" data-action="toggle-problem-known" data-item-id="${esc(problem.id)}"
+          title="${problem.known ? "The PCs know of this, in fiction" : "The PCs do not know of this yet"}">
+          <i class="${problem.known ? "fa-solid" : "fa-regular"} fa-lightbulb" inert></i></button>`
+      : `<span class="${cls("mq-known", problem.known && "is-known")}"><i class="${problem.known ? "fa-solid" : "fa-regular"} fa-lightbulb" inert></i></span>`
+    : "";
+
+  const resolved = problem.state === "resolved";
+  const marker = `<span class="${cls("mq-problem-marker", resolved && "is-resolved")}" title="${resolved ? "Resolved" : "Open"}">
+      <i class="fa-solid ${resolved ? "fa-diamond" : "fa-diamond-exclamation"}" inert></i></span>`;
+
+  const outcome = resolved
+    ? `<p class="mq-problem-outcome" ${model.canEdit ? `contenteditable="true" data-problem-outcome="${esc(problem.id)}"` : ""}>${
+        esc(problem.outcome) || (model.canEdit ? "How did it resolve? Write the outcome." : "")
+      }</p>`
+    : "";
+
+  const table = problem.table
+    ? `<span class="mq-problem-table" title="Outcome table"><i class="fa-solid fa-dice" inert></i> ${esc(problem.table)}</span>`
+    : "";
+
+  const actions = model.canEdit
+    ? `<div class="mq-row-actions">
+        <button type="button" class="mq-bulk mq-resolve" data-action="toggle-problem-state" data-item-id="${esc(problem.id)}">${resolved ? "Reopen" : "Resolve"}</button>
+        <button type="button" class="mq-icon-button" data-action="toggle-problem-hidden" data-item-id="${esc(problem.id)}"
+          title="${problem.hidden ? "Hidden from players" : "Visible to players"}">
+          <i class="fa-solid ${problem.hidden ? "fa-eye-slash" : "fa-eye"}" inert></i></button>
+        <button type="button" class="mq-icon-button mq-danger" data-action="delete-problem" data-item-id="${esc(problem.id)}"
+          title="Delete problem"><i class="fa-solid fa-trash" inert></i></button>
+      </div>`
+    : "";
+
+  return `
+    <li class="${cls("mq-problem", problem.hidden && "is-hidden", resolved && "is-resolved", model.isGM && problem.spoiler && "is-spoiler")}" data-entry-id="${esc(problem.id)}">
+      <div class="mq-problem-row">
+        ${known}${marker}
+        <p class="mq-problem-name" ${model.canEdit ? `contenteditable="true" data-problem-name="${esc(problem.id)}"` : ""}>${esc(problem.name)}</p>
+        ${table}
+        ${actions}
+      </div>
+      ${outcome}
+    </li>
+  `;
+}
+
+/**
+ * DEC-035. Complicacao nao se resolve: INCIDE. `fired` registra que o gatilho aconteceu
+ * em ficcao — registro, nunca disparo. Severidade cicla pelo vocabulario fixado.
+ */
+function renderComplications(model) {
+  if (!model.isGM && !model.complications.length) return "";
+
+  const items = model.complications.length
+    ? model.complications.map((complication) => renderComplication(complication, model)).join("")
+    : renderEmpty("No complications yet.");
+
+  const addButton = model.canEdit
+    ? `<button type="button" class="mq-add" data-action="add-complication"><i class="fa-solid fa-plus" inert></i> Complication</button>`
+    : "";
+
+  return `
+    <section class="mq-complications">
+      <header><h2>Complications</h2>${addButton}</header>
+      <ul class="mq-box">${items}</ul>
+    </section>
+  `;
+}
+
+function renderComplication(complication, model) {
+  const known = model.isGM
+    ? model.canEdit
+      ? `<button type="button" class="${cls("mq-known", complication.known && "is-known")}" data-action="toggle-complication-known" data-item-id="${esc(complication.id)}"
+          title="${complication.known ? "The PCs know of this, in fiction" : "The PCs do not know of this yet"}">
+          <i class="${complication.known ? "fa-solid" : "fa-regular"} fa-lightbulb" inert></i></button>`
+      : `<span class="${cls("mq-known", complication.known && "is-known")}"><i class="${complication.known ? "fa-solid" : "fa-regular"} fa-lightbulb" inert></i></span>`
+    : "";
+
+  const severity = model.canEdit
+    ? `<button type="button" class="mq-pill mq-severity mq-severity-${esc(complication.severity)}" data-action="cycle-complication-severity"
+        data-item-id="${esc(complication.id)}" title="Severity — click to cycle">${esc(complication.severity)}</button>`
+    : `<span class="mq-pill mq-severity mq-severity-${esc(complication.severity)}">${esc(complication.severity)}</span>`;
+
+  const trigger = complication.trigger
+    ? `<span class="mq-complication-trigger" title="Trigger"><i class="fa-solid fa-bolt-lightning" inert></i> ${esc(complication.trigger)}</span>`
+    : "";
+
+  const actions = model.canEdit
+    ? `<div class="mq-row-actions">
+        <button type="button" class="${cls("mq-icon-button", complication.fired && "is-fired")}" data-action="toggle-complication-fired" data-item-id="${esc(complication.id)}"
+          title="${complication.fired ? "Trigger has fired, in fiction" : "Trigger has not fired yet"}">
+          <i class="${complication.fired ? "fa-solid" : "fa-regular"} fa-circle-bolt" inert></i></button>
+        <button type="button" class="mq-icon-button" data-action="toggle-complication-hidden" data-item-id="${esc(complication.id)}"
+          title="${complication.hidden ? "Hidden from players" : "Visible to players"}">
+          <i class="fa-solid ${complication.hidden ? "fa-eye-slash" : "fa-eye"}" inert></i></button>
+        <button type="button" class="mq-icon-button mq-danger" data-action="delete-complication" data-item-id="${esc(complication.id)}"
+          title="Delete complication"><i class="fa-solid fa-trash" inert></i></button>
+      </div>`
+    : "";
+
+  return `
+    <li class="${cls("mq-complication", complication.hidden && "is-hidden", complication.fired && "is-fired", model.isGM && complication.spoiler && "is-spoiler")}" data-entry-id="${esc(complication.id)}">
+      <div class="mq-problem-row">
+        ${known}${severity}
+        <p class="mq-problem-name" ${model.canEdit ? `contenteditable="true" data-complication-name="${esc(complication.id)}"` : ""}>${esc(complication.name)}</p>
+        ${trigger}
+        ${actions}
+      </div>
+    </li>
+  `;
+}
+
 function renderObjectives(model) {
   const items = model.objectives.length
     ? model.objectives.map((objective) => renderObjective(objective, model)).join("")
-    : renderEmpty("Nenhum objetivo ainda.");
+    : renderEmpty("No objectives yet.");
 
   const addButton = model.canEdit
-    ? `<button type="button" class="mq-add" data-action="add-objective"><i class="fa-solid fa-plus" inert></i> Objetivo</button>`
+    ? `<button type="button" class="mq-add" data-action="add-objective"><i class="fa-solid fa-plus" inert></i> Objective</button>`
     : "";
 
   return `
     <section class="mq-objectives">
-      <header><h2>Objetivos</h2>${addButton}</header>
+      <header><h2>Objectives</h2>${addButton}</header>
       <ul class="mq-box">${items}</ul>
     </section>
   `;
@@ -689,17 +917,25 @@ function renderObjective(objective, model) {
 
   const actions = model.canEdit
     ? `<div class="mq-row-actions">
-        <i class="mq-handle fa-solid fa-grip-vertical" title="Arraste para reordenar" inert></i>
+        <i class="mq-handle fa-solid fa-grip-vertical" title="Drag to reorder" inert></i>
         <button type="button" class="mq-icon-button" data-action="toggle-objective-hidden" data-objective-id="${esc(objective.id)}"
-          title="${objective.hidden ? "Oculto dos jogadores" : "Visível aos jogadores"}">
+          title="${objective.hidden ? "Hidden from players" : "Visible to players"}">
           <i class="fa-solid ${objective.hidden ? "fa-eye-slash" : "fa-eye"}" inert></i></button>
         <button type="button" class="mq-icon-button mq-danger" data-action="delete-objective" data-objective-id="${esc(objective.id)}"
-          title="Excluir objetivo"><i class="fa-solid fa-trash" inert></i></button>
+          title="Delete objective"><i class="fa-solid fa-trash" inert></i></button>
       </div>`
     : "";
 
+  const known = model.isGM
+    ? model.canEdit
+      ? `<button type="button" class="${cls("mq-known", objective.known && "is-known")}" data-action="toggle-objective-known" data-objective-id="${esc(objective.id)}"
+          title="${objective.known ? "The PCs know of this, in fiction" : "The PCs do not know of this yet"}">
+          <i class="${objective.known ? "fa-solid" : "fa-regular"} fa-lightbulb" inert></i></button>`
+      : `<span class="${cls("mq-known", objective.known && "is-known")}"><i class="${objective.known ? "fa-solid" : "fa-regular"} fa-lightbulb" inert></i></span>`
+    : "";
+
   return `
-    <li class="${cls("mq-objective", objective.hidden && "is-hidden")}" data-entry-id="${esc(objective.id)}"
+    <li class="${cls("mq-objective", objective.hidden && "is-hidden", model.isGM && objective.spoiler && "is-spoiler")}" data-entry-id="${esc(objective.id)}"
         ${model.canEdit ? 'draggable="true"' : ""}>
       ${state}
       <p class="mq-objective-name" ${model.canEdit ? `contenteditable="true" data-objective-name="${esc(objective.id)}"` : ""}>${esc(objective.name)}</p>
@@ -711,7 +947,7 @@ function renderObjective(objective, model) {
 function renderRewards(model) {
   const items = model.rewards.length
     ? model.rewards.map((reward) => renderReward(reward, model)).join("")
-    : renderEmpty("Nenhuma recompensa ainda.");
+    : renderEmpty("No rewards yet.");
 
   const bulk = model.canEdit && model.rewards.length
     ? `<button type="button" class="mq-bulk" data-action="${model.allRewardsVisible ? "hide-all-rewards" : "show-all-rewards"}">
@@ -723,12 +959,12 @@ function renderRewards(model) {
     : "";
 
   const addButton = model.canEdit
-    ? `<button type="button" class="mq-add" data-action="add-reward"><i class="fa-solid fa-plus" inert></i> Recompensa</button>`
+    ? `<button type="button" class="mq-add" data-action="add-reward"><i class="fa-solid fa-plus" inert></i> Reward</button>`
     : "";
 
   return `
     <section class="mq-rewards">
-      <header><h2>Recompensas</h2>${bulk}${addButton}</header>
+      <header><h2>Rewards</h2>${bulk}${addButton}</header>
       <ul class="mq-box">${items}</ul>
     </section>
   `;
@@ -743,9 +979,17 @@ function renderReward(reward, model) {
   // jogador (o view model ja a filtra); a que chega, chega com o nome aberto.
   const name = esc(reward.name);
 
+  const known = model.isGM
+    ? model.canEdit
+      ? `<button type="button" class="${cls("mq-known", reward.known && "is-known")}" data-action="toggle-reward-known" data-reward-id="${esc(reward.id)}"
+          title="${reward.known ? "The PCs know of this, in fiction" : "The PCs do not know of this yet"}">
+          <i class="${reward.known ? "fa-solid" : "fa-regular"} fa-lightbulb" inert></i></button>`
+      : `<span class="${cls("mq-known", reward.known && "is-known")}"><i class="${reward.known ? "fa-solid" : "fa-regular"} fa-lightbulb" inert></i></span>`
+    : "";
+
   const actions = model.canEdit
     ? `<div class="mq-row-actions">
-        <i class="mq-handle fa-solid fa-grip-vertical" title="Arraste para reordenar" inert></i>
+        <i class="mq-handle fa-solid fa-grip-vertical" title="Drag to reorder" inert></i>
         <button type="button" class="mq-icon-button" data-action="toggle-reward-hidden" data-reward-id="${esc(reward.id)}"
           title="${reward.hidden ? "Hidden from players" : "Visible to players"}">
           <i class="fa-solid ${reward.hidden ? "fa-eye-slash" : "fa-eye"}" inert></i></button>
@@ -758,9 +1002,9 @@ function renderReward(reward, model) {
     : "";
 
   return `
-    <li class="${cls("mq-reward", reward.hidden && "is-hidden", reward.granted && "is-granted")}"
+    <li class="${cls("mq-reward", reward.hidden && "is-hidden", reward.granted && "is-granted", model.isGM && reward.spoiler && "is-spoiler")}"
         data-entry-id="${esc(reward.id)}" ${model.canEdit ? 'draggable="true"' : ""}>
-      ${image}
+      ${known}${image}
       <p class="mq-reward-name" ${model.canEdit ? `contenteditable="true" data-reward-name="${esc(reward.id)}"` : ""}>${name}</p>
       ${actions}
     </li>
@@ -863,11 +1107,11 @@ function renderManagementTab(model) {
             <h3 data-action="open-quest" data-quest-id="${esc(sub.id)}">${esc(sub.name)}</h3>
             <span class="mq-status mq-status-${esc(sub.status)}">${esc(sub.statusLabel)}</span>
             <button type="button" class="mq-icon-button" data-action="unlink-subquest" data-quest-id="${esc(sub.id)}"
-              title="Desvincular subquest"><i class="fa-solid fa-link-slash" inert></i></button>
+              title="Unlink subquest"><i class="fa-solid fa-link-slash" inert></i></button>
           </li>`
         )
         .join("")
-    : renderEmpty("Nenhuma subquest.");
+    : renderEmpty("No subquests.");
 
   const splash = model.splash
     ? `<div class="mq-splash" style="background-image:url('${escUrl(model.splash)}');background-position:${esc(model.splashPos)}"></div>`
@@ -878,13 +1122,13 @@ function renderManagementTab(model) {
       <section>
         <h2>Configurações</h2>
         <button type="button" class="mq-bulk" data-action="configure-ownership">
-          <i class="fa-solid fa-lock" inert></i> Configurar permissões</button>
+          <i class="fa-solid fa-lock" inert></i> Configure permissions</button>
         <label class="mq-field">
           <span>Splash art</span>
           <span class="mq-file-field">
             <input type="text" data-field="splash" value="${esc(model.splash)}" placeholder="caminho/da/imagem.webp">
             <button type="button" class="mq-browse" data-action="pick-image" data-target-field="splash"
-              title="Procurar no diretório do Foundry"><i class="fa-solid fa-folder-open" inert></i></button>
+              title="Browse the Foundry directory"><i class="fa-solid fa-folder-open" inert></i></button>
           </span>
         </label>
         ${splash}
@@ -918,12 +1162,12 @@ export function renderQuestImage(model, where = "details") {
 
   const picture = model.splash
     ? `<div class="mq-quest-image" style="background-image:url('${escUrl(model.splash)}');background-position:${esc(model.splashPos)}"></div>`
-    : `<div class="mq-quest-image mq-quest-image-empty"><span>Sem imagem</span></div>`;
+    : `<div class="mq-quest-image mq-quest-image-empty"><span>No image</span></div>`;
 
   const control = model.canEdit
     ? `<button type="button" class="mq-browse mq-quest-image-pick" data-action="pick-image" data-target-field="splash"
         data-where="${esc(where)}">
-        <i class="fa-solid fa-image" inert></i> ${model.splash ? "Trocar imagem" : "Escolher imagem"}</button>`
+        <i class="fa-solid fa-image" inert></i> ${model.splash ? "Change image" : "Choose image"}</button>`
     : "";
 
   return `<figure class="mq-quest-image-wrap">${picture}${control}</figure>`;

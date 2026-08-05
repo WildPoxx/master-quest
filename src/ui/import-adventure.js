@@ -326,7 +326,7 @@ export function renderImport(context) {
       <select data-field="landing-status">
         <option value="available" ${context.landingStatus === "available" ? "selected" : ""}>Disponíveis</option>
         <option value="inactive" ${context.landingStatus === "inactive" ? "selected" : ""}>Inativas (só o Mestre vê)</option>
-        <option value="active" ${context.landingStatus === "active" ? "selected" : ""}>Em Andamento</option>
+        <option value="active" ${context.landingStatus === "active" ? "selected" : ""}>In Progress</option>
         <option value="blueprint" ${context.landingStatus === "blueprint" ? "selected" : ""}>Respeitar o que o blueprint declara</option>
       </select>
     </label>

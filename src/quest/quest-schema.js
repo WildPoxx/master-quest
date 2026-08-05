@@ -33,11 +33,11 @@ export const QUEST_STATUS_ORDER = Object.freeze([
 ]);
 
 export const QUEST_STATUS_LABEL = Object.freeze({
-  available: "Disponíveis",
-  active: "Em Andamento",
-  completed: "Concluídas",
-  failed: "Fracassadas",
-  inactive: "Inativas"
+  inactive: "Inactive",
+  available: "Available",
+  active: "In Progress",
+  completed: "Completed",
+  failed: "Failed"
 });
 
 export const GM_ONLY_STATUS = Object.freeze([QUEST_STATUS.inactive]);
@@ -109,6 +109,11 @@ export function normalizeQuest(input = {}) {
     journalLinks: toArray(data.journalLinks).map(normalizeJournalLink).filter((l) => l.name !== ""),
     objectives: toArray(data.objectives).map(normalizeObjective).filter((o) => o.name !== ""),
     rewards: toArray(data.rewards).map(normalizeReward),
+    // DEC-035: Problema nao se cumpre — resolve-se, e toda saida tem preco. Complicacao
+    // nao se resolve — incide. Irmas de objectives/rewards; antes disto viviam como
+    // tabelas de HTML no gmnotes, frageis por construcao (ProseMirror, 2026-08-04).
+    problems: toArray(data.problems).map(normalizeProblem).filter((x) => x.name !== ""),
+    complications: toArray(data.complications).map(normalizeComplication).filter((x) => x.name !== ""),
     date: normalizeDate(data.date),
     source: text(data.source) || "master-quest"
   };
@@ -163,7 +168,11 @@ export function normalizeObjective(input = {}) {
     // DEC-006 + DEC-031: objetivo nasce OCULTO. Revelar sem contexto narrativo e spoiler;
     // o primeiro contato do Mestre com a quest transposta e uma triagem manual, item a
     // item. Dado ja gravado traz a chave e nao muda de valor — nao ha migracao retroativa.
-    hidden: data.hidden !== false
+    hidden: data.hidden !== false,
+    // DEC-035, eixo D (diegetico): o PC sabe, NA FICCAO, que isto existe? Independente do
+    // eixo P (`hidden`, o painel). "Sabe mas nao ve" e legitimo e frequente; "nao sabe mas
+    // ve" e spoiler do painel — a UI sinaliza essa combinacao, nunca esta.
+    known: data.known === true
   };
 }
 
@@ -186,12 +195,60 @@ export function normalizeReward(input = {}) {
     // DEC-031: os PCs conquistaram isto. NAO dispara nada — o MasterQuest registra, nao
     // executa: nenhuma ficha e tocada, nenhum item e criado. Serve ao relatorio de saida.
     granted: data.granted === true,
+    // DEC-035, eixo D — ver normalizeObjective. Quando `tier` (Ramo B) existir, recompensa
+    // de metajogo deixa de exibir este eixo: ninguem "sabe na ficcao" de um Feito.
+    known: data.known === true,
     // DEPRECADO pela DEC-031. O `locked` do FQL era gambiarra: destravar era o unico jeito
     // de dizer a macro de relatorio que os PCs tinham recebido a recompensa. Agora existe
     // `granted` para isso. Segue sendo LIDO e propagado para nao quebrar snapshot nem
     // consumidor legado; nada na interface o escreve. Sai do schema numa versao futura.
     locked: data.locked === undefined ? true : data.locked === true,
     data: isRecord(data.data) ? { ...data.data } : {}
+  };
+}
+
+/**
+ * DEC-035. `state` e binario e nao e checkbox: a saida de um Problema e um TEXTO
+ * (`outcome`), nunca um ganho limpo. `table` aponta a Tabela de Desfecho por nome/UUID.
+ *
+ * @param {object} [input] Raw problem data.
+ * @returns {object} A normalized problem.
+ */
+export function normalizeProblem(input = {}) {
+  const data = isRecord(input) ? input : {};
+  return {
+    id: text(data.id) || makeId(),
+    name: text(data.name),
+    state: data.state === "resolved" ? "resolved" : "open",
+    // O que de fato aconteceu quando resolveu. Da mesa, escrito pelo Mestre.
+    outcome: text(data.outcome),
+    // Ponteiro descritivo para a Tabela de Desfecho (nome ou @UUID). Da fonte.
+    table: text(data.table),
+    hidden: data.hidden !== false,
+    known: data.known === true
+  };
+}
+
+/**
+ * DEC-035. `severity` usa o vocabulario ja fixado pela Arquitetura de Tabelas Q1 §1.6
+ * (leve/grave/severa) — vocabulario de CAMPANHA, nao rotulo de UI; DEC-027 nao o alcanca.
+ * `fired` segue a semantica de `normalizeTrigger`: registro, nunca disparo.
+ *
+ * @param {object} [input] Raw complication data.
+ * @returns {object} A normalized complication.
+ */
+export const COMPLICATION_SEVERITIES = Object.freeze(["leve", "grave", "severa"]);
+
+export function normalizeComplication(input = {}) {
+  const data = isRecord(input) ? input : {};
+  return {
+    id: text(data.id) || makeId(),
+    name: text(data.name),
+    trigger: text(data.trigger),
+    severity: COMPLICATION_SEVERITIES.includes(data.severity) ? data.severity : "leve",
+    fired: data.fired === true,
+    hidden: data.hidden !== false,
+    known: data.known === true
   };
 }
 

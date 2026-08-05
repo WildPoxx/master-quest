@@ -27,10 +27,10 @@ const STATUS_ACTIONS = Object.freeze({
 });
 
 const STATUS_ACTION_META = Object.freeze({
-  available: { icon: "fa-solid fa-circle-half-stroke", label: "Marcar como disponível" },
-  active: { icon: "fa-solid fa-circle-play", label: "Marcar em andamento" },
-  completed: { icon: "fa-solid fa-circle-check", label: "Marcar como concluída" },
-  failed: { icon: "fa-solid fa-circle-xmark", label: "Marcar como fracassada" },
+  available: { icon: "fa-solid fa-circle-half-stroke", label: "Mark as available" },
+  active: { icon: "fa-solid fa-circle-play", label: "Mark in progress" },
+  completed: { icon: "fa-solid fa-circle-check", label: "Mark as completed" },
+  failed: { icon: "fa-solid fa-circle-xmark", label: "Mark as failed" },
   inactive: { icon: "fa-solid fa-circle-minus", label: "Mover para inativas" }
 });
 
@@ -150,12 +150,26 @@ export function buildQuestDetailsViewModel(quest, {
     .map((objective) => ({
       ...objective,
       state: objective.completed ? "check" : objective.failed ? "times" : "square",
-      stateLabel: objective.completed ? "Concluído" : objective.failed ? "Fracassado" : "Em aberto"
+      stateLabel: objective.completed ? "Completed" : objective.failed ? "Failed" : "Open",
+      spoiler: !objective.hidden && !objective.known
     }));
 
   const rewards = toArray(quest.rewards)
     .filter((reward) => isGM || !reward.hidden)
-    .map((reward) => ({ ...reward }));
+    .map((reward) => ({
+      ...reward,
+      // DEC-035: "nao sabe mas VE" e o painel entregando spoiler — a unica combinacao
+      // sinalizada. "Sabe mas nao ve" e legitima e frequente; nao se marca.
+      spoiler: !reward.hidden && !reward.known
+    }));
+
+  const problems = toArray(quest.problems)
+    .filter((problem) => isGM || !problem.hidden)
+    .map((problem) => ({ ...problem, spoiler: !problem.hidden && !problem.known }));
+
+  const complications = toArray(quest.complications)
+    .filter((complication) => isGM || !complication.hidden)
+    .map((complication) => ({ ...complication, spoiler: !complication.hidden && !complication.known }));
 
   // A ordem e deliberada: GM Panel em SEGUNDO, logo depois de Details, porque e de onde o
   // Mestre conduz a quest na mesa (DIR-05); GM Notes vem colado nele porque e o rascunho
@@ -191,6 +205,8 @@ export function buildQuestDetailsViewModel(quest, {
     parentName: parent?.name ?? "",
     objectives,
     rewards,
+    problems,
+    complications,
     subquests,
     allRewardsVisible: rewards.length > 0 && rewards.every((r) => !r.hidden),
     allRewardsGranted: rewards.length > 0 && rewards.every((r) => r.granted),

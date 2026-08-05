@@ -617,3 +617,71 @@ test("importing works with the FQL module disabled, without calling getFlag on i
   assert.equal(entry.flags[MODULE_ID].quest.name, FQL_SAMPLE.name);
   assert.deepEqual(entry.flags[FQL_MODULE_ID].json, FQL_SAMPLE, "o flag do FQL deve ficar intacto");
 });
+
+/* ------------------------------------------------------------------ *
+ * DEC-035 — Problems, Complications e os dois eixos
+ * ------------------------------------------------------------------ */
+
+test("DEC-035: a linha de Problema nao tem checkbox, e resolve preserva o desfecho", () => {
+  const quest = questFixture({
+    id: "q",
+    name: "Q",
+    status: "active",
+    problems: [{ id: "p1", name: "O destino de Ygerr", state: "open", table: "Cofre", hidden: false, known: true }]
+  });
+
+  const gm = buildQuestDetailsViewModel(quest, { isGM: true, canEdit: true });
+  const html = renderQuestDetails(gm);
+
+  assert.ok(html.includes("Problems"), "a secao existe");
+  assert.equal(html.includes('data-action="cycle-objective" data-objective-id="p1"'), false, "problema nunca usa o controle de objetivo");
+  assert.ok(html.includes('data-action="toggle-problem-state"'), "o gesto e Resolve, nao checkbox");
+  assert.ok(html.includes(">Resolve<"), "problema aberto oferece Resolve");
+});
+
+test("DEC-035: 'nao sabe mas ve' marca a linha; 'sabe mas nao ve' nao marca", () => {
+  const quest = questFixture({
+    id: "q",
+    name: "Q",
+    status: "active",
+    objectives: [
+      { id: "o1", name: "spoiler", hidden: false, known: false },
+      { id: "o2", name: "legitimo", hidden: true, known: true }
+    ]
+  });
+
+  const gm = buildQuestDetailsViewModel(quest, { isGM: true, canEdit: true });
+  const [o1, o2] = gm.objectives;
+  assert.equal(o1.spoiler, true, "painel entregou spoiler: sinaliza");
+  assert.equal(o2.spoiler, false, "a mesa descobriu em jogo: nao e erro");
+
+  const html = renderQuestDetails(gm);
+  assert.ok(html.includes("is-spoiler"), "o filete aparece");
+
+  // jogador nunca ve a calha diegetica nem o filete
+  const player = buildQuestDetailsViewModel(quest, { isGM: false });
+  const playerHtml = renderQuestDetails(player);
+  assert.equal(playerHtml.includes("mq-known"), false, "eixo D e instrumento do Mestre");
+  assert.equal(playerHtml.includes("is-spoiler"), false);
+});
+
+test("DEC-035: jogador ve problema/complicacao nao-ocultos, sem controles", () => {
+  const quest = questFixture({
+    id: "q",
+    name: "Q",
+    status: "active",
+    problems: [
+      { id: "p1", name: "visivel", hidden: false },
+      { id: "p2", name: "oculto", hidden: true }
+    ],
+    complications: [{ id: "c1", name: "incidiu", trigger: "x", severity: "grave", hidden: false }]
+  });
+
+  const player = buildQuestDetailsViewModel(quest, { isGM: false, canEdit: false });
+  assert.deepEqual(player.problems.map((p) => p.name), ["visivel"]);
+  assert.equal(player.complications.length, 1);
+
+  const html = renderQuestDetails(player);
+  assert.equal(html.includes("toggle-problem-state"), false, "sem gesto de resolver para jogador");
+  assert.equal(html.includes("delete-complication"), false);
+});

@@ -215,7 +215,7 @@ export function createMasterQuestLogClass(ApplicationV2) {
 
           const result = await linkSubquest(row.dataset.questId, payload.questId, { game: this.game });
           if (result.status === "cycle") {
-            notifyWarning("Uma quest não pode virar subquest de si mesma.", this.ui);
+            notifyWarning("A quest cannot become its own subquest.", this.ui);
           }
           this.render({ force: false });
         });
@@ -324,7 +324,7 @@ function renderQuestRow(row, model) {
         <h3>${esc(row.name)} ${badges}</h3>
         ${subtitle}
       </div>
-      <div class="mq-quest-count" title="Objetivos concluídos">${esc(row.objectiveBadge)}</div>
+      <div class="mq-quest-count" title="Objectives completed">${esc(row.objectiveBadge)}</div>
       ${renderStatusActions(row.statusActions, row.id)}
       ${primaryToggle}
       ${deleteButton}

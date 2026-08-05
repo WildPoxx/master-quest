@@ -26,7 +26,7 @@
  * nao esteja em nenhuma das listas deste arquivo. E o que impede a reincidencia.
  */
 
-import { normalizeQuest, normalizeObjective, normalizeReward } from "./quest-schema.js";
+import { normalizeQuest, normalizeObjective, normalizeReward, normalizeProblem, normalizeComplication } from "./quest-schema.js";
 
 const isRecord = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 const toArray = (value) => (Array.isArray(value) ? value : []);
@@ -38,7 +38,9 @@ const toArray = (value) => (Array.isArray(value) ? value : []);
 export const AUTHORED_BY_DRAFT = Object.freeze({
   quest: Object.freeze(["name", "description", "gmnotes"]),
   objective: Object.freeze(["name"]),
-  reward: Object.freeze(["name", "type", "img", "uuid", "data"])
+  reward: Object.freeze(["name", "type", "img", "uuid", "data"]),
+  problem: Object.freeze(["name", "table"]),
+  complication: Object.freeze(["name", "trigger", "severity"])
 });
 
 /**
@@ -54,7 +56,9 @@ export const AUTHORED_BY_BLUEPRINT = Object.freeze({
     "activationTriggers", "journalLinks", "designId"
   ]),
   objective: Object.freeze(["name"]),
-  reward: Object.freeze(["name", "type", "img", "uuid", "data"])
+  reward: Object.freeze(["name", "type", "img", "uuid", "data"]),
+  problem: Object.freeze(["name", "table"]),
+  complication: Object.freeze(["name", "trigger", "severity"])
 });
 
 /**
@@ -69,8 +73,12 @@ export const TABLE_OWNED = Object.freeze({
     "gmcomments", "playernotes", "splash", "splashPos", "splashAsIcon",
     "location", "parent", "subquests", "date", "source"
   ]),
-  objective: Object.freeze(["id", "completed", "failed", "hidden"]),
-  reward: Object.freeze(["id", "hidden", "granted", "locked"])
+  objective: Object.freeze(["id", "completed", "failed", "hidden", "known"]),
+  reward: Object.freeze(["id", "hidden", "granted", "known", "locked"]),
+  // `state` e `outcome` sao o desfecho vivido; `fired` e registro de mesa. A fonte
+  // governa so a definicao (nome, tabela, gatilho, severidade).
+  problem: Object.freeze(["id", "state", "outcome", "hidden", "known"]),
+  complication: Object.freeze(["id", "fired", "hidden", "known"])
 });
 
 /**
@@ -125,7 +133,7 @@ const byName = (item) =>
  * @returns {{quest: object, orphans: {objectives: object[], rewards: object[]}}}
  */
 export function mergeQuest(current, authored, { authoredBy, matchBy = "id" } = {}) {
-  const empty = { objectives: [], rewards: [] };
+  const empty = { objectives: [], rewards: [], problems: [], complications: [] };
   if (!isRecord(current)) return { quest: normalizeQuest(authored), orphans: empty };
   if (!isRecord(authoredBy)) throw new TypeError("mergeQuest: authoredBy e obrigatorio");
 
@@ -143,12 +151,31 @@ export function mergeQuest(current, authored, { authoredBy, matchBy = "id" } = {
     normalize: normalizeReward
   });
 
+  const problems = mergeCollection(current.problems, authored.problems, {
+    fields: authoredBy.problem,
+    keyOf,
+    normalize: normalizeProblem
+  });
+
+  const complications = mergeCollection(current.complications, authored.complications, {
+    fields: authoredBy.complication,
+    keyOf,
+    normalize: normalizeComplication
+  });
+
   const merged = overlay(current, authored, authoredBy.quest);
   merged.objectives = objectives.items;
   merged.rewards = rewards.items;
+  merged.problems = problems.items;
+  merged.complications = complications.items;
 
   return {
     quest: normalizeQuest(merged),
-    orphans: { objectives: objectives.orphans, rewards: rewards.orphans }
+    orphans: {
+      objectives: objectives.orphans,
+      rewards: rewards.orphans,
+      problems: problems.orphans,
+      complications: complications.orphans
+    }
   };
 }
