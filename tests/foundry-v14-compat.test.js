@@ -82,13 +82,22 @@ test("getSceneControlButtons handler writes a v14 Record-shaped SceneControl", a
   assert.equal(typeof control.tools, "object");
   assert.equal(Array.isArray(control.tools), false, "v14 tools must be a Record, not an array");
 
-  const tool = control.tools[control.activeTool];
-  assert.ok(tool, "activeTool must point at a real tool in the tools Record");
-  for (const key of SCENE_CONTROL_TOOL_KEYS) {
-    assert.ok(tool[key] !== undefined, `SceneControlTool is missing required key \`${key}\``);
+  // DELIBERADO: o grupo NAO declara activeTool. Todas as ferramentas sao `button: true`,
+  // e o ##onChangeTool do v14 sai cedo com `if (tool === this.tool) return;` antes do ramo
+  // de botao — nomear um botao como activeTool o tornaria permanentemente inclicavel
+  // (comentario em scripts/init.js; validado em campo no mundo conan-legacy, log de
+  // 2026-08-05 sem erros do master-quest). Este teste TRAVA essa decisao.
+  assert.equal(control.activeTool, undefined, "buttons-only group must not declare activeTool");
+
+  const tools = Object.values(control.tools);
+  assert.ok(tools.length > 0, "the control must expose at least one tool");
+  for (const tool of tools) {
+    for (const key of SCENE_CONTROL_TOOL_KEYS) {
+      assert.ok(tool[key] !== undefined, `SceneControlTool is missing required key \`${key}\``);
+    }
+    assert.equal(tool.button, true, "every tool resolves on click instead of becoming active");
+    assert.equal(typeof tool.onChange, "function", "v14 tools use onChange, not the v12 onClick");
   }
-  assert.equal(tool.button, true, "the console tool resolves on click instead of becoming active");
-  assert.equal(typeof tool.onChange, "function", "v14 tools use onChange, not the v12 onClick");
 });
 
 test("getSceneControlButtons stays out of the way for non-GM users", async () => {

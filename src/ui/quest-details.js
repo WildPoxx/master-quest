@@ -144,6 +144,11 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
         gmcomments: isGM ? await enrichQuestHtml(model.gmcomments, { secrets: true }) : ""
       };
 
+      // Sumario do painel: derivado do HTML de exibicao, nunca gravado (ver buildPanelToc).
+      const paneled = buildPanelToc(model.enriched.gmnotes);
+      model.enriched.gmnotes = paneled.html;
+      model.gmnotesToc = paneled.toc;
+
       return { ...context, model };
     }
 
@@ -193,6 +198,15 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
           await setQuestStatus(this.questId, button.dataset.status, { game: this.game });
           await this.render({ force: false });
           this.onChange?.();
+        });
+      });
+
+      root.querySelectorAll("[data-action='toc-jump']").forEach((node) => {
+        node.addEventListener("click", (event) => {
+          // Salto local por scrollIntoView, nunca por href: âncora de URL dentro de uma
+          // janela do Foundry navegaria a aplicação inteira.
+          event.preventDefault();
+          root.querySelector(`#${CSS.escape(node.dataset.target)}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
         });
       });
 
@@ -761,6 +775,46 @@ function renderReward(reward, model) {
  * enquanto fechado. `toggled` faz o ciclo ler/editar. Quem nao pode editar recebe HTML
  * enriquecido e nada mais — nenhuma superficie de escrita.
  */
+
+/**
+ * Sumario navegavel do GM Panel, derivado a cada render.
+ *
+ * O painel da Q1-P chegou a 66 KB de HTML numa aba so (medido no snapshot de
+ * 2026-08-05); sem indice, rodar em mesa vira rolagem. Este TOC e DERIVADO: le os <h2>
+ * do HTML ja enriquecido, injeta ids neles e monta a barra de atalhos. NADA e escrito no
+ * campo — a fonte que o <prose-mirror> edita e grava e `value`, que segue intocada. E a
+ * mesma invariante do bloco derivado da DEC-031: se fosse gravado, a proxima edicao do
+ * Mestre o duplicaria.
+ *
+ * @param {string} html O HTML enriquecido do painel.
+ * @returns {{html: string, toc: Array<{id: string, label: string}>}}
+ */
+export function buildPanelToc(html) {
+  const toc = [];
+  if (!html) return { html: html ?? "", toc };
+
+  const seen = new Map();
+  const out = html.replace(/<h2([^>]*)>([\s\S]*?)<\/h2>/gi, (full, attrs, inner) => {
+    const label = inner.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+    if (!label) return full;
+
+    let id = "mq-sec-" + (label.toLocaleLowerCase().normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "").slice(0, 40) || "secao");
+    const bump = seen.get(id) ?? 0;
+    seen.set(id, bump + 1);
+    if (bump) id = `${id}-${bump + 1}`;
+
+    toc.push({ id, label });
+    // id novo por render; um id ja presente no conteudo e respeitado e sobrescrito aqui
+    // apenas no HTML de exibicao — a fonte nunca ve estes ids.
+    const cleaned = attrs.replace(/\s+id="[^"]*"/i, "");
+    return `<h2 id="${id}"${cleaned}>${inner}</h2>`;
+  });
+
+  return { html: out, toc };
+}
+
 function renderNotesTab(model, field, label) {
   const enriched = model.enriched?.[field] ?? safeHtml(model[field] ?? "");
   // So o fasciculo recebe a tipografia de documento. GM Notes e rascunho: fica com a
@@ -777,11 +831,24 @@ function renderNotesTab(model, field, label) {
         enriched || `<p class="mq-empty">Nothing here yet.</p>`
       }</div>`;
 
+  // A barra vive FORA do corpo editavel: nao entra no prose-mirror, nao chega perto do
+  // que se grava. Menos de tres secoes nao paga o espaco da barra.
+  const toc =
+    isPanel && (model.gmnotesToc?.length ?? 0) >= 3
+      ? `<nav class="mq-toc" aria-label="Sections">${model.gmnotesToc
+          .map(
+            (item) =>
+              `<button type="button" class="mq-toc-link" data-action="toc-jump" data-target="${esc(item.id)}">${esc(item.label)}</button>`
+          )
+          .join("")}</nav>`
+      : "";
+
   return `
     <section class="${cls("mq-notes", isPanel && "mq-gm-panel")}">
       <header class="mq-notes-header">
         <h2>${esc(label)}</h2>
       </header>
+      ${toc}
       ${body}
     </section>
   `;

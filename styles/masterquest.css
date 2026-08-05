@@ -1144,3 +1144,34 @@
   border-color: var(--mq-capture-ink-edge);
   box-shadow: var(--mq-shadow-1);
 }
+
+/* GM Panel table of contents (0.20.1) — derivado a cada render, nunca gravado. */
+.masterquest .mq-toc {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  padding: 6px 8px;
+  margin: 0 0 8px;
+  background: var(--mq-surface-1);
+  border: 1px solid var(--mq-border);
+  border-radius: var(--mq-radius-2);
+}
+.masterquest .mq-toc-link {
+  font-family: var(--mq-font-display);
+  font-size: var(--mq-font-size-11);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mq-capture-ink);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--mq-radius-pill);
+  padding: 2px 8px;
+  cursor: pointer;
+  line-height: 1.4;
+  width: auto;
+}
+.masterquest .mq-toc-link:hover {
+  border-color: var(--mq-chip-outline);
+  background: var(--mq-surface-0);
+  box-shadow: none;
+}

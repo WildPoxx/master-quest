@@ -136,3 +136,22 @@ test("os botoes de snapshot existem para o Mestre e nao para o jogador", () => {
 function entryFor(id, quest) {
   return { id, name: quest.name, flags: { "master-quest": { quest } } };
 }
+
+import { buildPanelToc } from "../src/ui/quest-details.js";
+
+test("panel TOC is derived from display HTML and never touches the source", () => {
+  const enriched = "<h2>Abertura</h2><p>a</p><h2>O Cen\u00e1rio</h2><p>b</p><h2>As Cenas</h2><p>c</p>";
+  const { html, toc } = buildPanelToc(enriched);
+
+  assert.deepEqual(toc.map((t) => t.label), ["Abertura", "O Cen\u00e1rio", "As Cenas"]);
+  assert.ok(html.includes('<h2 id="mq-sec-abertura">'), "h2 ganha id derivado");
+
+  // A fonte que o editor grava e `value`; o TOC nasce do HTML de exibicao. Um painel com
+  // menos de 3 secoes nao rende barra — quem monta a barra e renderNotesTab via
+  // model.gmnotesToc, e este teste trava o insumo, nao o markup.
+  const { toc: curto } = buildPanelToc("<h2>Uma</h2>");
+  assert.equal(curto.length, 1);
+
+  const vazio = buildPanelToc("");
+  assert.deepEqual(vazio, { html: "", toc: [] });
+});

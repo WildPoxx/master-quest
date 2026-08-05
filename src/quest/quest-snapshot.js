@@ -225,6 +225,9 @@ function describeQuest(entry, quest) {
     gmcomments: quest.gmcomments ?? "",
     playernotes: quest.playernotes ?? "",
     objectiveCount: objectives.length,
+    // 0.20.1: a chave pela qual a reimportacao de blueprint reconhece a quest. Sem ela o
+    // snapshot nao permitia rastrear quest <-> fonte. Aditivo; leitores antigos ignoram.
+    designId: quest.designId ?? null,
     completedObjectiveCount: objectives.filter((objective) => objective.completed).length,
     objectives,
     rewards: toArray(quest.rewards).map((reward) => ({
