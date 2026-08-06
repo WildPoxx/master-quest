@@ -1362,3 +1362,119 @@
 .masterquest .mq-derived ul { list-style: none; margin: 0; padding: 0; }
 .masterquest .mq-derived li { font-size: 12px; padding: 2px 0; color: var(--mq-text); }
 .masterquest .mq-derived li i { color: var(--mq-accent); width: 16px; }
+
+/* ===== 0.23.0 — Sessions, Log editorial, Wrap Up, contraste de tabela nas notas ===== */
+
+/* Contraste de thead nas notas de mesa (GM Notes / Player Notes): o print de 2026-08-06
+   mostrou cabecalho de tabela ilegivel — o estilo de tabela so existia no .mq-panel-doc.
+   Mesmas regras, agora para qualquer nota rica. */
+.masterquest .mq-notes-read table {
+  border-collapse: collapse;
+  margin: 0 0 var(--mq-space-3);
+  width: 100%;
+}
+.masterquest .mq-notes-read th,
+.masterquest .mq-notes-read td {
+  border: 1px solid var(--mq-border);
+  padding: var(--mq-space-2);
+  text-align: left;
+  vertical-align: top;
+  color: var(--mq-text);
+}
+.masterquest .mq-notes-read th {
+  background: var(--mq-surface-2);
+  color: var(--mq-text);
+  font-family: var(--mq-font-display);
+  font-size: var(--mq-text-sm);
+  letter-spacing: var(--mq-display-tracking);
+}
+
+/* A sessao corrente, sob a Description. Marcador de tempo de mesa, nao agenda. */
+.masterquest .mq-session {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: var(--mq-space-3);
+  padding: 6px 8px;
+  border: 1px solid var(--mq-border);
+  border-radius: var(--mq-radius-2);
+  background: var(--mq-surface-1);
+}
+.masterquest .mq-session-current { display: flex; align-items: baseline; gap: 6px; flex: 1 1 auto; min-width: 0; }
+.masterquest .mq-session-current i { color: var(--mq-accent); }
+.masterquest .mq-session-label {
+  font-family: var(--mq-font-display);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mq-text-muted);
+}
+.masterquest .mq-session-number {
+  font-family: var(--mq-font-display);
+  font-size: 14px;
+  color: var(--mq-text);
+  padding: 0 4px;
+  border-radius: 3px;
+}
+.masterquest .mq-session-date { font-size: 12px; color: var(--mq-text-muted); padding: 0 4px; border-radius: 3px; }
+.masterquest .mq-session-title { font-size: 12px; font-style: italic; color: var(--mq-text); padding: 0 4px; border-radius: 3px; flex: 1 1 auto; min-width: 0; }
+.masterquest .mq-session-title.is-pending:empty::before { content: "subtitle — click to write"; color: var(--mq-text-muted); }
+.masterquest .mq-session [contenteditable]:focus { outline: 1px solid var(--mq-accent-bright); font-style: normal; }
+.masterquest .mq-session-none { font-size: 12px; font-style: italic; color: var(--mq-text-muted); }
+
+/* Heading de sessao no Log — herda o desenho do antigo mq-log-day. */
+.masterquest .mq-log-session {
+  font-family: var(--mq-font-display);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mq-text-muted);
+  border-bottom: 1px solid var(--mq-border);
+  margin: 12px 0 4px;
+  padding-bottom: 2px;
+}
+.masterquest .mq-log-session [contenteditable] { padding: 0 3px; border-radius: 3px; text-transform: none; letter-spacing: normal; }
+.masterquest .mq-log-session [contenteditable]:focus { outline: 1px solid var(--mq-accent-bright); }
+.masterquest .mq-log-session-title.is-pending:empty::before { content: "subtitle?"; font-style: italic; }
+
+/* Log editorial: alvo e mudanca tambem sao superficies de escrita; linha manual leva
+   um filete proprio na esquerda — veio da mao, nao do diff. */
+.masterquest .mq-log-target-text,
+.masterquest .mq-log-change-text {
+  display: inline-block;
+  min-height: 1.2em;
+  min-width: 3em;
+  border-radius: 3px;
+  padding: 1px 5px;
+}
+.masterquest .mq-log-target-text.is-pending,
+.masterquest .mq-log-change-text.is-pending {
+  border: 1px dashed var(--mq-border-strong);
+  color: var(--mq-text-muted);
+  font-style: italic;
+}
+.masterquest .mq-log-change-text.is-pending:empty::before { content: "what happened?"; }
+.masterquest .mq-log-target-text:focus,
+.masterquest .mq-log-change-text:focus { outline: 1px solid var(--mq-accent-bright); font-style: normal; }
+.masterquest tr.mq-log-manual td:first-child { border-left: 3px solid var(--mq-accent); }
+.masterquest .mq-log-row-actions { width: 0.1%; white-space: nowrap; text-align: right; }
+.masterquest .mq-log-row-actions .mq-icon-button { opacity: 0.35; }
+.masterquest .mq-log-table tr:hover .mq-icon-button { opacity: 1; }
+
+/* Wrap Up: o caderno fechado ganha peso visual; a ata e um botao irmao do Snapshot. */
+.masterquest .mq-wrapup-button.is-wrapped {
+  border-color: var(--mq-accent);
+  color: var(--mq-accent);
+}
+.masterquest .mq-pill.mq-wrapped-pill {
+  font-family: var(--mq-font-display);
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: 1px solid var(--mq-accent);
+  border-radius: var(--mq-radius-pill);
+  color: var(--mq-accent);
+  padding: 0 6px;
+  margin-left: 6px;
+  vertical-align: middle;
+}

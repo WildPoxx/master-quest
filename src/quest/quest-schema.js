@@ -47,6 +47,13 @@ export const REWARD_TYPE = Object.freeze({
   item: "item"
 });
 
+/**
+ * Gradacao unica de severidade (Mario, 2026-08-06): dilemas e complicacoes compartilham
+ * a escada leve/grave/severa. Vocabulario de CAMPANHA fixado pela Arquitetura de Tabelas
+ * Q1 §1.6 — fica em portugues; DEC-027 nao o alcanca.
+ */
+export const SEVERITIES = Object.freeze(["leve", "grave", "severa"]);
+
 export const SPLASH_POSITIONS = Object.freeze(["top", "center", "bottom"]);
 
 /**
@@ -112,18 +119,25 @@ export function normalizeQuest(input = {}) {
     // DEC-035: Problema nao se cumpre — resolve-se, e toda saida tem preco. Complicacao
     // nao se resolve — incide. Irmas de objectives/rewards; antes disto viviam como
     // tabelas de HTML no gmnotes, frageis por construcao (ProseMirror, 2026-08-04).
-    // Ordem canonica da Details (Mario, 2026-08-05): Objectives -> Clues -> Rewards ->
-    // Dilemmas -> Complications -> Outcomes. Pista aponta o caminho; recompensa fica com
-    // a mesa; dilema e a pergunta que a quest poe; complicacao incide; outcome registra
-    // como pode terminar. Outcome NAO e recompensa: posse e registro sao categorias
-    // diferentes.
+    // Ordem canonica da Details (Mario, 2026-08-06): Dilemmas -> Objectives -> Clues ->
+    // Rewards -> Complications -> Outcomes. O dilema vem PRIMEIRO porque define o tom da
+    // quest — o subtexto moral que tudo o mais responde. Pista aponta o caminho;
+    // recompensa fica com a mesa; complicacao incide; outcome registra como pode
+    // terminar. Outcome NAO e recompensa: posse e registro sao categorias diferentes.
     clues: toArray(data.clues).map(normalizeClue).filter((x) => x.name !== ""),
     dilemmas: toArray(data.dilemmas ?? data.problems).map(normalizeDilemma).filter((x) => x.name !== ""),
     complications: toArray(data.complications).map(normalizeComplication).filter((x) => x.name !== ""),
     outcomes: toArray(data.outcomes).map(normalizeOutcome).filter((x) => x.name !== ""),
-    // Append-only, escrito pelo modulo a cada mudanca de estado (DEC-032). A unica coluna
-    // que aceita mao humana e `reason` — e a que da sentido ao resto.
+    // DEC-032, revista em 0.23: escrito pelo modulo a cada mudanca de FICCAO (nao de
+    // gerenciamento) — e integralmente editavel pelo Mestre: linhas podem ganhar razao,
+    // ser corrigidas, apagadas ou incluidas a mao. Registro de campanha, nao auditoria.
     log: toArray(data.log).map(normalizeLogEntry),
+    // 0.23: sessoes de jogo registradas nesta quest. A corrente e a de maior numero.
+    sessions: dedupeSessions(toArray(data.sessions).map(normalizeSession)),
+    // 0.23: encerramento editorial (Wrap Up). Reversivel — flag da mesa, nada dispara.
+    // Nao confundir com `status: completed`: status e a ficcao; wrappedUp e o gesto de
+    // fechar o caderno e emitir o relatorio consolidado.
+    wrappedUp: data.wrappedUp === true,
     date: normalizeDate(data.date),
     source: text(data.source) || "master-quest"
   };
@@ -232,6 +246,8 @@ export function normalizeDilemma(input = {}) {
     id: text(data.id) || makeId(),
     name: text(data.name),
     state: data.state === "resolved" ? "resolved" : "open",
+    // Gradacao (Mario, 2026-08-06): quanto pesa a pergunta. Autoral — vem da fonte.
+    severity: SEVERITIES.includes(data.severity) ? data.severity : "leve",
     // O que de fato aconteceu quando resolveu. Da mesa, escrito pelo Mestre.
     resolution: text(data.resolution ?? data.outcome),
     // Ponteiro descritivo para a Tabela de Desfecho (nome ou @UUID). Da fonte.
@@ -298,7 +314,35 @@ export function normalizeLogEntry(input = {}) {
     target: text(data.target),
     targetType: text(data.targetType),
     change: text(data.change),
-    reason: text(data.reason)
+    reason: text(data.reason),
+    // 0.23 (Mario, 2026-08-06): o Log agrupa por sessao de jogo, nao por dia do relogio.
+    // `session` carimba o numero da sessao corrente no momento do registro; entradas
+    // antigas (sem carimbo) caem no grupo "before session records".
+    session: Number.isFinite(Number(data.session)) && data.session !== null && data.session !== "" ? Number(data.session) : null,
+    // "auto" = escrito pelo diff central no commit(); "manual" = o Mestre incluiu a linha
+    // a mao. O Log e do Mestre — registro de ficcao, nao trilha de auditoria: toda linha
+    // pode ser editada ou apagada, e a origem so distingue quem a escreveu primeiro.
+    origin: data.origin === "manual" ? "manual" : "auto"
+  };
+}
+
+/**
+ * 0.23 (Mario, 2026-08-06): sessao de jogo — numero, data e subtitulo. Vive na quest
+ * (`sessions[]`) e da o cabecalho dos grupos do Log. `number` e a chave que o carimbo
+ * `log[].session` referencia. Estrutura minima de proposito: sessao aqui e MARCADOR DE
+ * TEMPO DE MESA, nao agenda — o fvtt-campaign-builder ja faz agenda; o MasterQuest
+ * registra em qual sessao a ficcao mudou.
+ *
+ * @param {object} [input] Raw session data.
+ * @returns {object} A normalized session.
+ */
+export function normalizeSession(input = {}) {
+  const data = isRecord(input) ? input : {};
+  const number = Number.isFinite(Number(data.number)) && data.number !== null && data.number !== "" ? Number(data.number) : 1;
+  return {
+    number: Math.max(1, Math.trunc(number)),
+    date: text(data.date),
+    title: text(data.title)
   };
 }
 
@@ -310,7 +354,7 @@ export function normalizeLogEntry(input = {}) {
  * @param {object} [input] Raw complication data.
  * @returns {object} A normalized complication.
  */
-export const COMPLICATION_SEVERITIES = Object.freeze(["leve", "grave", "severa"]);
+export const COMPLICATION_SEVERITIES = SEVERITIES;
 
 export function normalizeComplication(input = {}) {
   const data = isRecord(input) ? input : {};
@@ -318,11 +362,30 @@ export function normalizeComplication(input = {}) {
     id: text(data.id) || makeId(),
     name: text(data.name),
     trigger: text(data.trigger),
-    severity: COMPLICATION_SEVERITIES.includes(data.severity) ? data.severity : "leve",
+    severity: SEVERITIES.includes(data.severity) ? data.severity : "leve",
     fired: data.fired === true,
     hidden: data.hidden !== false,
     known: data.known === true
   };
+}
+
+/** Sessions keyed by `number`: a duplicate number keeps the LAST occurrence (an edit). */
+function dedupeSessions(sessions) {
+  const byNumber = new Map();
+  for (const s of sessions) byNumber.set(s.number, s);
+  return Array.from(byNumber.values()).sort((a, b) => a.number - b.number);
+}
+
+/**
+ * The current session is simply the highest-numbered one, or null before any is opened.
+ *
+ * @param {object} quest A normalized quest.
+ * @returns {object|null} The current session.
+ */
+export function currentSession(quest) {
+  const sessions = toArray(quest?.sessions);
+  if (!sessions.length) return null;
+  return sessions.reduce((top, s) => (s.number > (top?.number ?? -Infinity) ? s : top), null);
 }
 
 function normalizeDate(input) {

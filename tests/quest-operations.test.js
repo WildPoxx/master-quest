@@ -692,14 +692,15 @@ test("DEC-035: jogador ve dilema/complicacao nao-ocultos, sem controles", () => 
 
 import { diffQuestForLog, logToMarkdown } from "../src/quest/quest-log-diff.js";
 
-test("0.22: Clues antes de Rewards, Outcomes por ultimo, na Details do GM", () => {
+test("0.23: Dilemmas primeiro, Outcomes por ultimo, na Details do GM", () => {
+  // Mario, 2026-08-06: o dilema define o tom da quest \u2014 abre a coluna.
   const quest = questFixture({
     id: "q", name: "Q", status: "active",
     clues: [{ id: "c1", name: "A pagina arrancada", hidden: false }],
     outcomes: [{ id: "o1", name: "O desfecho do cofre", hidden: false }]
   });
   const html = renderQuestDetails(buildQuestDetailsViewModel(quest, { isGM: true, canEdit: true }));
-  const ordem = ["Objectives", ">Clues<", ">Rewards", ">Dilemmas<", ">Complications<", ">Outcomes<"];
+  const ordem = [">Dilemmas<", ">Objectives<", ">Clues<", ">Rewards", ">Complications<", ">Outcomes<"];
   let pos = -1;
   for (const marca of ordem) {
     const i = html.indexOf(marca);
@@ -708,7 +709,7 @@ test("0.22: Clues antes de Rewards, Outcomes por ultimo, na Details do GM", () =
   }
 });
 
-test("0.22: o diff do Log registra concessao, revelacao e resolucao com razao pendente", () => {
+test("0.23: o diff do Log registra so FICCAO \u2014 revelar/ocultar e gerenciamento e fica fora", () => {
   const before = normalizeQuest({
     name: "Q",
     rewards: [{ id: "r1", name: "Mapa", hidden: true, granted: false }],
@@ -722,11 +723,35 @@ test("0.22: o diff do Log registra concessao, revelacao e resolucao com razao pe
 
   const entries = diffQuestForLog(before, after, 1754400000000);
   const changes = entries.map((e) => `${e.target}: ${e.change}`).sort();
-  assert.deepEqual(changes, ["Mapa: granted", "Mapa: revealed", "Ygerr: open \u2192 resolved"]);
+  // "Mapa: revealed" NAO aparece: hidden e curadoria de painel, nao acontecimento.
+  assert.deepEqual(changes, ["Mapa: granted", "Ygerr: open \u2192 resolved"]);
   assert.ok(entries.every((e) => e.reason === ""), "a razao nasce vazia e pendente");
+  assert.ok(entries.every((e) => e.origin === "auto"), "diff central assina como auto");
 
   const md = logToMarkdown("Q", entries);
   assert.ok(md.includes("reason pending"));
+});
+
+test("0.23: adicionar e remover item nao entram no Log \u2014 edicao de estrutura nao e ficcao", () => {
+  const before = normalizeQuest({ name: "Q", clues: [{ id: "c1", name: "Pista" }] });
+  const after = normalizeQuest({ name: "Q", clues: [{ id: "c2", name: "Outra" }] });
+  assert.deepEqual(diffQuestForLog(before, after, 1), []);
+});
+
+test("0.23: o carimbo de sessao entra em cada linha e o Markdown agrupa por sessao", () => {
+  const before = normalizeQuest({ name: "Q", clues: [{ id: "c1", name: "Pista", found: false }] });
+  const after = normalizeQuest({ ...before, clues: [{ id: "c1", name: "Pista", found: true }] });
+
+  const entries = diffQuestForLog(before, after, 1754400000000, 3);
+  assert.equal(entries[0].session, 3);
+
+  const sessions = [{ number: 3, date: "2026-08-06", title: "A sombra no cofre" }];
+  const md = logToMarkdown("Q", entries, sessions);
+  assert.ok(md.includes("## Session 3 \u2014 2026-08-06 \u2014 A sombra no cofre"));
+
+  // sem carimbo: grupo inicial, nunca uma sessao inventada
+  const legacy = logToMarkdown("Q", [{ ...entries[0], session: null }], sessions);
+  assert.ok(legacy.includes("## Before session records"));
 });
 
 test("0.22: o bloco derivado do Player Notes mostra so o nao-oculto concluido/concedido, e nada e gravado", () => {
@@ -772,4 +797,137 @@ test("0.22: aba Log existe so para o GM e a razao pendente e visivel", () => {
 
   const player = buildQuestDetailsViewModel(quest, { isGM: false, activeTab: "log" });
   assert.equal(player.tabs.some((t) => t.id === "log"), false, "jogador nao tem a aba");
+});
+
+/* ------------------------------------------------------------------ *
+ * 0.23.0 — severidade do dilema, Sessions, Log editorial, Wrap Up
+ * ------------------------------------------------------------------ */
+
+import { currentSession, normalizeDilemma, normalizeLogEntry, normalizeSession } from "../src/quest/quest-schema.js";
+import { buildWrapupReport, makeWrapupFilename } from "../src/reports/quest-wrapup-report.js";
+
+test("0.23: dilema tem a mesma escada leve/grave/severa, default leve", () => {
+  assert.equal(normalizeDilemma({ name: "d" }).severity, "leve");
+  assert.equal(normalizeDilemma({ name: "d", severity: "severa" }).severity, "severa");
+  assert.equal(normalizeDilemma({ name: "d", severity: "absurda" }).severity, "leve", "valor fora da escada degrada");
+});
+
+test("0.23: sessions normalizam, deduplicam por numero e a corrente e a maior", () => {
+  const quest = normalizeQuest({
+    name: "Q",
+    sessions: [
+      { number: 2, date: "2026-08-01", title: "velha" },
+      { number: 1, date: "2026-07-20" },
+      { number: 2, date: "2026-08-02", title: "editada" }
+    ]
+  });
+  assert.deepEqual(quest.sessions.map((s) => s.number), [1, 2], "ordenadas; duplicata fica com a ULTIMA (edicao)");
+  assert.equal(quest.sessions[1].title, "editada");
+  assert.equal(currentSession(quest).number, 2);
+  assert.equal(currentSession(normalizeQuest({ name: "Q" })), null, "sem sessao aberta, corrente e null");
+  assert.equal(normalizeSession({}).number, 1, "numero minimo e 1");
+});
+
+test("0.23: log entry carrega session e origin; manual e reconhecido", () => {
+  const auto = normalizeLogEntry({ target: "x", change: "granted" });
+  assert.equal(auto.session, null);
+  assert.equal(auto.origin, "auto");
+  const manual = normalizeLogEntry({ target: "x", change: "note", session: 4, origin: "manual" });
+  assert.equal(manual.session, 4);
+  assert.equal(manual.origin, "manual");
+});
+
+test("0.23: wrappedUp e flag da mesa, reversivel, default false", () => {
+  assert.equal(normalizeQuest({ name: "Q" }).wrappedUp, false);
+  assert.equal(normalizeQuest({ name: "Q", wrappedUp: true }).wrappedUp, true);
+});
+
+test("0.23: a Details do GM mostra a sessao corrente sob a Description e o botao New session", () => {
+  const quest = questFixture({
+    id: "q", name: "Q", status: "active",
+    sessions: [{ number: 2, date: "2026-08-06", title: "A sombra" }]
+  });
+  const html = renderQuestDetails(buildQuestDetailsViewModel(quest, { isGM: true, canEdit: true }));
+  assert.ok(html.includes("mq-session"), "controle de sessao presente");
+  assert.ok(html.includes("New session"));
+  assert.ok(html.includes("A sombra"));
+
+  const player = renderQuestDetails(buildQuestDetailsViewModel(quest, { isGM: false }));
+  assert.equal(player.includes("mq-session"), false, "sessao e instrumento do Mestre");
+});
+
+test("0.23: aba Log agrupa por sessao, tem + Entry, delete e push-to-notes por linha", () => {
+  const quest = questFixture({
+    id: "q", name: "Q", status: "active",
+    sessions: [{ number: 1, date: "2026-08-06", title: "Abertura" }],
+    log: [
+      { id: "l1", at: 1, target: "Mapa", targetType: "reward", change: "granted", reason: "", session: 1, origin: "auto" },
+      { id: "l2", at: 2, target: "Nota do Mestre", targetType: "note", change: "aconteceu", reason: "", session: 1, origin: "manual" }
+    ]
+  });
+  const html = renderQuestDetails(buildQuestDetailsViewModel(quest, { isGM: true, canEdit: true, activeTab: "log" }));
+  assert.ok(html.includes("Session 1"), "heading de sessao");
+  assert.ok(html.includes("log-add-manual"), "inclusao manual");
+  assert.ok(html.includes("log-delete"), "toda linha se apaga");
+  assert.ok(html.includes("log-push-gm") && html.includes("log-push-player"), "herdar e gesto por linha");
+  assert.ok(html.includes("data-log-target") && html.includes("data-log-change"), "toda coluna se edita");
+  assert.ok(html.includes("mq-log-manual"), "linha manual e marcada");
+});
+
+test("0.23: Wrap Up reversivel no rodape; Report so com o caderno fechado", () => {
+  const quest = questFixture({ id: "q", name: "Q", status: "active" });
+  const open = renderQuestDetails(buildQuestDetailsViewModel(quest, { isGM: true, canEdit: true }));
+  assert.ok(open.includes("toggle-wrapup") && open.includes("Wrap Up"));
+  assert.equal(open.includes("wrapup-report"), false, "sem relatorio antes do encerramento");
+
+  const wrapped = questFixture({ id: "q2", name: "Q", status: "completed", wrappedUp: true });
+  const closed = renderQuestDetails(buildQuestDetailsViewModel(wrapped, { isGM: true, canEdit: true }));
+  assert.ok(closed.includes("Reopen"), "gesto reversivel");
+  assert.ok(closed.includes("wrapup-report"), "a ata aparece");
+  assert.ok(closed.includes("wrapped up"), "selo no cabecalho");
+});
+
+test("0.23: o relatorio de Wrap Up conta ficcao, metajogo e o log por sessao", () => {
+  const quest = normalizeQuest({
+    name: "O destino de Ygerr",
+    status: "completed",
+    designId: "MQ-ATO1-01",
+    sessions: [{ number: 1, date: "2026-08-01", title: "Abertura" }],
+    dilemmas: [{ id: "d1", name: "O cofre", severity: "grave", state: "resolved", resolution: "Entregaram a chave" }],
+    objectives: [
+      { id: "o1", name: "Achar o cofre", completed: true },
+      { id: "o2", name: "Poupar Sabotei", completed: false }
+    ],
+    clues: [
+      { id: "c1", name: "A pagina arrancada", found: true },
+      { id: "c2", name: "O selo quebrado", found: false }
+    ],
+    rewards: [{ id: "r1", name: "Mapa", granted: true }, { id: "r2", name: "Anel", granted: false }],
+    complications: [{ id: "k1", name: "Os Chacais", severity: "severa", trigger: "inimizade", fired: true }],
+    outcomes: [
+      { id: "u1", name: "O cofre aberto", occurred: true, record: "Abriram na calada" },
+      { id: "u2", name: "A fuga", occurred: false }
+    ],
+    log: [{ id: "l1", at: 1, target: "Mapa", targetType: "reward", change: "granted", reason: "pagamento", session: 1 }]
+  });
+
+  const md = buildWrapupReport(quest, { generatedAt: "2026-08-06T12:00:00Z" });
+  assert.ok(md.includes("# Wrap-Up — O destino de Ygerr"));
+  assert.ok(md.includes("## The question the quest posed"));
+  assert.ok(md.includes("severity: grave"));
+  assert.ok(md.includes("Entregaram a chave"));
+  assert.ok(md.includes("[x] Achar o cofre"));
+  assert.ok(md.includes("[ ] Poupar Sabotei — left open"));
+  assert.ok(md.includes("A pagina arrancada"));
+  assert.ok(md.includes("Os Chacais"));
+  assert.ok(md.includes("Abriram na calada"));
+  // metajogo: o que ficou na mesa e insumo de follow-up
+  assert.ok(md.includes("Clue never found: O selo quebrado"));
+  assert.ok(md.includes("Reward never granted: Anel"));
+  assert.ok(md.includes("Ending that did not come to pass: A fuga"));
+  // log por sessao, com razao
+  assert.ok(md.includes("### Session 1 — 2026-08-01 — Abertura"));
+  assert.ok(md.includes("_pagamento_"));
+
+  assert.ok(makeWrapupFilename(quest, "2026-08-06T12:00:00Z").startsWith("masterquest-wrapup-o-destino-de-ygerr-"));
 });

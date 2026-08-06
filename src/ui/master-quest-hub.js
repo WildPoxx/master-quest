@@ -156,12 +156,12 @@ export function createMasterQuestHubClass(ApplicationV2) {
         try {
           const result = downloadQuestSnapshot({ game: this.game });
           notifyInfo(
-            `MasterQuest: snapshot de ${result.questCount} quest(s) gerado (${result.filename}).`,
+            `MasterQuest: snapshot of ${result.questCount} quest(s) generated (${result.filename}).`,
             this.ui
           );
         } catch (error) {
           console.error(`${MODULE_ID} | falha ao gerar o snapshot`, error);
-          notifyError(`MasterQuest não conseguiu gerar o snapshot: ${error?.message ?? error}`, this.ui);
+          notifyError(`MasterQuest could not generate the snapshot: ${error?.message ?? error}`, this.ui);
         }
       });
 
@@ -169,7 +169,7 @@ export function createMasterQuestHubClass(ApplicationV2) {
         event.preventDefault();
         const result = await importFromFql({ game: this.game });
         notifyInfo(
-          `MasterQuest: ${result.imported} quest(s) importada(s) do FQL, ${result.skipped} já existiam, ${result.failed} falharam.`,
+          `MasterQuest: ${result.imported} quest(s) imported from FQL, ${result.skipped} already existed, ${result.failed} failed.`,
           this.ui
         );
         await this.render({ force: false });
@@ -185,13 +185,14 @@ export function createMasterQuestHubClass(ApplicationV2) {
  * @returns {string} HTML.
  */
 export function renderHub(context) {
+  // DEC-027: estrutura e UI em ingles, sempre; so o CONTEUDO da campanha e portugues.
   const importCard = context.isGM && context.fqlPending > 0
     ? `<div class="mq-hub-import">
-        <p>Encontrei <strong>${esc(context.fqlPending)}</strong> quest(s) do Forien's Quest Log ainda não importadas
-        (de ${esc(context.fqlTotal)} no mundo).</p>
+        <p>Found <strong>${esc(context.fqlPending)}</strong> Forien's Quest Log quest(s) not yet imported
+        (of ${esc(context.fqlTotal)} in this world).</p>
         <button type="button" class="mq-bulk" data-action="import-fql">
-          <i class="fa-solid fa-file-import" inert></i> Importar do FQL</button>
-        <p class="mq-hint">A importação copia os dados; o flag original do FQL não é apagado.</p>
+          <i class="fa-solid fa-file-import" inert></i> Import from FQL</button>
+        <p class="mq-hint">Importing copies the data; the original FQL flag is never erased.</p>
       </div>`
     : "";
 
@@ -200,43 +201,43 @@ export function renderHub(context) {
   const snapshotCard = context.isGM
     ? `<button type="button" class="mq-hub-card" data-action="snapshot">
         <i class="fa-solid fa-camera-retro" inert></i>
-        <span class="mq-hub-card-title">Gerar snapshot</span>
-        <span class="mq-hub-card-desc">Baixa um JSON somente-leitura com o estado atual de
-        todas as quests, para análise externa e scripts de atualização.</span>
+        <span class="mq-hub-card-title">Take snapshot</span>
+        <span class="mq-hub-card-desc">Downloads a read-only JSON with the current state of
+        every quest, for outside analysis and update scripts.</span>
       </button>`
     : "";
 
   const adventureCard = context.isGM
     ? `<button type="button" class="mq-hub-card" data-action="import-adventure">
         <i class="fa-solid fa-map-location-dot" inert></i>
-        <span class="mq-hub-card-title">Importar aventura</span>
-        <span class="mq-hub-card-desc">Traz uma aventura de um blueprint do módulo, de um arquivo JSON
-        ou de uma pasta do Journal deste mundo. Sempre com prévia antes de escrever.</span>
+        <span class="mq-hub-card-title">Import adventure</span>
+        <span class="mq-hub-card-desc">Brings an adventure in from a module blueprint, a JSON file
+        or a Journal folder of this world. Always previews before writing.</span>
       </button>`
     : "";
 
   const authoringCard = context.isGM
     ? `<button type="button" class="mq-hub-card" data-action="open-authoring">
         <i class="fa-solid fa-wand-magic-sparkles" inert></i>
-        <span class="mq-hub-card-title">Criar quest</span>
-        <span class="mq-hub-card-desc">Console de autoria: transforma uma ideia em objetivos, cenas,
-        ameaças, pistas e recompensas.</span>
+        <span class="mq-hub-card-title">Create quest</span>
+        <span class="mq-hub-card-desc">Authoring console: turns an idea into objectives, scenes,
+        threats, clues and rewards.</span>
       </button>`
     : "";
 
   return `
     <header class="mq-hub-header">
       <h1>MasterQuest</h1>
-      <p>${esc(context.questCount)} quest(s) no mundo, ${esc(context.activeCount)} em andamento.</p>
+      <p>${esc(context.questCount)} quest(s) in this world, ${esc(context.activeCount)} in progress.</p>
     </header>
 
     <div class="mq-hub-cards">
       ${authoringCard}
       <button type="button" class="mq-hub-card" data-action="open-log">
         <i class="fa-solid fa-list-check" inert></i>
-        <span class="mq-hub-card-title">Gerenciar quests</span>
-        <span class="mq-hub-card-desc">Quest Log: acompanha, edita e conduz as quests em mesa,
-        por status, objetivos e recompensas.</span>
+        <span class="mq-hub-card-title">Manage quests</span>
+        <span class="mq-hub-card-desc">Quest Log: tracks, edits and runs the quests at the table,
+        by status, objectives and rewards.</span>
       </button>
       ${adventureCard}
       ${snapshotCard}

@@ -39,7 +39,9 @@ export const AUTHORED_BY_DRAFT = Object.freeze({
   quest: Object.freeze(["name", "description", "gmnotes"]),
   objective: Object.freeze(["name"]),
   reward: Object.freeze(["name", "type", "img", "uuid", "data"]),
-  dilemma: Object.freeze(["name", "table"]),
+  // `severity` do dilema (0.23) e autoral como a da complicacao: quanto pesa a pergunta
+  // e decisao de design, escrita na fonte.
+  dilemma: Object.freeze(["name", "table", "severity"]),
   complication: Object.freeze(["name", "trigger", "severity"]),
   clue: Object.freeze(["name"]),
   outcome: Object.freeze(["name", "table"])
@@ -59,7 +61,7 @@ export const AUTHORED_BY_BLUEPRINT = Object.freeze({
   ]),
   objective: Object.freeze(["name"]),
   reward: Object.freeze(["name", "type", "img", "uuid", "data"]),
-  dilemma: Object.freeze(["name", "table"]),
+  dilemma: Object.freeze(["name", "table", "severity"]),
   complication: Object.freeze(["name", "trigger", "severity"]),
   clue: Object.freeze(["name"]),
   outcome: Object.freeze(["name", "table"])
@@ -75,7 +77,9 @@ export const TABLE_OWNED = Object.freeze({
   quest: Object.freeze([
     "schemaVersion", "status", "giver", "giverData", "giverName", "image",
     "gmcomments", "playernotes", "splash", "splashPos", "splashAsIcon",
-    "location", "parent", "subquests", "date", "source", "log"
+    // `sessions` e `wrappedUp` (0.23): tempo de mesa e encerramento editorial — nenhuma
+    // fonte sabe em que sessao a campanha esta, nem quando o Mestre fechou o caderno.
+    "location", "parent", "subquests", "date", "source", "log", "sessions", "wrappedUp"
   ]),
   objective: Object.freeze(["id", "completed", "failed", "hidden", "known"]),
   reward: Object.freeze(["id", "hidden", "granted", "known", "locked"]),

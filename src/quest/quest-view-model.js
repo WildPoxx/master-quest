@@ -11,7 +11,8 @@ import {
   QUEST_STATUS_LABEL,
   QUEST_STATUS_ORDER,
   GM_ONLY_STATUS,
-  countObjectives
+  countObjectives,
+  currentSession
 } from "./quest-schema.js";
 
 /**
@@ -220,6 +221,10 @@ export function buildQuestDetailsViewModel(quest, {
     complications,
     outcomes,
     log: toArray(quest.log),
+    // 0.23: sessoes e encerramento editorial. `session` e a corrente (maior numero).
+    sessions: toArray(quest.sessions),
+    session: currentSession(quest),
+    wrappedUp: quest.wrappedUp === true,
     subquests,
     allRewardsVisible: rewards.length > 0 && rewards.every((r) => !r.hidden),
     allRewardsGranted: rewards.length > 0 && rewards.every((r) => r.granted),

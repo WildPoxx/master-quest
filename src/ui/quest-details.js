@@ -19,8 +19,8 @@ import {
   unlinkSubquest
 } from "../quest/quest-store.js";
 import { buildQuestDetailsViewModel } from "../quest/quest-view-model.js";
-import { diffQuestForLog, logToMarkdown } from "../quest/quest-log-diff.js";
-import { COMPLICATION_SEVERITIES, makeId, normalizeClue, normalizeComplication, normalizeDilemma, normalizeLogEntry, normalizeObjective, normalizeOutcome, normalizeReward, reorderById } from "../quest/quest-schema.js";
+import { diffQuestForLog, logToMarkdown, sessionHeading } from "../quest/quest-log-diff.js";
+import { SEVERITIES, currentSession, makeId, normalizeClue, normalizeComplication, normalizeDilemma, normalizeLogEntry, normalizeObjective, normalizeOutcome, normalizeReward, normalizeSession, reorderById } from "../quest/quest-schema.js";
 import { readAllQuests } from "../quest/quest-store.js";
 import { cls, esc, escUrl, renderEmpty, renderStatusActions, safeHtml } from "./render-utils.js";
 
@@ -48,7 +48,7 @@ export async function openMasterQuestDetails({
   onChange = null
 } = {}) {
   if (!applicationClass) {
-    notifyWarning("Os detalhes de quest do MasterQuest requerem Foundry ApplicationV2.", ui);
+    notifyWarning("MasterQuest quest details require Foundry ApplicationV2.", ui);
     return { opened: false, reason: "missing-application-v2" };
   }
 
@@ -178,7 +178,10 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
       if (!quest) return;
 
       let next = mutate({ ...quest });
-      const entries = diffQuestForLog(quest, next, Date.now());
+      // 0.23: cada linha nasce carimbada com a sessao corrente — e assim que a aba Log
+      // agrupa por sessao sem precisar adivinhar depois.
+      const session = currentSession(quest)?.number ?? null;
+      const entries = diffQuestForLog(quest, next, Date.now(), session);
       if (entries.length) next = { ...next, log: [...(next.log ?? []), ...entries] };
 
       await saveQuest(next);
@@ -211,30 +214,9 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
         });
       });
 
-      root.querySelectorAll("[data-log-reason]").forEach((node) => {
-        node.addEventListener("blur", async () => {
-          const id = node.dataset.logReason;
-          const reason = node.textContent.trim();
-          await this.commit((draft) => ({
-            ...draft,
-            log: (draft.log ?? []).map((item) => (item.id === id ? { ...item, reason } : item))
-          }));
-        });
-      });
-
-      root.querySelector("[data-action='log-copy-markdown']")?.addEventListener("click", async (event) => {
-        event.preventDefault();
-        const quest = this.quest;
-        await navigator.clipboard?.writeText(logToMarkdown(quest?.name ?? "", quest?.log ?? []));
-        notifyInfo("Log copied as Markdown.", this.ui);
-      });
-
-      root.querySelector("[data-action='log-copy-json']")?.addEventListener("click", async (event) => {
-        event.preventDefault();
-        const quest = this.quest;
-        await navigator.clipboard?.writeText(JSON.stringify(quest?.log ?? [], null, 2));
-        notifyInfo("Log copied as JSON.", this.ui);
-      });
+      this.activateLogHandlers(root);
+      this.activateSessionHandlers(root);
+      this.activateWrapupHandlers(root);
 
       root.querySelectorAll("[data-action='toc-jump']").forEach((node) => {
         node.addEventListener("click", (event) => {
@@ -246,6 +228,156 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
       });
 
       this.activateSnapshotHandlers(root);
+    }
+
+    /**
+     * 0.23: o Log e do Mestre — registro de ficcao, nao trilha de auditoria. Toda linha
+     * e editavel (alvo, mudanca, razao), apagavel, e ha inclusao manual. A pesquisa de
+     * 2026-08-06 confirmou: nenhuma ferramenta do dominio faz log append-only; a
+     * soberania editorial do Mestre e universal. `origin` so distingue quem escreveu
+     * primeiro — o modulo ou a mao.
+     */
+    activateLogHandlers(root) {
+      for (const [selector, field] of [
+        ["[data-log-reason]", "reason"],
+        ["[data-log-target]", "target"],
+        ["[data-log-change]", "change"]
+      ]) {
+        root.querySelectorAll(selector).forEach((node) => {
+          node.addEventListener("blur", async () => {
+            const id = node.dataset.logReason ?? node.dataset.logTarget ?? node.dataset.logChange;
+            const value = node.textContent.trim();
+            await this.commit((draft) => ({
+              ...draft,
+              log: (draft.log ?? []).map((item) => (item.id === id ? { ...item, [field]: value } : item))
+            }));
+          });
+        });
+      }
+
+      root.querySelectorAll("[data-action='log-delete']").forEach((node) => {
+        node.addEventListener("click", async (event) => {
+          event.preventDefault();
+          const id = node.dataset.itemId;
+          await this.commit((draft) => ({
+            ...draft,
+            log: (draft.log ?? []).filter((item) => item.id !== id)
+          }));
+        });
+      });
+
+      root.querySelector("[data-action='log-add-manual']")?.addEventListener("click", async (event) => {
+        event.preventDefault();
+        await this.commit((draft) => ({
+          ...draft,
+          log: [...(draft.log ?? []), normalizeLogEntry({
+            id: makeId(),
+            at: Date.now(),
+            target: "New entry",
+            targetType: "note",
+            change: "",
+            session: currentSession(draft)?.number ?? null,
+            origin: "manual"
+          })]
+        }));
+      });
+
+      // Push-to-notes (0.23): herdar do Log e gesto DELIBERADO, linha a linha — nunca
+      // sincronizacao automatica. O esqueleto vem do gerenciado; o texto final e do
+      // Mestre, que edita o paragrafo no proprio campo depois. Precedente: drop-link
+      // da 0.17.0 — o modulo escreve um paragrafo simples no fim do campo, nada mais.
+      for (const [action, field] of [
+        ["log-push-gm", "gmcomments"],
+        ["log-push-player", "playernotes"]
+      ]) {
+        root.querySelectorAll(`[data-action='${action}']`).forEach((node) => {
+          node.addEventListener("click", async (event) => {
+            event.preventDefault();
+            const id = node.dataset.itemId;
+            await this.commit((draft) => {
+              const item = (draft.log ?? []).find((x) => x.id === id);
+              if (!item) return draft;
+              const stamp = item.session != null ? `Session ${item.session}: ` : "";
+              const line = `<p><em>${stamp}</em>${esc(item.target)} — ${esc(item.change)}${item.reason ? ` — ${esc(item.reason)}` : ""}</p>`;
+              return { ...draft, [field]: `${draft[field] ?? ""}${line}` };
+            });
+            notifyInfo(field === "gmcomments" ? "Sent to GM Notes." : "Sent to Player Notes.", this.ui);
+          });
+        });
+      }
+
+      root.querySelector("[data-action='log-copy-markdown']")?.addEventListener("click", async (event) => {
+        event.preventDefault();
+        const quest = this.quest;
+        await navigator.clipboard?.writeText(logToMarkdown(quest?.name ?? "", quest?.log ?? [], quest?.sessions ?? []));
+        notifyInfo("Log copied as Markdown.", this.ui);
+      });
+
+      root.querySelector("[data-action='log-copy-json']")?.addEventListener("click", async (event) => {
+        event.preventDefault();
+        const quest = this.quest;
+        await navigator.clipboard?.writeText(JSON.stringify(quest?.log ?? [], null, 2));
+        notifyInfo("Log copied as JSON.", this.ui);
+      });
+    }
+
+    /**
+     * 0.23: sessao de jogo — o marcador de tempo de mesa. "New session" abre a proxima
+     * (numero + 1, data de hoje); numero, data e subtitulo sao editaveis em linha. A
+     * sessao corrente e sempre a de maior numero; o commit() carimba cada linha nova do
+     * Log com ela.
+     */
+    activateSessionHandlers(root) {
+      root.querySelector("[data-action='session-new']")?.addEventListener("click", async (event) => {
+        event.preventDefault();
+        await this.commit((draft) => {
+          const next = (currentSession(draft)?.number ?? 0) + 1;
+          const today = new Date().toISOString().slice(0, 10);
+          return {
+            ...draft,
+            sessions: [...(draft.sessions ?? []), normalizeSession({ number: next, date: today, title: "" })]
+          };
+        });
+      });
+
+      root.querySelectorAll("[data-session-field]").forEach((node) => {
+        node.addEventListener("blur", async () => {
+          const field = node.dataset.sessionField;
+          const number = Number(node.dataset.sessionNumber);
+          const value = node.textContent.trim();
+          await this.commit((draft) => ({
+            ...draft,
+            sessions: (draft.sessions ?? []).map((s) =>
+              s.number === number ? normalizeSession({ ...s, [field]: field === "number" ? Number(value) || s.number : value }) : s
+            )
+          }));
+        });
+      });
+    }
+
+    /**
+     * 0.23: o encerramento editorial. `wrappedUp` e flag da mesa, reversivel, e NAO toca
+     * o status — status e a ficcao; Wrap Up e fechar o caderno. Com o caderno fechado, o
+     * botao de relatorio gera a ata consolidada em Markdown (leitura pura, como o
+     * snapshot).
+     */
+    activateWrapupHandlers(root) {
+      root.querySelector("[data-action='toggle-wrapup']")?.addEventListener("click", async (event) => {
+        event.preventDefault();
+        await this.commit((draft) => ({ ...draft, wrappedUp: draft.wrappedUp !== true }));
+      });
+
+      root.querySelector("[data-action='wrapup-report']")?.addEventListener("click", async (event) => {
+        event.preventDefault();
+        const { downloadWrapupReport } = await import("../reports/quest-wrapup-report.js");
+        try {
+          const result = downloadWrapupReport(this.quest);
+          notifyInfo(`MasterQuest: wrap-up report generated (${result.filename}).`, this.ui);
+        } catch (error) {
+          console.error(`${MODULE_ID} | falha ao gerar o relatorio de wrap-up`, error);
+          notifyWarning(`MasterQuest could not build the wrap-up report: ${error?.message ?? error}`, this.ui);
+        }
+      });
     }
 
     /**
@@ -266,13 +398,13 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
           try {
             const result = downloadQuestSnapshot({ game: this.game, questId: this.questId });
             notifyInfo(
-              `MasterQuest: snapshot de ${result.questCount} quest(s) gerado (${result.filename}).`,
+              `MasterQuest: snapshot of ${result.questCount} quest(s) generated (${result.filename}).`,
               this.ui
             );
           } catch (error) {
             console.error(`${MODULE_ID} | falha ao gerar o snapshot da quest`, error);
             notifyWarning(
-              `MasterQuest não conseguiu gerar o snapshot: ${error?.message ?? error}`,
+              `MasterQuest could not generate the snapshot: ${error?.message ?? error}`,
               this.ui
             );
           }
@@ -320,7 +452,7 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
           }
 
           const current = this.quest?.[key] ?? "";
-          const picked = await pickFilePath({ type: "image", current, title: "Imagem da quest" });
+          const picked = await pickFilePath({ type: "image", current, title: "Quest image" });
           if (!picked || picked === current) return;
           await this.commit((draft) => ({ ...draft, [key]: picked }));
         });
@@ -523,7 +655,12 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
         ["toggle-outcome-occurred", "outcomes", (item) => ({ ...item, occurred: !item.occurred })],
         ["cycle-complication-severity", "complications", (item) => ({
           ...item,
-          severity: COMPLICATION_SEVERITIES[(COMPLICATION_SEVERITIES.indexOf(item.severity) + 1) % COMPLICATION_SEVERITIES.length]
+          severity: SEVERITIES[(SEVERITIES.indexOf(item.severity) + 1) % SEVERITIES.length]
+        })],
+        // 0.23: dilema ganha a mesma escada leve/grave/severa (Mario, 2026-08-06).
+        ["cycle-dilemma-severity", "dilemmas", (item) => ({
+          ...item,
+          severity: SEVERITIES[(SEVERITIES.indexOf(item.severity) + 1) % SEVERITIES.length]
         })]
       ]) {
         root.querySelectorAll(`[data-action='${action}']`).forEach((node) => {
@@ -599,7 +736,7 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
 
       root.querySelector("[data-action='add-subquest']")?.addEventListener("click", async (event) => {
         event.preventDefault();
-        await createQuest({ name: "Nova subquest" }, { game: this.game, parentId: this.questId });
+        await createQuest({ name: "New subquest" }, { game: this.game, parentId: this.questId });
         await this.render({ force: false });
         this.onChange?.();
       });
@@ -713,7 +850,7 @@ export function renderQuestDetails(model) {
 
   const primaryStar = model.canEdit
     ? `<button type="button" class="mq-icon-button" data-action="toggle-primary"
-        title="${model.isPrimary ? "Remover como principal" : "Definir como principal"}">
+        title="${model.isPrimary ? "Unset as primary" : "Set as primary"}">
         <i class="${model.isPrimary ? "fa-solid" : "fa-regular"} fa-star" inert></i></button>`
     : "";
 
@@ -756,7 +893,9 @@ function renderDetailsTab(model) {
         ${model.canEdit
           ? `<input class="mq-title-input" type="text" data-field="name" value="${esc(model.name)}">`
           : `<h1>${esc(model.name)}</h1>`}
-        <p class="mq-status mq-status-${esc(model.status)}">${esc(model.statusLabel)}</p>
+        <p class="mq-status mq-status-${esc(model.status)}">${esc(model.statusLabel)}${
+          model.isGM && model.wrappedUp ? ` <span class="mq-pill mq-wrapped-pill" title="Records closed — reopen from the footer">wrapped up</span>` : ""
+        }</p>
         ${parentLine}
       </div>
       <div class="mq-header-actions">
@@ -770,19 +909,51 @@ function renderDetailsTab(model) {
         ${image}
         <h2>Description</h2>
         ${description}
+        ${renderSessionControl(model)}
       </section>
 
       <div class="mq-details-right">
+        ${renderDilemmas(model)}
         ${renderObjectives(model)}
         ${renderClues(model)}
         ${renderRewards(model)}
-        ${renderDilemmas(model)}
         ${renderComplications(model)}
         ${renderOutcomes(model)}
       </div>
     </div>
 
     ${renderSnapshotFooter(model)}
+  `;
+}
+
+/**
+ * 0.23 (Mario, 2026-08-06): a sessao corrente, logo abaixo da Description. Numero, data
+ * e subtitulo editaveis em linha; "New session" abre a proxima. So o Mestre ve — sessao
+ * e instrumento de conducao, e o Log agrupa por ela.
+ */
+function renderSessionControl(model) {
+  if (!model.isGM) return "";
+  const session = model.session;
+
+  const current = session
+    ? `<span class="mq-session-current">
+        <i class="fa-solid fa-clapperboard" inert></i>
+        <span class="mq-session-label">Session</span>
+        <span class="mq-session-number" ${model.canEdit ? `contenteditable="true" data-session-field="number" data-session-number="${session.number}"` : ""}>${session.number}</span>
+        <span class="mq-session-date" ${model.canEdit ? `contenteditable="true" data-session-field="date" data-session-number="${session.number}"` : ""}>${esc(session.date)}</span>
+        <span class="${cls("mq-session-title", !session.title && "is-pending")}" ${model.canEdit ? `contenteditable="true" data-session-field="title" data-session-number="${session.number}"` : ""}>${esc(session.title)}</span>
+      </span>`
+    : `<span class="mq-session-current mq-session-none">No session opened yet.</span>`;
+
+  const newButton = model.canEdit
+    ? `<button type="button" class="mq-bulk" data-action="session-new"><i class="fa-solid fa-plus" inert></i> New session</button>`
+    : "";
+
+  return `
+    <div class="mq-session" aria-label="Current session">
+      ${current}
+      ${newButton}
+    </div>
   `;
 }
 
@@ -802,7 +973,7 @@ function renderDetailsTab(model) {
 function renderSnapshotIcon(model) {
   if (!model.isGM) return "";
   return `<button type="button" class="mq-icon-button mq-snapshot-icon" data-action="snapshot-quest"
-      title="Snapshot desta quest" aria-label="Snapshot desta quest">
+      title="Snapshot of this quest" aria-label="Snapshot of this quest">
       <i class="fa-solid fa-camera" inert></i></button>`;
 }
 
@@ -812,9 +983,23 @@ function renderSnapshotIcon(model) {
  */
 function renderSnapshotFooter(model) {
   if (!model.isGM) return "";
+
+  // 0.23: o encerramento editorial, a esquerda do Snapshot (Mario, 2026-08-06).
+  // Reversivel; com o caderno fechado aparece o botao da ata consolidada.
+  const wrapup = `<button type="button" class="${cls("mq-snapshot-button", "mq-wrapup-button", model.wrappedUp && "is-wrapped")}" data-action="toggle-wrapup"
+      title="${model.wrappedUp ? "Reopen this quest's records" : "Close the book on this quest"}">
+      <i class="fa-solid ${model.wrappedUp ? "fa-book" : "fa-book-open"}" inert></i><span>${model.wrappedUp ? "Reopen" : "Wrap Up"}</span></button>`;
+
+  const report = model.wrappedUp
+    ? `<button type="button" class="mq-snapshot-button mq-wrapup-report" data-action="wrapup-report"
+        title="Download the consolidated wrap-up report (Markdown)">
+        <i class="fa-solid fa-file-lines" inert></i><span>Report</span></button>`
+    : "";
+
   return `<footer class="mq-details-footer">
+      ${wrapup}${report}
       <button type="button" class="mq-snapshot-button" data-action="snapshot-quest"
-        title="Baixar o estado desta quest e das subquests em JSON">
+        title="Download this quest and its subquests as JSON">
         <i class="fa-solid fa-camera" inert></i><span>Snapshot</span></button>
     </footer>`;
 }
@@ -987,6 +1172,12 @@ function renderDilemma(dilemma, model) {
   const marker = `<span class="${cls("mq-knot-marker", resolved && "is-resolved")}" title="${resolved ? "Resolved" : "Open"}">
       <i class="fa-solid ${resolved ? "fa-diamond" : "fa-diamond-exclamation"}" inert></i></span>`;
 
+  // 0.23: a mesma escada leve/grave/severa da complicacao — quanto pesa a pergunta.
+  const severity = model.canEdit
+    ? `<button type="button" class="mq-pill mq-severity mq-severity-${esc(dilemma.severity)}" data-action="cycle-dilemma-severity"
+        data-item-id="${esc(dilemma.id)}" title="Severity — click to cycle">${esc(dilemma.severity)}</button>`
+    : `<span class="mq-pill mq-severity mq-severity-${esc(dilemma.severity)}">${esc(dilemma.severity)}</span>`;
+
   const resolution = resolved
     ? `<p class="mq-knot-text" ${model.canEdit ? `contenteditable="true" data-dilemma-resolution="${esc(dilemma.id)}"` : ""}>${
         esc(dilemma.resolution) || (model.canEdit ? "How did it resolve? Write the outcome." : "")
@@ -1011,7 +1202,7 @@ function renderDilemma(dilemma, model) {
   return `
     <li class="${cls("mq-dilemma", dilemma.hidden && "is-hidden", resolved && "is-resolved", model.isGM && dilemma.spoiler && "is-spoiler")}" data-entry-id="${esc(dilemma.id)}">
       <div class="mq-knot-row">
-        ${known}${marker}
+        ${known}${marker}${severity}
         <p class="mq-knot-name" ${model.canEdit ? `contenteditable="true" data-dilemma-name="${esc(dilemma.id)}"` : ""}>${esc(dilemma.name)}</p>
         ${table}
         ${actions}
@@ -1298,50 +1489,81 @@ function renderNotesTab(model, field, label) {
 
 
 /**
- * DEC-032, a sexta aba. Append-only, escrito pelo modulo via diffQuestForLog; a unica
- * coluna que aceita mao humana e a RAZAO — tracejada enquanto vazia, porque linha sem
- * razao e fato sem sentido, e o export para IA depende do sentido.
+ * DEC-032, revista na 0.23. O Log registra o CONSOLIDADO — mudancas de ficcao — e e
+ * integralmente do Mestre: cada linha edita-se em qualquer coluna, apaga-se, e ha
+ * inclusao manual ("+ Entry"). Agrupado por SESSAO (numero, data e subtitulo editaveis
+ * na propria heading); entradas sem carimbo caem no grupo inicial. A razao segue
+ * tracejada enquanto vazia — linha sem razao e fato sem sentido, e o export para IA
+ * depende do sentido. Cada linha empurra-se, por gesto deliberado, para o GM Notes ou
+ * o Player Notes.
  */
 function renderLogTab(model) {
   const log = [...(model.log ?? [])].reverse();
+  const byNumber = new Map((model.sessions ?? []).map((s) => [s.number, s]));
 
   const groups = [];
-  let day = null;
+  let key;
+  let first = true;
   for (const item of log) {
-    const d = item.at ? new Date(item.at).toISOString().slice(0, 10) : "undated";
-    if (d !== day) {
-      day = d;
-      groups.push({ day: d, items: [] });
+    const k = item.session ?? null;
+    if (first || k !== key) {
+      key = k;
+      first = false;
+      groups.push({ session: k, items: [] });
     }
     groups[groups.length - 1].items.push(item);
   }
+
+  const heading = (number) => {
+    const session = byNumber.get(number);
+    if (number == null || !model.canEdit) return esc(sessionHeading(number, session));
+    // Heading editavel: data e subtitulo da sessao gravam direto em sessions[].
+    return `Session ${number} —
+      <span class="mq-log-session-date" contenteditable="true" data-session-field="date" data-session-number="${number}">${esc(session?.date ?? "")}</span> —
+      <span class="${cls("mq-log-session-title", !session?.title && "is-pending")}" contenteditable="true" data-session-field="title" data-session-number="${number}">${esc(session?.title ?? "")}</span>`;
+  };
+
+  const row = (item) => {
+    const editable = (field, dataAttr, value) => model.canEdit
+      ? `<span class="${cls(`mq-log-${field}-text`, !value && "is-pending")}" contenteditable="true" ${dataAttr}="${esc(item.id)}">${esc(value)}</span>`
+      : esc(value);
+    const del = model.canEdit
+      ? `<button type="button" class="mq-icon-button mq-danger" data-action="log-delete" data-item-id="${esc(item.id)}"
+          title="Delete entry"><i class="fa-solid fa-trash" inert></i></button>`
+      : "";
+    const push = model.canEdit
+      ? `<button type="button" class="mq-icon-button" data-action="log-push-gm" data-item-id="${esc(item.id)}"
+          title="Send to GM Notes"><i class="fa-solid fa-clipboard" inert></i></button>
+        <button type="button" class="mq-icon-button" data-action="log-push-player" data-item-id="${esc(item.id)}"
+          title="Send to Player Notes"><i class="fa-solid fa-users" inert></i></button>`
+      : "";
+    return `<tr class="${cls(item.origin === "manual" && "mq-log-manual")}">
+      <td class="mq-log-target">${editable("target", "data-log-target", item.target)}<span class="mq-log-type">${esc(item.targetType)}</span></td>
+      <td class="mq-log-change">${editable("change", "data-log-change", item.change)}</td>
+      <td class="mq-log-reason">${editable("reason", "data-log-reason", item.reason)}</td>
+      <td class="mq-log-row-actions">${push}${del}</td>
+    </tr>`;
+  };
 
   const body = groups.length
     ? groups
         .map(
           (group) => `
-        <h3 class="mq-log-day">${esc(group.day)}</h3>
+        <h3 class="mq-log-session">${heading(group.session)}</h3>
         <table class="mq-log-table"><tbody>
-          ${group.items
-            .map(
-              (item) => `<tr>
-              <td class="mq-log-target">${esc(item.target)}<span class="mq-log-type">${esc(item.targetType)}</span></td>
-              <td class="mq-log-change">${esc(item.change)}</td>
-              <td class="mq-log-reason">${
-                model.canEdit
-                  ? `<span class="${cls("mq-log-reason-text", !item.reason && "is-pending")}" contenteditable="true" data-log-reason="${esc(item.id)}">${esc(item.reason)}</span>`
-                  : esc(item.reason)
-              }</td>
-            </tr>`
-            )
-            .join("")}
+          ${group.items.map(row).join("")}
         </tbody></table>`
         )
         .join("")
-    : renderEmpty("Nothing logged yet. State changes land here on their own.");
+    : renderEmpty("Nothing logged yet. Fiction changes land here on their own.");
+
+  const addEntry = model.canEdit
+    ? `<button type="button" class="mq-bulk" data-action="log-add-manual"><i class="fa-solid fa-plus" inert></i> Entry</button>`
+    : "";
 
   const exportBar = `
     <div class="mq-log-actions">
+      ${addEntry}
       <button type="button" class="mq-bulk" data-action="log-copy-markdown"><i class="fa-brands fa-markdown" inert></i> Copy Markdown</button>
       <button type="button" class="mq-bulk" data-action="log-copy-json"><i class="fa-solid fa-code" inert></i> Copy JSON</button>
     </div>`;
@@ -1398,18 +1620,18 @@ function renderManagementTab(model) {
 
   const splash = model.splash
     ? `<div class="mq-splash" style="background-image:url('${escUrl(model.splash)}');background-position:${esc(model.splashPos)}"></div>`
-    : `<div class="mq-splash mq-splash-empty"><span>Sem splash art</span></div>`;
+    : `<div class="mq-splash mq-splash-empty"><span>No splash art</span></div>`;
 
   return `
     <div class="mq-management">
       <section>
-        <h2>Configurações</h2>
+        <h2>Settings</h2>
         <button type="button" class="mq-bulk" data-action="configure-ownership">
           <i class="fa-solid fa-lock" inert></i> Configure permissions</button>
         <label class="mq-field">
           <span>Splash art</span>
           <span class="mq-file-field">
-            <input type="text" data-field="splash" value="${esc(model.splash)}" placeholder="caminho/da/imagem.webp">
+            <input type="text" data-field="splash" value="${esc(model.splash)}" placeholder="path/to/image.webp">
             <button type="button" class="mq-browse" data-action="pick-image" data-target-field="splash"
               title="Browse the Foundry directory"><i class="fa-solid fa-folder-open" inert></i></button>
           </span>
@@ -1419,7 +1641,7 @@ function renderManagementTab(model) {
 
       <section class="mq-subquests">
         <header>
-          <h2>Ramificação</h2>
+          <h2>Branching</h2>
           <button type="button" class="mq-add" data-action="add-subquest">
             <i class="fa-solid fa-plus" inert></i> Subquest</button>
         </header>

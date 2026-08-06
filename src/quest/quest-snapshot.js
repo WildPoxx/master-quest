@@ -247,6 +247,8 @@ function describeQuest(entry, quest) {
       id: dilemma?.id ?? null,
       name: dilemma?.name ?? "",
       state: dilemma?.state === "resolved" ? "resolved" : "open",
+      // 0.23: gradacao autoral, mesma escada da complicacao.
+      severity: dilemma?.severity ?? "leve",
       resolution: dilemma?.resolution ?? "",
       table: dilemma?.table ?? "",
       hidden: dilemma?.hidden !== false,
@@ -269,6 +271,9 @@ function describeQuest(entry, quest) {
       known: outcome?.known === true
     })),
     log: toArray(quest.log).map((entry) => ({ ...entry })),
+    // 0.23: tempo de mesa e encerramento editorial, aditivos — leitores antigos ignoram.
+    sessions: toArray(quest.sessions).map((session) => ({ ...session })),
+    wrappedUp: quest.wrappedUp === true,
     complications: toArray(quest.complications).map((complication) => ({
       id: complication?.id ?? null,
       name: complication?.name ?? "",
