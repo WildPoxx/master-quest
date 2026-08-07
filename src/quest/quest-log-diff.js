@@ -56,6 +56,39 @@ function entry(at, target, targetType, change, session) {
 }
 
 /**
+ * A linha que registra a ABERTURA de uma sessao (Mario, 2026-08-07, teste de mesa da
+ * 0.26.0): *"eu nao to vendo, quando a gente insere a informacao de uma sessao, nada
+ * aparecer no log... deveria pelo menos ja aparecer uma entrada, sessao criada."*
+ *
+ * **Fronteira com a DEC-032, declarada e nao escondida.** Aquela decisao restringe o Log a
+ * mudancas de FICCAO e poe fora "gestao de painel". Abrir sessao nao e ficcao no sentido
+ * estrito — mas tambem nao e gestao de painel: nao e curadoria de spoiler nem edicao de
+ * estrutura, e a sessao ja E a unidade que organiza o proprio Log. Mario decidiu que
+ * entra. Isto pede EMENDA a DEC-032, e a minuta acompanha a entrega — ate ela ser
+ * registrada, esta linha e a unica excecao viva ao criterio so-ficcao.
+ *
+ * A linha nasce carimbada com a PROPRIA sessao, para cair dentro do grupo que ela abre —
+ * e nao no grupo anterior, que e onde ela cairia se herdasse a sessao corrente do momento
+ * do commit. E `origin: "auto"`, como toda linha que o modulo escreve: o Mestre pode
+ * edita-la ou apaga-la como qualquer outra (DEC-032, editorial pleno).
+ *
+ * @param {object} session A sessao recem-aberta, ja normalizada.
+ * @param {number} [at] Epoch ms do registro.
+ * @returns {object} A linha de log da abertura.
+ */
+export function sessionOpenedEntry(session, at = Date.now()) {
+  const number = session?.number ?? null;
+  const parts = [session?.date, session?.title].filter(Boolean);
+  return entry(
+    at,
+    session?.title || `Session ${number}`,
+    "session",
+    parts.length ? `session opened — ${parts.join(" — ")}` : "session opened",
+    number
+  );
+}
+
+/**
  * @param {object} before A quest como estava.
  * @param {object} after A quest como ficou.
  * @param {number} at Epoch ms do momento da mudanca.

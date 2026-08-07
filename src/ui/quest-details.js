@@ -19,7 +19,7 @@ import {
   unlinkSubquest
 } from "../quest/quest-store.js";
 import { buildQuestDetailsViewModel } from "../quest/quest-view-model.js";
-import { diffQuestForLog, logToMarkdown, sessionHeading } from "../quest/quest-log-diff.js";
+import { diffQuestForLog, logToMarkdown, sessionHeading, sessionOpenedEntry } from "../quest/quest-log-diff.js";
 import { sessionsToSeal, toggleWrapUp } from "../quest/quest-wrapup.js";
 import { SEVERITIES, currentSession, makeId, normalizeClue, normalizeComplication, normalizeDilemma, normalizeLogEntry, normalizeObjective, normalizeOutcome, normalizeReward, normalizeSession, reorderById } from "../quest/quest-schema.js";
 import { readAllQuests } from "../quest/quest-store.js";
@@ -376,11 +376,25 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
         await this.commit((draft) => {
           const next = (currentSession(draft)?.number ?? 0) + 1;
           const today = new Date().toISOString().slice(0, 10);
+          const session = normalizeSession({ number: next, date: today, title: "" });
+          // 0.27 (Mario, 2026-08-07): abrir sessao GERA linha de Log. Ver a nota de
+          // fronteira com a DEC-032 em `sessionOpenedEntry`.
           return {
             ...draft,
-            sessions: [...(draft.sessions ?? []), normalizeSession({ number: next, date: today, title: "" })]
+            sessions: [...(draft.sessions ?? []), session],
+            log: [...(draft.log ?? []), sessionOpenedEntry(session)]
           };
         });
+      });
+
+      // O "pronto" da tira: commita o que estiver sendo digitado e fecha a entrada.
+      // Nao grava nada por conta propria — o blur de cada campo ja gravou. Ver
+      // `renderSessionConfirm` para por que nao existe rascunho aqui.
+      root.querySelector("[data-action='session-confirm']")?.addEventListener("click", async (event) => {
+        event.preventDefault();
+        const active = root.ownerDocument?.activeElement;
+        if (active?.blur) active.blur();
+        await this.render({ force: false });
       });
 
       root.querySelector("[data-action='player-notes-create']")?.addEventListener("click", async (event) => {
@@ -1227,6 +1241,7 @@ function renderSessionControl(model) {
         <span class="mq-session-number" ${model.canEdit ? `contenteditable="true" data-session-field="number" data-session-number="${session.number}"` : ""}>${session.number}</span>
         <span class="mq-session-date" ${model.canEdit ? `contenteditable="true" data-session-field="date" data-session-number="${session.number}"` : ""}>${esc(session.date)}</span>
         <span class="${cls("mq-session-title", !session.title && "is-pending")}" ${model.canEdit ? `contenteditable="true" data-session-field="title" data-session-number="${session.number}"` : ""}>${esc(session.title)}</span>
+        ${renderSessionConfirm(model, session)}
         ${renderSessionDelete(model, session)}
       </span>`
     : `<span class="mq-session-current mq-session-none">No session opened yet.</span>`;
@@ -1242,6 +1257,26 @@ function renderSessionControl(model) {
     </div>
     ${renderSessionList(model)}
   `;
+}
+
+/**
+ * O "pronto" da tira de entrada (Mario, 2026-08-07, teste de mesa da 0.26.0).
+ *
+ * Mario pediu um gesto de confirmacao ao lado da lixeira, para separar a AREA DE ENTRADA
+ * dos REGISTROS que se acumulam abaixo. Este botao cumpre esse papel — e **nao** cria um
+ * estado de rascunho.
+ *
+ * A distincao importa e fica escrita: sessao nova ja nasce gravada, no clique do
+ * "New session", como sempre foi; numero, data e subtitulo gravam no blur de cada campo.
+ * Um rascunho de verdade — que so existisse ao ser confirmado — introduziria a unica coisa
+ * que hoje nao pode acontecer neste modulo: perder o que se digitou ao fechar a janela.
+ * O botao commita a edicao pendente e fecha a entrada; nada fica pendurado esperando por
+ * ele. Quem nunca clicar nele nao perde nada.
+ */
+function renderSessionConfirm(model, session) {
+  if (!model.canEdit || !session) return "";
+  return `<button type="button" class="mq-icon-button mq-session-confirm" data-action="session-confirm"
+      title="Done — the session is already saved and listed below"><i class="fa-solid fa-check" inert></i></button>`;
 }
 
 /**
@@ -1279,11 +1314,19 @@ function renderSessionDelete(model, session) {
 function renderSessionList(model) {
   if (!model.isGM) return "";
   const sessions = Array.isArray(model.sessions) ? model.sessions : [];
-  // Menos de duas nao paga a lista: a corrente ja esta desenhada acima.
-  if (sessions.length < 2) return "";
+  if (!sessions.length) return "";
 
+  // 0.27 (Mario, 2026-08-07, teste de mesa): a lista aparece SEMPRE, desde a primeira
+  // sessao. Antes ela so se desenhava a partir de duas — atalho meu, com a desculpa de
+  // que "a corrente ja esta desenhada acima". O efeito em mesa foi outro: com uma sessao
+  // so, Mario via apenas a tira, lia a tira como formulario, e concluia que a sessao NAO
+  // tinha sido gravada. Ela estava gravada desde o clique; faltava o registro aparecer.
+  // Licao: economia de pixel que esconde confirmacao nao economiza nada.
+  //
+  // Ordem CRESCENTE (decisao de Mario na mesma rodada): a sessao 1 em cima, a ultima
+  // embaixo — o caderno se le na ordem em que se jogou.
   const rows = [...sessions]
-    .sort((a, b) => b.number - a.number)
+    .sort((a, b) => a.number - b.number)
     .map((session) => {
       const isCurrent = session.number === model.session?.number;
       const seal = model.canEdit
@@ -1888,18 +1931,22 @@ function renderLogTab(model) {
   const log = [...(model.log ?? [])].reverse();
   const byNumber = new Map((model.sessions ?? []).map((s) => [s.number, s]));
 
-  const groups = [];
-  let key;
-  let first = true;
-  for (const item of log) {
-    const k = item.session ?? null;
-    if (first || k !== key) {
-      key = k;
-      first = false;
-      groups.push({ session: k, items: [] });
-    }
-    groups[groups.length - 1].items.push(item);
-  }
+  // 0.27 (Mario, 2026-08-07): os grupos nascem das SESSOES, nao das linhas. Antes, sessao
+  // sem nada registrado simplesmente nao existia nesta aba — Mario abriu duas sessoes e viu
+  // "Nothing logged yet", o que faz o caderno parecer nao ter recebido nada. Agora toda
+  // sessao tem seu cabecalho aqui desde que e aberta, com ou sem linhas embaixo.
+  // Ordem CRESCENTE, como na lista da Details; "Before session records" vem primeiro,
+  // porque e o que antecede a sessao 1.
+  const numbers = [...(model.sessions ?? [])].map((s) => s.number).sort((a, b) => a - b);
+  const stray = [...new Set(log.map((item) => item.session ?? null))]
+    .filter((n) => n !== null && !numbers.includes(n))
+    .sort((a, b) => a - b);
+  const hasLoose = log.some((item) => (item.session ?? null) === null);
+
+  const groups = [...(hasLoose ? [null] : []), ...numbers, ...stray].map((session) => ({
+    session,
+    items: log.filter((item) => (item.session ?? null) === session)
+  }));
 
   const heading = (number) => {
     const session = byNumber.get(number);
@@ -1950,9 +1997,9 @@ function renderLogTab(model) {
         .map(
           (group) => `
         <h3 class="mq-log-session">${heading(group.session)}${groupActions(group.session)}</h3>
-        <table class="mq-log-table"><tbody>
-          ${group.items.map(row).join("")}
-        </tbody></table>`
+        ${group.items.length
+          ? `<table class="mq-log-table"><tbody>${group.items.map(row).join("")}</tbody></table>`
+          : `<p class="mq-log-empty-group">Nothing recorded in this session yet.</p>`}`
         )
         .join("")
     : renderEmpty("Nothing logged yet. Fiction changes land here on their own.");

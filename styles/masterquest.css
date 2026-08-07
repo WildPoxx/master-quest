@@ -588,6 +588,21 @@
 
 .masterquest .mq-empty { font-style: italic; color: var(--mq-text-muted); padding: 10px 4px; }
 
+/* Sessao aberta e ainda sem nada registrado: o cabecalho do grupo existe desde a          */
+/* abertura (0.27), entao o corpo precisa dizer que o silencio e esperado, nao defeito.    */
+.masterquest .mq-log-empty-group {
+  font-style: italic;
+  color: var(--mq-text-muted);
+  font-size: var(--mq-text-sm);
+  padding: 6px 4px 12px;
+  margin: 0;
+}
+
+/* O "pronto" da tira de sessao: confirma a entrada, nao e gesto destrutivo — por isso     */
+/* acento, e nao a cor de perigo que a lixeira ao lado usa (DEC-030: o par precisa de      */
+/* mais de um sinal para nao se confundir).                                                */
+.masterquest .mq-session-confirm:hover { color: var(--mq-status-completed); }
+
 .masterquest .mq-new-quest,
 .masterquest .mq-add,
 .masterquest .mq-bulk {
