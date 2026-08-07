@@ -1,0 +1,30 @@
+# Line-ending policy for the master-quest repository.
+#
+# Declared here so the convention belongs to the project and not to each
+# machine's core.autocrlf setting. Without this file, a clone on Linux,
+# a CI runner, or an agent sandbox can disagree with a Windows checkout
+# about what counts as a change.
+
+# Default: treat files as text, store them as LF in the repository, and
+# check them out as LF on every platform.
+* text=auto eol=lf
+
+# Binary assets: never convert line endings, never diff as text.
+*.woff2 binary
+*.woff  binary
+*.ttf   binary
+*.otf   binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.webp  binary
+*.gif   binary
+*.ogg   binary
+*.mp3   binary
+*.webm  binary
+*.zip   binary
+
+# Windows-only scripts keep CRLF if any are added later.
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
