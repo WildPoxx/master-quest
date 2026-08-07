@@ -122,13 +122,13 @@ export async function applyBlueprintImport({
     );
     // Item que a mesa tem e o blueprint deixou de listar sobrevive na quest. Reportamos
     // para o Mestre saber que a fonte e o mundo divergiram — nunca apagamos em silencio.
-    const orphanReport =
-      orphans.objectives.length || orphans.rewards.length
-        ? {
-            orphanObjectives: orphans.objectives.map((o) => o.name),
-            orphanRewards: orphans.rewards.map((r) => r.name)
-          }
-        : null;
+    //
+    // 0.25: o relatorio passa a cobrir as SEIS colecoes que `mergeQuest` devolve. Ate a
+    // 0.23 lia so `objectives` e `rewards` — resto da epoca em que so existiam essas duas.
+    // A DEC-035 criou dilemmas, clues, complications e outcomes, e a divergencia dessas
+    // quatro sumia aqui: o item sobrevivia na quest (correto) mas a NOTICIA morria nesta
+    // linha. Achado do Backlog Ops em 2026-08-06.
+    const orphanReport = summarizeOrphans(orphans);
 
     try {
       if (existing) {
@@ -183,6 +183,35 @@ export async function applyBlueprintImport({
  */
 export function mergeBlueprintIntoQuest(current, spec) {
   return mergeBlueprintIntoQuestWithOrphans(current, spec).quest;
+}
+
+/**
+ * Resume os orfaos devolvidos pelo merge num objeto plano para `results[]`.
+ *
+ * Mantem `orphanObjectives`/`orphanRewards` (contrato de quem ja lia o resultado antes da
+ * 0.25) e acrescenta `orphans`, com as seis colecoes — que e o que a UI passa a mostrar.
+ *
+ * @param {object} orphans O `orphans` de `mergeQuest`.
+ * @returns {object|null} O resumo, ou null quando nada divergiu.
+ */
+export function summarizeOrphans(orphans) {
+  if (!orphans) return null;
+  const keys = ["objectives", "rewards", "dilemmas", "clues", "complications", "outcomes"];
+  const kept = {};
+  let total = 0;
+  for (const key of keys) {
+    const items = toArray(orphans[key]);
+    if (!items.length) continue;
+    kept[key] = items;
+    total += items.length;
+  }
+  if (!total) return null;
+  return {
+    orphanObjectives: toArray(orphans.objectives).map((o) => o?.name ?? ""),
+    orphanRewards: toArray(orphans.rewards).map((r) => r?.name ?? ""),
+    orphanCount: total,
+    orphans: kept
+  };
 }
 
 /**

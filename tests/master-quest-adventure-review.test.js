@@ -77,9 +77,9 @@ test("renderAdventureReview produces a read-only structured planning document", 
   assert.match(html, /Objetivos/);
   assert.match(html, /Cruzar a fronteira/);
   assert.match(html, /Abutres de Aço/);
-  assert.match(html, /Âncoras de Party/);
+  assert.match(html, /Party anchors/);
   assert.match(html, /Kaelen/);
-  assert.match(html, /Âncoras de História/);
+  assert.match(html, /Story anchors/);
   assert.match(html, /O Pacto de Ferro/);
 });
 

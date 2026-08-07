@@ -203,6 +203,9 @@ export function buildQuestDetailsViewModel(quest, {
     gmnotes: quest.gmnotes,
     gmcomments: quest.gmcomments,
     playernotes: quest.playernotes,
+    // DEC-038: endereco da entrada de Journal das notas do jogador, quando ja existir.
+    // A aba mostra o link; o conteudo mora la, nao aqui.
+    playerNotesUuid: quest.playerNotesUuid ?? null,
     splash: quest.splash,
     splashPos: quest.splashPos,
     splashAsIcon: quest.splashAsIcon,

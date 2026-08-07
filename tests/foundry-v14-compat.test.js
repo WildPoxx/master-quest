@@ -100,13 +100,48 @@ test("getSceneControlButtons handler writes a v14 Record-shaped SceneControl", a
   }
 });
 
-test("getSceneControlButtons stays out of the way for non-GM users", async () => {
+test("o jogador recebe o grupo com o Quest Log, e so ele", async () => {
+  // 0.25 (Mario, 2026-08-06): ate a 0.23 a guarda `isGM` barrava o REGISTRO INTEIRO e o
+  // jogador so alcancava o Quest Log pelo rodape da aba de Journals. Consulta e do
+  // jogador; autoria nao. Este teste trava a divisao: uma ferramenta para ele, quatro
+  // para o Mestre.
   const { handlers } = await loadInitWithMockedFoundry({ isGM: false });
 
   const controls = {};
   handlers.on.get("getSceneControlButtons")(controls);
 
-  assert.equal(controls.masterquest, undefined, "players must not receive the GM control");
+  const control = controls.masterquest;
+  assert.ok(control, "o jogador tambem alcanca o MasterQuest pela barra de cena");
+  assert.equal(control.visible, true);
+
+  const names = Object.keys(control.tools);
+  assert.deepEqual(names, ["quest-log"], "so o Quest Log; autoria e importacao sao do GM");
+  assert.equal(control.tools["quest-log"].button, true);
+});
+
+test("as ferramentas de autoria seguem exclusivas do Mestre", async () => {
+  const { handlers } = await loadInitWithMockedFoundry({ isGM: true });
+
+  const controls = {};
+  handlers.on.get("getSceneControlButtons")(controls);
+
+  assert.deepEqual(
+    Object.keys(controls.masterquest.tools).sort(),
+    ["authoring-console", "hub", "import-adventure", "quest-log"]
+  );
+});
+
+test("o grupo se posiciona ao lado do controle Notes do core", async () => {
+  // O controle `notes` do core 14.365 declara `order: 8` (NotesLayer.prepareSceneControls,
+  // verificado em disco). Ate a 0.23 o MasterQuest usava 99 e caia no fim da fila, longe
+  // do lugar onde Mario o procura.
+  const { handlers } = await loadInitWithMockedFoundry({ isGM: true });
+
+  const controls = {};
+  handlers.on.get("getSceneControlButtons")(controls);
+
+  assert.ok(controls.masterquest.order > 8, "depois do Notes do core");
+  assert.ok(controls.masterquest.order < 9, "e antes do que se registra mais abaixo");
 });
 
 test("renderJournalDirectory handler is registered for the v14 sidebar", async () => {

@@ -1178,10 +1178,72 @@
   line-height: 1.4;
   width: auto;
 }
-.masterquest .mq-toc-link:hover {
+/* 0.25 (Mario, 2026-08-06): o sumario nao se lia como botoeira. O contorno passa a
+   existir SEMPRE — antes so aparecia no hover, e um botao que so se anuncia quando o
+   mouse chega ja chegou tarde. Mesmo idioma dos chips de aba (DEC-030). */
+.masterquest .mq-toc-link {
   border-color: var(--mq-chip-outline);
-  background: var(--mq-surface-0);
+}
+
+.masterquest .mq-toc-link:hover,
+.masterquest .mq-toc-link:focus-visible {
+  border-color: var(--mq-chip-outline);
+  background: var(--mq-chip-active-bg);
+  color: var(--mq-text);
   box-shadow: none;
+}
+
+/* 0.25 — lista de sessoes sob a Description. Ate a 0.23 so a corrente aparecia, e a
+   impressao em mesa foi de que as anteriores tinham sumido; `sessions[]` sempre as
+   guardou. Mesmo idioma de linha das outras colecoes da Details. */
+.masterquest .mq-session-list {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.masterquest .mq-session-row {
+  display: grid;
+  grid-template-columns: 3ch auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 6px;
+  border-left: 2px solid transparent;
+  font-size: 12px;
+}
+
+.masterquest .mq-session-row.is-current {
+  border-left-color: var(--mq-chip-outline);
+  background: var(--mq-surface-0);
+}
+
+.masterquest .mq-session-row.is-sealed .mq-session-number,
+.masterquest .mq-session-row.is-sealed .mq-session-date,
+.masterquest .mq-session-row.is-sealed .mq-session-title {
+  opacity: 0.75;
+}
+
+.masterquest .mq-session-row-actions {
+  display: flex;
+  gap: 2px;
+}
+
+/* DEC-038 — a ponte para o caderno de Journal, no topo do Player Notes. */
+.masterquest .mq-notes-journal {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0 0 8px;
+}
+
+.masterquest .mq-log-sealed {
+  margin-left: 8px;
+  color: var(--mq-chip-outline);
+  font-size: 11px;
 }
 
 /* DEC-035 (0.21.0) — Problems, Complications e os dois eixos de visibilidade.

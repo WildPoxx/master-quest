@@ -134,6 +134,10 @@ export function normalizeQuest(input = {}) {
     log: toArray(data.log).map(normalizeLogEntry),
     // 0.23: sessoes de jogo registradas nesta quest. A corrente e a de maior numero.
     sessions: dedupeSessions(toArray(data.sessions).map(normalizeSession)),
+    // DEC-038 (0.25): endereco da ENTRADA de Journal com as notas do jogador desta quest.
+    // Conteudo mora no Journal; o flag guarda so o ponteiro. Estado de mesa — nenhuma
+    // fonte escreve aqui. Nulo ate o Mestre criar a nota (criacao com previa, DEC-004).
+    playerNotesUuid: text(data.playerNotesUuid) || null,
     // 0.23: encerramento editorial (Wrap Up). Reversivel — flag da mesa, nada dispara.
     // Nao confundir com `status: completed`: status e a ficcao; wrappedUp e o gesto de
     // fechar o caderno e emitir o relatorio consolidado.
@@ -342,7 +346,15 @@ export function normalizeSession(input = {}) {
   return {
     number: Math.max(1, Math.trunc(number)),
     date: text(data.date),
-    title: text(data.title)
+    title: text(data.title),
+    // 0.25 (Mario, 2026-08-06): "selada". Protege esta sessao de gesto EM MASSA — Clear
+    // Log geral pula o que esta selado. NAO congela a mao do Mestre: apagar ou editar
+    // linha a linha continua livre (a gestao manual do GM e ampla por principio). Nome
+    // deliberado: "lock" morreu com a DEC-031, onde era cadeado de recompensa.
+    sealed: data.sealed === true,
+    // DEC-038: a pagina de Journal desta sessao, dentro da entrada de notas do jogador.
+    // Um-para-um: seçao do caderno <-> pagina do Journal, para o link abrir direto nela.
+    pageUuid: text(data.pageUuid) || null
   };
 }
 

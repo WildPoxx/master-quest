@@ -36,7 +36,7 @@ export async function openImportAdventure({
   applicationClass = globalThis.foundry?.applications?.api?.ApplicationV2
 } = {}) {
   if (!applicationClass) {
-    notifyWarning("O MasterQuest requer Foundry ApplicationV2.", ui);
+    notifyWarning("MasterQuest requires Foundry ApplicationV2.", ui);
     return { opened: false, reason: "missing-application-v2" };
   }
 
@@ -49,8 +49,8 @@ export async function openImportAdventure({
   try {
     await activeWindow.render({ force: true });
   } catch (error) {
-    console.error(`${MODULE_ID} | falha ao abrir a importação`, error);
-    notifyError(`MasterQuest não conseguiu abrir a importação: ${error?.message ?? error}`, ui);
+    console.error(`${MODULE_ID} | failed to open the import window`, error);
+    notifyError(`MasterQuest could not open the import window: ${error?.message ?? error}`, ui);
     activeWindow = null;
     return { opened: false, reason: "render-failed", error };
   }
@@ -70,7 +70,7 @@ export function createImportAdventureClass(ApplicationV2) {
       id: `${MODULE_ID}-import`,
       classes: ["masterquest", "masterquest-import"],
       tag: "section",
-      window: { title: "MasterQuest: importar aventura", icon: "fa-solid fa-map-location-dot", resizable: true },
+      window: { title: "MasterQuest: Import Adventure", icon: "fa-solid fa-map-location-dot", resizable: true },
       position: { width: 620, height: "auto" }
     };
 
@@ -105,7 +105,7 @@ export function createImportAdventureClass(ApplicationV2) {
       try {
         folders = listPromotableFolders({ game: this.game });
       } catch (error) {
-        console.error(`${MODULE_ID} | falha ao listar pastas de Journal`, error);
+        console.error(`${MODULE_ID} | failed to list Journal folders`, error);
       }
 
       return {
@@ -159,11 +159,11 @@ export function createImportAdventureClass(ApplicationV2) {
           this.filePayload = await readJsonFile(file);
           this.fileName = file.name;
           this.plan = null;
-          notifyInfo(`MasterQuest: ${file.name} lido.`, this.ui);
+          notifyInfo(`MasterQuest: ${file.name} loaded.`, this.ui);
           await this.render({ force: false });
         } catch (error) {
-          console.error(`${MODULE_ID} | falha ao ler o arquivo`, error);
-          notifyError(`Não consegui ler ${file.name}: ${error?.message ?? error}`, this.ui);
+          console.error(`${MODULE_ID} | failed to read the file`, error);
+          notifyError(`Could not read ${file.name}: ${error?.message ?? error}`, this.ui);
         }
       });
 
@@ -197,15 +197,15 @@ export function createImportAdventureClass(ApplicationV2) {
           : await loadBundledBlueprint(this.selectedBlueprint);
 
         if (!payload) {
-          notifyWarning("MasterQuest: escolha uma fonte antes de gerar a prévia.", this.ui);
+          notifyWarning("MasterQuest: choose a source before generating the preview.", this.ui);
           this.plan = null;
           return;
         }
 
         this.plan = { ...planFileImport({ payload, game: this.game }), mode: "file" };
       } catch (error) {
-        console.error(`${MODULE_ID} | falha ao montar a prévia`, error);
-        notifyError(`MasterQuest não conseguiu montar a prévia: ${error?.message ?? error}`, this.ui);
+        console.error(`${MODULE_ID} | failed to build the preview`, error);
+        notifyError(`MasterQuest could not build the preview: ${error?.message ?? error}`, this.ui);
         this.plan = null;
       }
     }
@@ -213,7 +213,7 @@ export function createImportAdventureClass(ApplicationV2) {
     /** Apply the current selection. Requires a plan, so nothing is written unpreviewed. */
     async apply() {
       if (!this.plan) {
-        notifyWarning("MasterQuest: gere a prévia antes de importar.", this.ui);
+        notifyWarning("MasterQuest: generate the preview before importing.", this.ui);
         return;
       }
 
@@ -225,7 +225,7 @@ export function createImportAdventureClass(ApplicationV2) {
             status: this.landingStatus
           });
           notifyInfo(
-            `MasterQuest: ${result.promoted} promovida(s), ${result.skipped} já eram quests, ${result.failed} falha(s).`,
+            `MasterQuest: ${result.promoted} promoted, ${result.skipped} already quests, ${result.failed} failed.`,
             this.ui
           );
         } else {
@@ -239,17 +239,29 @@ export function createImportAdventureClass(ApplicationV2) {
             status: this.landingStatus === "blueprint" ? null : this.landingStatus
           });
           notifyInfo(
-            `MasterQuest: ${result.created} criada(s), ${result.updated} atualizada(s), ${result.failed} falha(s).`,
+            `MasterQuest: ${result.created} created, ${result.updated} updated, ${result.failed} failed.`,
             this.ui
           );
+          // 0.25: a divergencia entre fonte e mesa deixa de morrer no retorno da funcao.
+          // `mergeQuest` sempre devolveu os itens que a mesa tem e a fonte deixou de
+          // listar — mas nada os mostrava, e ate a 0.23 o importador so contava DUAS das
+          // seis colecoes. Aqui a noticia chega ao Mestre no momento em que nasce.
+          const orphanTotal = countOrphans(result.results);
+          if (orphanTotal) {
+            notifyWarning(
+              `MasterQuest: ${orphanTotal} item(s) kept from the table that the source no longer lists. Nothing was deleted — see the console for the list.`,
+              this.ui
+            );
+            console.info(`${MODULE_ID} | orphans kept after import`, orphanReport(result.results));
+          }
         }
 
         this.plan = null;
         await this.render({ force: false });
         await this.onDone?.();
       } catch (error) {
-        console.error(`${MODULE_ID} | falha ao importar`, error);
-        notifyError(`MasterQuest não conseguiu importar: ${error?.message ?? error}`, this.ui);
+        console.error(`${MODULE_ID} | failed to import`, error);
+        notifyError(`MasterQuest could not import: ${error?.message ?? error}`, this.ui);
       }
     }
   };
@@ -272,7 +284,7 @@ export function renderImport(context) {
 
   const blueprintPanel = context.source !== "bundled" ? "" : `
     <label class="mq-field">
-      <span>Blueprint incluído no módulo</span>
+      <span>Blueprint bundled with the module</span>
       <select data-field="blueprint">
         ${context.blueprints
           .map((id) => `<option value="${esc(id)}" ${id === context.selectedBlueprint ? "selected" : ""}>${esc(id)}</option>`)
@@ -282,37 +294,37 @@ export function renderImport(context) {
 
   const filePanel = context.source !== "file" ? "" : `
     <label class="mq-field">
-      <span>Arquivo JSON (blueprint do MasterQuest ou export de Journal do Foundry)</span>
+      <span>JSON file (MasterQuest blueprint or Foundry Journal export)</span>
       <input type="file" accept="application/json,.json" data-field="file">
     </label>
-    ${context.fileName ? `<p class="mq-hint">Carregado: <strong>${esc(context.fileName)}</strong></p>` : ""}`;
+    ${context.fileName ? `<p class="mq-hint">Loaded: <strong>${esc(context.fileName)}</strong></p>` : ""}`;
 
   const folderPanel = context.source !== "folder" ? "" : `
     <label class="mq-field">
-      <span>Pasta de Journal deste mundo</span>
+      <span>Journal folder in this world</span>
       <select data-field="folder">
         ${context.folders
           .map((folder) => {
             const value = folder.id ?? "__root__";
             const selected = (folder.id ?? null) === (context.selectedFolderId ?? null) ? "selected" : "";
-            return `<option value="${esc(value)}" ${selected}>${esc(folder.name)} — ${esc(folder.promotable)} promovível(is) de ${esc(folder.total)}</option>`;
+            return `<option value="${esc(value)}" ${selected}>${esc(folder.name)} — ${esc(folder.promotable)} promotable of ${esc(folder.total)}</option>`;
           })
           .join("")}
       </select>
     </label>
-    <p class="mq-hint">Entradas que já são quests são puladas. Rascunhos do Console de Autoria
-    viram quests com seus objetivos; Journals comuns viram quests com a primeira página como descrição.</p>`;
+    <p class="mq-hint">Entries that are already quests are skipped. Authoring Console drafts
+    become quests with their objectives; plain Journals become quests with the first page as description.</p>`;
 
   return `
     <header class="mq-import-header">
-      <h1>Importar aventura</h1>
-      <p>Escolha de onde vem o material. Nada é escrito antes da prévia.</p>
+      <h1>Import Adventure</h1>
+      <p>Choose where the material comes from. Nothing is written before the preview.</p>
     </header>
 
     <div class="mq-import-sources">
-      ${radio("bundled", "Blueprint do módulo", "Aventuras que acompanham o MasterQuest")}
-      ${radio("file", "Arquivo JSON", "Blueprint ou export de Journal")}
-      ${radio("folder", "Pasta do Journal", "Promove o que já está neste mundo")}
+      ${radio("bundled", "Module blueprint", "Adventures shipped with MasterQuest")}
+      ${radio("file", "JSON file", "Blueprint or Journal export")}
+      ${radio("folder", "Journal folder", "Promote what is already in this world")}
     </div>
 
     <div class="mq-import-panel">
@@ -322,24 +334,24 @@ export function renderImport(context) {
     </div>
 
     <label class="mq-field mq-import-status">
-      <span>Status inicial das quests importadas</span>
+      <span>Landing status for imported quests</span>
       <select data-field="landing-status">
-        <option value="available" ${context.landingStatus === "available" ? "selected" : ""}>Disponíveis</option>
-        <option value="inactive" ${context.landingStatus === "inactive" ? "selected" : ""}>Inativas (só o Mestre vê)</option>
+        <option value="available" ${context.landingStatus === "available" ? "selected" : ""}>Available</option>
+        <option value="inactive" ${context.landingStatus === "inactive" ? "selected" : ""}>Inactive (GM only)</option>
         <option value="active" ${context.landingStatus === "active" ? "selected" : ""}>In Progress</option>
-        <option value="blueprint" ${context.landingStatus === "blueprint" ? "selected" : ""}>Respeitar o que o blueprint declara</option>
+        <option value="blueprint" ${context.landingStatus === "blueprint" ? "selected" : ""}>Respect what the blueprint declares</option>
       </select>
     </label>
-    <p class="mq-hint">Blueprints declaram o próprio status por quest. Para eles, escolher
-    &quot;respeitar o blueprint&quot; preserva a sequência de ativação desenhada na aventura.</p>
+    <p class="mq-hint">Blueprints declare their own status per quest. For those, choosing
+    &quot;respect the blueprint&quot; preserves the activation sequence designed into the adventure.</p>
 
     ${renderPlan(context.plan)}
 
     <footer class="mq-import-actions">
       <button type="button" class="mq-bulk" data-action="preview">
-        <i class="fa-solid fa-eye" inert></i> Gerar prévia</button>
+        <i class="fa-solid fa-eye" inert></i> Generate preview</button>
       <button type="button" class="mq-bulk" data-action="apply" ${context.plan ? "" : "disabled"}>
-        <i class="fa-solid fa-file-import" inert></i> Importar</button>
+        <i class="fa-solid fa-file-import" inert></i> Import</button>
     </footer>
   `;
 }
@@ -350,16 +362,16 @@ function renderPlan(plan) {
   const errors = (plan.issues ?? []).filter((issue) => issue.severity === "error");
   if (errors.length) {
     return `<div class="mq-import-plan mq-import-plan-error">
-      <h2>Não dá para importar</h2>
+      <h2>Cannot import</h2>
       <ul>${errors.map((issue) => `<li>${esc(issue.message)}</li>`).join("")}</ul>
     </div>`;
   }
 
   if (plan.mode === "folder") {
     return `<div class="mq-import-plan">
-      <h2>Prévia</h2>
-      <p><strong>${esc(plan.promote)}</strong> entrada(s) a promover, ${esc(plan.skip)} já são quests,
-      de ${esc(plan.total)} na pasta.</p>
+      <h2>Preview</h2>
+      <p><strong>${esc(plan.promote)}</strong> entry(ies) to promote, ${esc(plan.skip)} already quests,
+      out of ${esc(plan.total)} in the folder.</p>
       <ul class="mq-box">${plan.entries
         .map((entry) => `<li>${esc(entry.name)} — ${esc(kindLabel(entry.kind))}</li>`)
         .join("")}</ul>
@@ -370,19 +382,62 @@ function renderPlan(plan) {
   const preserved = (plan.entries ?? []).filter((entry) => entry.preserved).length;
 
   return `<div class="mq-import-plan">
-    <h2>Prévia</h2>
-    <p><strong>${esc(plan.create)}</strong> quest(s) a criar, ${esc(plan.update)} a atualizar${
-      plan.folderName ? `, na pasta <em>${esc(plan.folderName)}</em>` : ""
+    <h2>Preview</h2>
+    <p><strong>${esc(plan.create)}</strong> quest(s) to create, ${esc(plan.update)} to update${
+      plan.folderName ? `, in folder <em>${esc(plan.folderName)}</em>` : ""
     }.</p>
-    ${preserved ? `<p>${esc(preserved)} já existem: status, objetivos concluídos e notas de jogador serão preservados.</p>` : ""}
-    ${missing ? `<p class="mq-hint">${esc(missing)} link(s) de Journal apontam para entradas inexistentes neste mundo. Nada é apagado por isso.</p>` : ""}
+    ${preserved ? `<p>${esc(preserved)} already exist: status, completed objectives and player notes will be preserved.</p>` : ""}
+    ${missing ? `<p class="mq-hint">${esc(missing)} Journal link(s) point to entries that do not exist in this world. Nothing is deleted because of it.</p>` : ""}
   </div>`;
 }
 
 function kindLabel(kind) {
-  if (kind === "already-quest") return "já é quest, será pulada";
-  if (kind === "from-draft") return "rascunho de autoria";
-  return "Journal comum";
+  if (kind === "already-quest") return "already a quest, will be skipped";
+  if (kind === "from-draft") return "authoring draft";
+  return "plain Journal";
+}
+
+/* ---------------------------------------------------------------------------------- *
+ * Orfaos da importacao (0.25)
+ *
+ * `mergeQuest` devolve, em SEIS colecoes, os itens que a mesa tem e a fonte deixou de
+ * listar. Ate a 0.23 o importador so lia `objectives` e `rewards` — resto da epoca em que
+ * so existiam essas duas — e mesmo esses dois nunca chegavam a tela: viviam em
+ * `results[]`, que nenhuma superficie consultava. Pergunta do Backlog Ops em 2026-08-06.
+ * ---------------------------------------------------------------------------------- */
+
+/** Colecoes que podem render orfao, na ordem canonica da Details. */
+const ORPHAN_KEYS = ["dilemmas", "objectives", "clues", "rewards", "complications", "outcomes"];
+
+/**
+ * @param {object[]} results Os resultados de `applyBlueprintImport`.
+ * @returns {number} Quantos itens de mesa sobreviveram sem correspondencia na fonte.
+ */
+export function countOrphans(results) {
+  return orphanReport(results).reduce((total, row) => total + row.items.length, 0);
+}
+
+/**
+ * @param {object[]} results Os resultados de `applyBlueprintImport`.
+ * @returns {Array<{quest: string, collection: string, items: string[]}>} Um por colecao.
+ */
+export function orphanReport(results) {
+  const rows = [];
+  for (const entry of Array.isArray(results) ? results : []) {
+    const orphans = entry?.orphans;
+    if (!orphans) continue;
+    for (const key of ORPHAN_KEYS) {
+      const items = Array.isArray(orphans[key]) ? orphans[key] : [];
+      if (items.length) {
+        rows.push({
+          quest: entry.designId ?? entry.journalEntryId ?? "?",
+          collection: key,
+          items: items.map((item) => item?.name ?? "(unnamed)")
+        });
+      }
+    }
+  }
+  return rows;
 }
 
 export { PAYLOAD_KIND };

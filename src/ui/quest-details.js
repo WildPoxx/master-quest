@@ -22,6 +22,15 @@ import { buildQuestDetailsViewModel } from "../quest/quest-view-model.js";
 import { diffQuestForLog, logToMarkdown, sessionHeading } from "../quest/quest-log-diff.js";
 import { SEVERITIES, currentSession, makeId, normalizeClue, normalizeComplication, normalizeDilemma, normalizeLogEntry, normalizeObjective, normalizeOutcome, normalizeReward, normalizeSession, reorderById } from "../quest/quest-schema.js";
 import { readAllQuests } from "../quest/quest-store.js";
+// DEC-038 (0.25): as notas do jogador moram no Journal; a aba as espelha e aponta.
+import {
+  appendToSessionPage,
+  ensurePlayerNotesEntry,
+  ensureSessionPage,
+  openJournalByUuid,
+  planPlayerNotes,
+  sessionPageName
+} from "../journal/player-notes.js";
 import { cls, esc, escUrl, renderEmpty, renderStatusActions, safeHtml } from "./render-utils.js";
 
 const openWindows = new Map();
@@ -162,9 +171,24 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
       return element;
     }
 
+    /**
+     * 0.25: preservar a posicao de rolagem entre renders.
+     *
+     * Todo gesto na Details passa por `commit()` -> `render()` -> aqui, e este metodo
+     * troca o conteudo INTEIRO da janela. Os nos antigos deixam de existir, entao o
+     * navegador zera o scroll: clicar numa pill de severidade no fim da coluna jogava o
+     * Mestre de volta ao topo (relatado em mesa por Mario, 2026-08-06 — o pior atrito da
+     * 0.23). A correcao mede antes e restaura depois, em cada superficie rolavel:
+     * o proprio `content` e os dois paineis internos que tem rolagem propria.
+     *
+     * `requestAnimationFrame` porque a altura so existe depois do layout — restaurar no
+     * mesmo tick escreveria num elemento que ainda mede zero e o valor seria descartado.
+     */
     _replaceHTML(result, content) {
+      const marks = captureScrollMarks(content);
       content.replaceChildren(result);
       this.activateListeners(result);
+      restoreScrollMarks(content, marks);
     }
 
     /**
@@ -294,11 +318,29 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
           node.addEventListener("click", async (event) => {
             event.preventDefault();
             const id = node.dataset.itemId;
+            const item = (this.quest?.log ?? []).find((x) => x.id === id);
+            if (!item) return;
+
+            // 0.25: a linha diz de que ESPECIE e o item ("Clue found: ..."), porque
+            // "found" sozinho nao informa quem o le tres dias depois (apontado por Mario
+            // no teste de mesa de 2026-08-06).
+            const written = describeLogLine(item);
+
+            // DEC-038: quando a quest ja tem caderno de Journal, o destino do push e a
+            // PAGINA da sessao — HTML limpo, um <p> por linha, sem duplicar o que ja foi
+            // enviado. O campo da aba so recebe o texto quando ainda nao ha caderno.
+            if (field === "playernotes" && this.quest?.playerNotesUuid) {
+              const sent = await this.pushToPlayerNotesJournal(item, written);
+              notifyInfo(
+                sent.status === "appended" ? "Sent to the players' note." : "Already in the players' note.",
+                this.ui
+              );
+              return;
+            }
+
             await this.commit((draft) => {
-              const item = (draft.log ?? []).find((x) => x.id === id);
-              if (!item) return draft;
               const stamp = item.session != null ? `Session ${item.session}: ` : "";
-              const line = `<p><em>${stamp}</em>${esc(item.target)} — ${esc(item.change)}${item.reason ? ` — ${esc(item.reason)}` : ""}</p>`;
+              const line = `<p><em>${stamp}</em>${written}</p>`;
               return { ...draft, [field]: `${draft[field] ?? ""}${line}` };
             });
             notifyInfo(field === "gmcomments" ? "Sent to GM Notes." : "Sent to Player Notes.", this.ui);
@@ -340,6 +382,42 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
         });
       });
 
+      root.querySelector("[data-action='player-notes-create']")?.addEventListener("click", async (event) => {
+        event.preventDefault();
+        await this.createPlayerNotes();
+      });
+
+      root.querySelectorAll("[data-action='log-clear']").forEach((node) => {
+        node.addEventListener("click", async (event) => {
+          event.preventDefault();
+          const raw = node.dataset.session;
+          await this.clearLog({ session: raw === undefined || raw === "" ? null : Number(raw) });
+        });
+      });
+
+      // 0.25: selar/dessellar sessao. A trava e contra gesto EM MASSA (Clear log geral),
+      // nunca contra a mao do Mestre — por isso e um toggle simples, sem confirmacao.
+      root.querySelectorAll("[data-action='session-seal']").forEach((node) => {
+        node.addEventListener("click", async (event) => {
+          event.preventDefault();
+          const number = Number(node.dataset.sessionNumber);
+          await this.commit((draft) => ({
+            ...draft,
+            sessions: (draft.sessions ?? []).map((s) =>
+              s.number === number ? { ...s, sealed: !s.sealed } : s
+            )
+          }));
+        });
+      });
+
+      // DEC-038: abre a pagina de Journal da sessao. O modulo aponta; o conteudo mora la.
+      root.querySelectorAll("[data-action='open-session-page']").forEach((node) => {
+        node.addEventListener("click", async (event) => {
+          event.preventDefault();
+          await openJournalByUuid(node.dataset.uuid, { ui: this.ui });
+        });
+      });
+
       root.querySelectorAll("[data-session-field]").forEach((node) => {
         node.addEventListener("blur", async () => {
           const field = node.dataset.sessionField;
@@ -353,6 +431,138 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
           }));
         });
       });
+    }
+
+    /**
+     * DEC-038: cria o caderno de Journal desta quest, com previa (DEC-004).
+     *
+     * O que a previa mostra: onde a entrada nasce, com que nome, e quais paginas. O que a
+     * criacao faz: entrada Observer na pasta `MasterQuest / Player Notes`, uma pagina por
+     * sessao com os jogadores como donos DA PAGINA, e a prosa que ja estava no campo
+     * migrada para "Before session records" — nada se apaga.
+     */
+    async createPlayerNotes() {
+      const quest = this.quest;
+      if (!quest) return { status: "no-quest" };
+
+      const plan = planPlayerNotes({ quest, game: this.game });
+      const confirmed = await confirmPlan(plan, { game: this.game });
+      if (!confirmed) return { status: "cancelled" };
+
+      const { status, entry, uuid } = await ensurePlayerNotesEntry({ quest, game: this.game });
+      if (!entry) {
+        notifyWarning("MasterQuest could not create the players' note.", this.ui);
+        return { status };
+      }
+
+      // Jogadores donos da propria pagina; o Mestre ja e dono de tudo por ser GM.
+      const owners = Array.from(this.game?.users ?? [])
+        .filter((user) => user?.isGM !== true && user?.active !== false)
+        .map((user) => user.id)
+        .filter(Boolean);
+
+      const legacy = (quest.playernotes ?? "").trim();
+      if (legacy) {
+        await ensureSessionPage({
+          entry,
+          session: { number: 0, date: "", title: "" },
+          owners,
+          content: legacy
+        });
+      }
+
+      const pages = new Map();
+      for (const session of quest.sessions ?? []) {
+        const page = await ensureSessionPage({ entry, session, owners });
+        if (page.uuid) pages.set(session.number, page.uuid);
+      }
+
+      await this.commit((draft) => ({
+        ...draft,
+        playerNotesUuid: uuid,
+        sessions: (draft.sessions ?? []).map((s) =>
+          pages.has(s.number) ? { ...s, pageUuid: pages.get(s.number) } : s
+        )
+      }));
+
+      notifyInfo("Players' note created in the Journal.", this.ui);
+      return { status: "created", uuid };
+    }
+
+    /**
+     * DEC-038: manda uma linha do Log para a pagina da sessao, no Journal.
+     *
+     * Cria a pagina se a sessao ainda nao tiver uma — o Mestre pode ter aberto a sessao
+     * depois de criar o caderno. Idempotente pelo id da entrada de log.
+     */
+    async pushToPlayerNotesJournal(item, written) {
+      const quest = this.quest;
+      const uuid = quest?.playerNotesUuid;
+      if (!uuid) return { status: "no-entry" };
+
+      const entry = await (globalThis.fromUuid?.(uuid) ?? null);
+      if (!entry) return { status: "missing-entry" };
+
+      const number = item.session ?? currentSession(quest)?.number ?? null;
+      const session = (quest.sessions ?? []).find((s) => s.number === number)
+        ?? { number: number ?? 1, date: "", title: "" };
+
+      const page = await ensureSessionPage({ entry, session, owners: [] });
+      if (!page.page) return { status: "no-page" };
+
+      const result = await appendToSessionPage({
+        page: page.page,
+        lines: [{ id: item.id, html: written }]
+      });
+
+      // Primeira gravacao nesta sessao: guarda o ponteiro da pagina na quest.
+      if (page.uuid && !session.pageUuid) {
+        await this.commit((draft) => ({
+          ...draft,
+          sessions: (draft.sessions ?? []).map((s) =>
+            s.number === session.number ? { ...s, pageUuid: page.uuid } : s
+          )
+        }));
+      }
+
+      return result;
+    }
+
+    /**
+     * 0.25: Clear log — total ou de uma sessao.
+     *
+     * Pedido de Mario (2026-08-06): apagar linha a linha nao escala quando o acervo velho
+     * incomoda. Duas travas: confirmacao explicita, e sessao SELADA nao e varrida pelo
+     * gesto geral. Apagar uma linha especifica continua livre pela lixeira — o selo
+     * protege do gesto em massa, nao da mao do Mestre.
+     */
+    async clearLog({ session = null } = {}) {
+      const quest = this.quest;
+      if (!quest) return { status: "no-quest" };
+
+      const sealed = new Set((quest.sessions ?? []).filter((s) => s.sealed).map((s) => s.number));
+      const doomed = (quest.log ?? []).filter((entry) =>
+        session === null ? !sealed.has(entry.session) : entry.session === session
+      );
+
+      if (!doomed.length) {
+        notifyInfo("Nothing to clear — every entry is in a sealed session.", this.ui);
+        return { status: "nothing-to-clear" };
+      }
+
+      const scope = session === null ? "the whole log" : `session ${session}`;
+      const confirmed = await confirmDialog({
+        game: this.game,
+        title: "Clear log",
+        content: `<p>Delete <strong>${doomed.length}</strong> entry(ies) from ${esc(scope)}?</p>
+          <p>Sealed sessions are never touched by this. This cannot be undone.</p>`
+      });
+      if (!confirmed) return { status: "cancelled" };
+
+      const kept = new Set(doomed.map((entry) => entry.id));
+      await this.commit((draft) => ({ ...draft, log: (draft.log ?? []).filter((entry) => !kept.has(entry.id)) }));
+      notifyInfo(`${doomed.length} entry(ies) cleared.`, this.ui);
+      return { status: "cleared", removed: doomed.length };
     }
 
     /**
@@ -954,7 +1164,51 @@ function renderSessionControl(model) {
       ${current}
       ${newButton}
     </div>
+    ${renderSessionList(model)}
   `;
+}
+
+/**
+ * 0.25 (Mario, 2026-08-06): a lista das sessoes anteriores, sob a corrente.
+ *
+ * Ate a 0.23 a Details desenhava SO a sessao corrente, e a impressao em mesa foi de que
+ * as anteriores tinham sido perdidas — nao tinham: `sessions[]` guardava as tres, o
+ * relatorio de Wrap Up as listava, e so a tela nao as mostrava. Aqui elas aparecem no
+ * mesmo idioma de linha das outras colecoes: uma por linha, editaveis, com o selo.
+ *
+ * O selo (`sealed`, 0.25) protege a sessao de gesto EM MASSA — Clear Log geral pula o que
+ * esta selado. Nao congela a mao do Mestre: apagar linha a linha segue livre.
+ */
+function renderSessionList(model) {
+  if (!model.isGM) return "";
+  const sessions = Array.isArray(model.sessions) ? model.sessions : [];
+  // Menos de duas nao paga a lista: a corrente ja esta desenhada acima.
+  if (sessions.length < 2) return "";
+
+  const rows = [...sessions]
+    .sort((a, b) => b.number - a.number)
+    .map((session) => {
+      const isCurrent = session.number === model.session?.number;
+      const seal = model.canEdit
+        ? `<button type="button" class="mq-icon-button" data-action="session-seal" data-session-number="${session.number}"
+            title="${session.sealed ? "Sealed — protected from Clear log" : "Seal this session"}">
+            <i class="fa-solid ${session.sealed ? "fa-lock" : "fa-lock-open"}" inert></i></button>`
+        : "";
+      const link = session.pageUuid
+        ? `<button type="button" class="mq-icon-button" data-action="open-session-page" data-uuid="${esc(session.pageUuid)}"
+            title="Open this session's page in the players' notes"><i class="fa-solid fa-book-open" inert></i></button>`
+        : "";
+      return `
+        <li class="${cls("mq-session-row", isCurrent && "is-current", session.sealed && "is-sealed")}">
+          <span class="mq-session-number" ${model.canEdit && !session.sealed ? `contenteditable="true" data-session-field="number" data-session-number="${session.number}"` : ""}>${session.number}</span>
+          <span class="mq-session-date" ${model.canEdit && !session.sealed ? `contenteditable="true" data-session-field="date" data-session-number="${session.number}"` : ""}>${esc(session.date)}</span>
+          <span class="${cls("mq-session-title", !session.title && "is-pending")}" ${model.canEdit && !session.sealed ? `contenteditable="true" data-session-field="title" data-session-number="${session.number}"` : ""}>${esc(session.title)}</span>
+          <span class="mq-session-row-actions">${link}${seal}</span>
+        </li>`;
+    })
+    .join("");
+
+  return `<ul class="mq-session-list" aria-label="Sessions">${rows}</ul>`;
 }
 
 /**
@@ -1474,6 +1728,7 @@ function renderNotesTab(model, field, label) {
       : "";
 
   const derived = field === "playernotes" ? renderDerivedProgress(model) : "";
+  const journal = field === "playernotes" ? renderPlayerNotesJournalBar(model) : "";
 
   return `
     <section class="${cls("mq-notes", isPanel && "mq-gm-panel")}">
@@ -1482,9 +1737,44 @@ function renderNotesTab(model, field, label) {
       </header>
       ${toc}
       ${derived}
+      ${journal}
       ${body}
     </section>
   `;
+}
+
+/**
+ * DEC-038: a ponte entre a aba e o caderno de Journal.
+ *
+ * Sem nota criada, o Mestre ve o botao que a cria (com previa, DEC-004). Com nota criada,
+ * todos veem o link — e o link aponta para a PAGINA DA SESSAO CORRENTE, nao para a
+ * entrada inteira (escolha de Mario, 2026-08-06): a sessao do caderno equivale um-para-um
+ * a uma pagina do Journal, entao abrir a nota e abrir onde a mesa esta agora.
+ */
+function renderPlayerNotesJournalBar(model) {
+  const session = model.session;
+  const uuid = session?.pageUuid ?? model.playerNotesUuid ?? null;
+
+  if (!model.playerNotesUuid) {
+    if (!model.isGM) return "";
+    return `
+      <div class="mq-notes-journal">
+        <span class="mq-hint">The players write in a Journal of their own — MasterQuest only points to it.</span>
+        <button type="button" class="mq-bulk" data-action="player-notes-create">
+          <i class="fa-solid fa-book-medical" inert></i> Create table note</button>
+      </div>`;
+  }
+
+  const label = session?.pageUuid
+    ? `Open ${esc(sessionPageName(session))}`
+    : "Open the players' note";
+
+  return `
+    <div class="mq-notes-journal">
+      <button type="button" class="mq-bulk" data-action="open-session-page" data-uuid="${esc(uuid)}">
+        <i class="fa-solid fa-book-open" inert></i> ${label}</button>
+      ${model.isGM ? `<span class="mq-hint">Players are owners of their own page; this tab mirrors it.</span>` : ""}
+    </div>`;
 }
 
 
@@ -1545,11 +1835,24 @@ function renderLogTab(model) {
     </tr>`;
   };
 
+  // 0.25: cada grupo ganha o proprio gesto de limpeza, e o selo aparece no cabecalho.
+  // Sessao selada nao mostra o botao: o selo existe justamente para tirar aquela sessao
+  // do alcance do gesto em massa (e o de sessao e um gesto em massa, em escala menor).
+  const groupActions = (number) => {
+    if (!model.canEdit || number == null) return "";
+    const session = byNumber.get(number);
+    if (session?.sealed) {
+      return `<span class="mq-log-sealed" title="Sealed — protected from Clear log"><i class="fa-solid fa-lock" inert></i></span>`;
+    }
+    return `<button type="button" class="mq-icon-button mq-danger" data-action="log-clear" data-session="${number}"
+      title="Clear this session's entries"><i class="fa-solid fa-eraser" inert></i></button>`;
+  };
+
   const body = groups.length
     ? groups
         .map(
           (group) => `
-        <h3 class="mq-log-session">${heading(group.session)}</h3>
+        <h3 class="mq-log-session">${heading(group.session)}${groupActions(group.session)}</h3>
         <table class="mq-log-table"><tbody>
           ${group.items.map(row).join("")}
         </tbody></table>`
@@ -1566,6 +1869,7 @@ function renderLogTab(model) {
       ${addEntry}
       <button type="button" class="mq-bulk" data-action="log-copy-markdown"><i class="fa-brands fa-markdown" inert></i> Copy Markdown</button>
       <button type="button" class="mq-bulk" data-action="log-copy-json"><i class="fa-solid fa-code" inert></i> Copy JSON</button>
+      ${model.canEdit ? `<button type="button" class="mq-bulk mq-danger" data-action="log-clear"><i class="fa-solid fa-eraser" inert></i> Clear log</button>` : ""}
     </div>`;
 
   return `
@@ -1676,4 +1980,121 @@ export function renderQuestImage(model, where = "details") {
     : "";
 
   return `<figure class="mq-quest-image-wrap">${picture}${control}</figure>`;
+}
+
+/* ---------------------------------------------------------------------------------- *
+ * Preservacao de rolagem entre renders (0.25)
+ * ---------------------------------------------------------------------------------- */
+
+/** Superficies que rolam por conta propria dentro da janela de Quest. */
+const SCROLLABLE_SELECTORS = [".mq-details-body", ".mq-notes-read", ".mq-panel-doc"];
+
+/**
+ * Le a posicao de rolagem do container e de cada superficie interna, ANTES de trocar o
+ * DOM. Chave: o seletor mais o indice de ocorrencia — estavel entre renders porque a
+ * estrutura da aba nao muda de um commit para o outro.
+ *
+ * @param {HTMLElement} content O elemento que hospeda o conteudo da janela.
+ * @returns {{root: number, parts: Array<[string, number]>}} As marcas medidas.
+ */
+export function captureScrollMarks(content) {
+  const marks = { root: 0, parts: [] };
+  if (!content) return marks;
+  marks.root = content.scrollTop ?? 0;
+  for (const selector of SCROLLABLE_SELECTORS) {
+    const nodes = content.querySelectorAll?.(selector) ?? [];
+    Array.from(nodes).forEach((node, index) => {
+      if (node.scrollTop) marks.parts.push([`${selector}:${index}`, node.scrollTop]);
+    });
+  }
+  return marks;
+}
+
+/**
+ * Devolve cada posicao medida ao elemento correspondente do DOM novo. Roda depois do
+ * layout (`requestAnimationFrame`): escrever `scrollTop` num elemento que ainda mede zero
+ * de altura e um no-op silencioso, e foi assim que a primeira tentativa falhou.
+ *
+ * @param {HTMLElement} content O elemento que hospeda o conteudo da janela.
+ * @param {{root: number, parts: Array<[string, number]>}} marks As marcas de captura.
+ */
+export function restoreScrollMarks(content, marks) {
+  if (!content || !marks) return;
+  const apply = () => {
+    if (marks.root) content.scrollTop = marks.root;
+    for (const [key, value] of marks.parts ?? []) {
+      const [selector, index] = key.split(":");
+      const node = content.querySelectorAll?.(selector)?.[Number(index)];
+      if (node) node.scrollTop = value;
+    }
+  };
+  if (typeof requestAnimationFrame === "function") requestAnimationFrame(apply);
+  else apply();
+}
+
+
+/* ---------------------------------------------------------------------------------- *
+ * Dialogos e rotulos (0.25)
+ * ---------------------------------------------------------------------------------- */
+
+/**
+ * Rotulo legivel de uma linha do Log: diz a ESPECIE do item antes do que mudou.
+ *
+ * "found" sozinho nao informa; "Clue found: Os sonhos indicam o caminho..." informa.
+ * Apontado por Mario ao conferir o push nas notas (2026-08-06).
+ *
+ * @param {object} item Uma entrada do log.
+ * @returns {string} HTML escapado da linha.
+ */
+export function describeLogLine(item) {
+  const kind = LOG_KIND_LABEL[item?.targetType] ?? "";
+  const head = kind ? `${kind} ${item.change}` : item?.change ?? "";
+  const reason = item?.reason ? ` — ${esc(item.reason)}` : "";
+  return `<strong>${esc(head)}</strong>: ${esc(item?.target ?? "")}${reason}`;
+}
+
+const LOG_KIND_LABEL = Object.freeze({
+  objective: "Objective",
+  reward: "Reward",
+  clue: "Clue",
+  dilemma: "Dilemma",
+  complication: "Complication",
+  outcome: "Outcome",
+  quest: "Quest",
+  note: "Note"
+});
+
+/**
+ * Confirmacao simples, com degradacao: sem o Dialog do core (teste, headless), assume
+ * NAO. Gesto destrutivo nunca prossegue por ausencia de interface.
+ *
+ * @param {object} options
+ * @returns {Promise<boolean>} Se o usuario confirmou.
+ */
+export async function confirmDialog({ game = globalThis.game, title = "", content = "" } = {}) {
+  const DialogV2 = globalThis.foundry?.applications?.api?.DialogV2;
+  if (DialogV2?.confirm) return DialogV2.confirm({ window: { title }, content, modal: true });
+  const Dialog = globalThis.Dialog;
+  if (Dialog?.confirm) return Dialog.confirm({ title, content });
+  return false;
+}
+
+/**
+ * Previa da criacao do caderno (DEC-004): nada e escrito antes desta confirmacao.
+ *
+ * @param {object} plan O resultado de `planPlayerNotes`.
+ * @returns {Promise<boolean>} Se o Mestre confirmou.
+ */
+export async function confirmPlan(plan, { game = globalThis.game } = {}) {
+  if (!plan || plan.status === "no-quest") return false;
+  const pages = plan.pages.length
+    ? `<ul>${plan.pages.map((page) => `<li>${esc(page.name)}</li>`).join("")}</ul>`
+    : `<p class="mq-hint">No session opened yet — the note starts empty.</p>`;
+  return confirmDialog({
+    game,
+    title: "Create the players' note",
+    content: `<p>A Journal entry named <strong>${esc(plan.entryName)}</strong> will be created in
+      <em>${esc(plan.folderPath)}</em>, with these pages:</p>${pages}
+      <p>The entry stays Observer; each page is owned by the players. Nothing is deleted.</p>`
+  });
 }

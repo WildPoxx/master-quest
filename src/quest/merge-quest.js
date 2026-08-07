@@ -79,7 +79,10 @@ export const TABLE_OWNED = Object.freeze({
     "gmcomments", "playernotes", "splash", "splashPos", "splashAsIcon",
     // `sessions` e `wrappedUp` (0.23): tempo de mesa e encerramento editorial — nenhuma
     // fonte sabe em que sessao a campanha esta, nem quando o Mestre fechou o caderno.
-    "location", "parent", "subquests", "date", "source", "log", "sessions", "wrappedUp"
+    // `playerNotesUuid` (0.25, DEC-038): endereco de um documento DESTE mundo — blueprint
+    // que atravessasse mundos apontaria para o nada.
+    "location", "parent", "subquests", "date", "source", "log", "sessions", "wrappedUp",
+    "playerNotesUuid"
   ]),
   objective: Object.freeze(["id", "completed", "failed", "hidden", "known"]),
   reward: Object.freeze(["id", "hidden", "granted", "known", "locked"]),

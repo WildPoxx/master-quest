@@ -207,16 +207,19 @@ test("no scene control button is declared as the group's activeTool", () => {
   assert.equal(/^\s*activeTool:/m.test(declaration), false, "activeTool não pode ser declarado");
   // 0.17.0: entrou "Importar aventura" entre Criar quest e o hub, para a barra espelhar as
   // quatro portas do hub. Se o numero mudar de novo, e decisao — atualize aqui junto.
-  assert.equal((declaration.match(/^\s*button:\s*true/gm) ?? []).length, 4, "as quatro ferramentas são botões");
+  // 0.25: as tres ferramentas de autoria mudaram para um bloco proprio, montado ANTES de
+  // `controls.masterquest` e so quando `isGM` — por isso a contagem le o arquivo inteiro.
+  assert.equal((source.match(/^\s*button:\s*true/gm) ?? []).length, 4, "as quatro ferramentas são botões");
 });
 
 test("a barra de cena espelha as portas do hub, na ordem acordada", () => {
   // Pedido de Mario (2026-08-03): a barra tinha 3 opcoes e o hub 4; faltava Importar aventura.
   // Ordem: Quest Log, Criar quest, Importar aventura, MasterQuest (hub).
+  // 0.25: le o arquivo inteiro — as ferramentas de autoria saem do literal do grupo e
+  // passam a ser montadas em `authoringTools`, condicionadas a `isGM`.
   const source = readFileSync(fileURLToPath(new URL("../scripts/init.js", import.meta.url)), "utf8");
-  const declaration = source.slice(source.indexOf("controls.masterquest"));
 
-  const ordem = [...declaration.matchAll(/name:\s*"([a-z-]+)",\s*\n\s*order:\s*(\d+)/g)]
+  const ordem = [...source.matchAll(/name:\s*"([a-z-]+)",\s*\n\s*order:\s*(\d+)/g)]
     .map(([, name, order]) => ({ name, order: Number(order) }))
     // O proprio grupo declara name/order no mesmo formato das ferramentas; so as ferramentas
     // interessam aqui.
@@ -225,7 +228,7 @@ test("a barra de cena espelha as portas do hub, na ordem acordada", () => {
     .map((tool) => tool.name);
 
   assert.deepEqual(ordem, ["quest-log", "authoring-console", "import-adventure", "hub"]);
-  assert.match(declaration, /openImport\(\)/, "Importar aventura chama a API de importacao");
+  assert.match(source, /openImport\(\)/, "Import Adventure chama a API de importacao");
 });
 
 // --- 0.12.0: objetivo nasce oculto, quadrado do log usa a imagem da quest ---

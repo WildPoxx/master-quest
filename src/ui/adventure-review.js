@@ -130,14 +130,14 @@ export function createMasterQuestAdventureReviewClass(ApplicationV2) {
     async sendToQuestLog() {
       const save = this.api?.masterQuest?.saveDraftToJournal;
       if (typeof save !== "function") {
-        notifyWarning("Salvar no Journal não está disponível neste build.", this.ui);
+        notifyWarning("Saving to Journal is not available in this build.", this.ui);
         return { status: "unavailable" };
       }
 
       try {
         const result = await save(this.draft, { game: this.game });
         if (result?.status !== "created" && result?.status !== "updated") {
-          notifyWarning(`MasterQuest não conseguiu salvar a aventura (${result?.status ?? "sem status"}).`, this.ui);
+          notifyWarning(`MasterQuest could not save the adventure (${result?.status ?? "no status"}).`, this.ui);
           return result;
         }
 
@@ -149,7 +149,7 @@ export function createMasterQuestAdventureReviewClass(ApplicationV2) {
         return result;
       } catch (error) {
         console.error("master-quest | falha ao enviar para o Quest Log", error);
-        notifyError(`MasterQuest não conseguiu enviar para o Quest Log: ${error?.message ?? error}`, this.ui);
+        notifyError(`MasterQuest could not send to the Quest Log: ${error?.message ?? error}`, this.ui);
         return { status: "failed", error: String(error?.message ?? error) };
       }
     }
@@ -159,7 +159,7 @@ export function createMasterQuestAdventureReviewClass(ApplicationV2) {
     // no second write path here.
     openConsoleWithSeed(seed) {
       if (!this.api?.masterQuest?.openAuthoringConsole) {
-        notifyWarning("Authoring Console não está disponível neste build.", this.ui);
+        notifyWarning("The Authoring Console is not available in this build.", this.ui);
         return undefined;
       }
 
@@ -215,28 +215,28 @@ export function renderAdventureReview(context) {
     <section class="mq-panel mq-review-actions">
       <button type="button" data-action="back-to-draft"><i class="fas fa-pen"></i> Voltar ao Draft</button>
       <button type="button" data-action="suggest" data-target="objectives"><i class="fas fa-wand-magic-sparkles"></i> Sugerir Objetivos</button>
-      <button type="button" data-action="suggest" data-target="clues"><i class="fas fa-wand-magic-sparkles"></i> Sugerir Pistas</button>
-      <button type="button" data-action="suggest" data-target="rewards"><i class="fas fa-wand-magic-sparkles"></i> Sugerir Recompensas</button>
-      <button type="button" class="mq-primary-action" data-action="send-to-quest-log"><i class="fas fa-list-check"></i> Enviar para o Quest Log</button>
+      <button type="button" data-action="suggest" data-target="clues"><i class="fas fa-wand-magic-sparkles"></i> Suggest clues</button>
+      <button type="button" data-action="suggest" data-target="rewards"><i class="fas fa-wand-magic-sparkles"></i> Suggest rewards</button>
+      <button type="button" class="mq-primary-action" data-action="send-to-quest-log"><i class="fas fa-list-check"></i> Send to Quest Log</button>
     </section>
 
     <section class="mq-panel mq-review-doc">
-      ${textBlock("Premissa", draft.premise)}
-      ${textBlock("Pergunta dramática", draft.dramaticQuestion)}
-      ${textBlock("Resumo do GM", draft.gmSummary)}
-      ${textBlock("Resumo player-safe", draft.playerSafeSummary)}
+      ${textBlock("Premise", draft.premise)}
+      ${textBlock("Dramatic question", draft.dramaticQuestion)}
+      ${textBlock("GM summary", draft.gmSummary)}
+      ${textBlock("Player-safe summary", draft.playerSafeSummary)}
 
-      ${listBlock("Objetivos", draft.objectives, formatObjective)}
-      ${listBlock("Cenas", draft.scenes, formatScene)}
-      ${listBlock("Oposição", draft.threats, (threat) => formatThreat(threat, systemProfile))}
-      ${listBlock("Pistas", draft.clues, formatClue)}
-      ${listBlock("Recompensas", draft.rewards, formatReward)}
-      ${listBlock("Relógios", draft.clocks, formatClock)}
-      ${listBlock("Locais", draft.locations, formatLabelRecord)}
-      ${listBlock("Facções", draft.factions, formatLabelRecord)}
-      ${listBlock("Segredos GM", draft.gmSecrets, formatSecret)}
-      ${listBlock("Âncoras de Party", draft.partyAnchors, formatAnchor)}
-      ${listBlock("Âncoras de História", draft.storyAnchors, formatAnchor)}
+      ${listBlock("Objectives", draft.objectives, formatObjective)}
+      ${listBlock("Scenes", draft.scenes, formatScene)}
+      ${listBlock("Opposition", draft.threats, (threat) => formatThreat(threat, systemProfile))}
+      ${listBlock("Clues", draft.clues, formatClue)}
+      ${listBlock("Rewards", draft.rewards, formatReward)}
+      ${listBlock("Clocks", draft.clocks, formatClock)}
+      ${listBlock("Locations", draft.locations, formatLabelRecord)}
+      ${listBlock("Factions", draft.factions, formatLabelRecord)}
+      ${listBlock("GM secrets", draft.gmSecrets, formatSecret)}
+      ${listBlock("Party anchors", draft.partyAnchors, formatAnchor)}
+      ${listBlock("Story anchors", draft.storyAnchors, formatAnchor)}
     </section>
   `;
 }

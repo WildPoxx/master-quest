@@ -49,13 +49,28 @@ export function draftToQuest(draft = {}, { status = QUEST_STATUS.inactive } = {}
  * @returns {object} A normalized quest.
  */
 export function mergeDraftIntoQuest(current, draft) {
+  return mergeDraftIntoQuestWithOrphans(current, draft).quest;
+}
+
+/**
+ * Como `mergeDraftIntoQuest`, mas devolve tambem os orfaos.
+ *
+ * 0.25: ate a 0.23 este caminho fazia `const { quest } = mergeQuest(...)` e DESCARTAVA o
+ * segundo campo — salvar um rascunho revisado por cima de uma quest viva nao produzia
+ * relatorio nenhum de divergencia. O item continuava preservado (o merge sempre o
+ * preservou); o que faltava era a noticia.
+ *
+ * @param {object|null} current A quest gravada.
+ * @param {object} draft O rascunho de autoria.
+ * @returns {{quest: object, orphans: object}} A quest mesclada e os orfaos por colecao.
+ */
+export function mergeDraftIntoQuestWithOrphans(current, draft) {
   const authored = draftToQuest(draft, { status: current?.status ?? QUEST_STATUS.inactive });
-  const { quest } = mergeQuest(current, authored, {
+  return mergeQuest(current, authored, {
     authoredBy: AUTHORED_BY_DRAFT,
     // O rascunho de autoria nao tem id estavel por item: casa por nome normalizado.
     matchBy: "name"
   });
-  return quest;
 }
 
 function buildDescription(draft) {

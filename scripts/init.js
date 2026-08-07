@@ -57,14 +57,52 @@ Hooks.once("init", () => {
 
 Hooks.on("getSceneControlButtons", (controls) => {
   const api = game.modules.get(MODULE_ID)?.api ?? globalThis.MasterQuest;
-  if (!game.user?.isGM || !controls || typeof controls !== "object" || !api?.masterQuest?.open) return;
+  if (!controls || typeof controls !== "object" || !api?.masterQuest?.open) return;
+
+  // 0.25: o grupo passa a existir TAMBEM para o jogador — ate a 0.23 a guarda `isGM`
+  // barrava o registro inteiro, e o jogador so alcancava o Quest Log pelo rodape da aba
+  // de Journals (relatado por Mario em 2026-08-06). Consulta e dele; autoria nao: das
+  // quatro ferramentas, so o Quest Log e comum, e as outras tres seguem GM-only.
+  const isGM = game.user?.isGM === true;
+
+  const authoringTools = isGM
+    ? {
+        "authoring-console": {
+          name: "authoring-console",
+          order: 2,
+          title: "Create Quest",
+          icon: "fa-solid fa-wand-magic-sparkles",
+          button: true,
+          onChange: () => api.masterQuest.openAuthoringConsole()
+        },
+        "import-adventure": {
+          name: "import-adventure",
+          order: 3,
+          title: "Import Adventure",
+          icon: "fa-solid fa-book-atlas",
+          button: true,
+          onChange: () => api.masterQuest.openImport()
+        },
+        hub: {
+          name: "hub",
+          order: 4,
+          title: "MasterQuest",
+          icon: "fa-solid fa-scroll",
+          button: true,
+          onChange: () => api.masterQuest.open()
+        }
+      }
+    : {};
 
   controls.masterquest = {
     name: "masterquest",
-    order: 99,
+    // Vizinho do controle Notes do core, que e `order: 8` (verificado no core 14.365,
+    // NotesLayer.prepareSceneControls). O valor fracionario poe o MasterQuest logo depois
+    // dele, antes do que os modulos costumam registrar mais abaixo.
+    order: 8.5,
     title: "MasterQuest",
     icon: "fa-solid fa-scroll",
-    visible: game.user.isGM,
+    visible: true,
     // NO `activeTool` HERE. Every tool below is `button: true`, and Foundry v14's
     // SceneControls##onChangeTool bails out with `if (tool === this.tool) return;` BEFORE
     // it reaches the button branch. Naming a button as `activeTool` therefore makes that
@@ -81,30 +119,7 @@ Hooks.on("getSceneControlButtons", (controls) => {
         button: true,
         onChange: () => api.masterQuest.openQuestLog()
       },
-      "authoring-console": {
-        name: "authoring-console",
-        order: 2,
-        title: "Criar quest",
-        icon: "fa-solid fa-wand-magic-sparkles",
-        button: true,
-        onChange: () => api.masterQuest.openAuthoringConsole()
-      },
-      "import-adventure": {
-        name: "import-adventure",
-        order: 3,
-        title: "Importar aventura",
-        icon: "fa-solid fa-book-atlas",
-        button: true,
-        onChange: () => api.masterQuest.openImport()
-      },
-      hub: {
-        name: "hub",
-        order: 4,
-        title: "MasterQuest",
-        icon: "fa-solid fa-scroll",
-        button: true,
-        onChange: () => api.masterQuest.open()
-      }
+      ...authoringTools
     }
   };
 });

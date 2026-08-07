@@ -73,7 +73,7 @@ test("authoring console exposes explicit Journal save controls", async () => {
   const source = await import("node:fs/promises").then((fs) => fs.readFile(new URL("../src/ui/authoring-console.js", import.meta.url), "utf8"));
 
   assert.match(source, /data-action="save-journal"/);
-  assert.match(source, /Salvar em Journal/);
+  assert.match(source, /Save to Journal/);
   assert.match(source, /saveDraftToJournal/);
 });
 
@@ -81,13 +81,13 @@ test("authoring console copy buttons are clearly labeled and explained as copy a
   const source = await import("node:fs/promises").then((fs) => fs.readFile(new URL("../src/ui/authoring-console.js", import.meta.url), "utf8"));
 
   // Rotulos visiveis deixam claro que copiam.
-  assert.match(source, /Copiar GM/);
-  assert.match(source, /Copiar Player/);
-  assert.match(source, /Copiar Dados/);
+  assert.match(source, /Copy GM/);
+  assert.match(source, /Copy Player/);
+  assert.match(source, /Copy Data/);
 
   // Legenda explica que copiam para a area de transferencia, nao salvam.
   assert.match(source, /mq-copy-note/);
-  assert.match(source, /área de transferência/);
+  assert.match(source, /clipboard/);
 
   // data-action preservados (contrato de UI nao quebrado).
   assert.match(source, /data-action="copy-gm"/);
@@ -100,8 +100,8 @@ test("authoring console surfaces party and story anchor fields", async () => {
 
   assert.match(source, /renderTextarea\("partyAnchors"/);
   assert.match(source, /renderTextarea\("storyAnchors"/);
-  assert.match(source, /Âncoras de Party/);
-  assert.match(source, /Âncoras de História/);
+  assert.match(source, /Party anchors/);
+  assert.match(source, /Story anchors/);
   assert.match(source, /partyAnchors: textToList/);
   assert.match(source, /storyAnchors: textToList/);
 });
@@ -126,7 +126,7 @@ test("authoring console exposes an Advance button only after a successful save",
   const source = await import("node:fs/promises").then((fs) => fs.readFile(new URL("../src/ui/authoring-console.js", import.meta.url), "utf8"));
 
   assert.match(source, /data-action="advance"/);
-  assert.match(source, /Avançar/);
+  assert.match(source, /Advance/);
   assert.match(source, /savedDraft \?/);
   assert.match(source, /advanceToAdventureReview/);
 });

@@ -159,8 +159,10 @@ function describeSession(session) {
 export function downloadWrapupReport(quest, options = {}) {
   const report = buildWrapupReport(quest, options);
   const filename = makeWrapupFilename(quest, options.generatedAt);
-  const save = options.saveDataToFile ?? globalThis.saveDataToFile
-    ?? globalThis.foundry?.utils?.saveDataToFile;
+  // DEC-027, mesma correcao do snapshot: `foundry.utils.saveDataToFile` primeiro; a
+  // global depreciada (removida na v15) so como ultimo recurso.
+  const save = options.saveDataToFile ?? globalThis.foundry?.utils?.saveDataToFile
+    ?? globalThis.saveDataToFile;
 
   if (typeof save === "function") {
     save(report, "text/markdown", filename);

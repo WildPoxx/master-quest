@@ -900,36 +900,36 @@ function hasConsequence(draft) {
 function questionForIssue(issue) {
   const templates = {
     "missing-title": {
-      prompt: "Qual titulo de trabalho identifica esta quest para o mestre?",
-      whyItMatters: "O titulo ancora a conversa, o preview e o futuro mapeamento para Foundry."
+      prompt: "What working title identifies this quest for the GM?",
+      whyItMatters: "The title anchors the conversation, the preview and the eventual mapping into Foundry."
     },
     "missing-premise": {
-      prompt: "Qual e a premissa em uma ou duas frases: o que esta acontecendo e por que isso importa agora?",
-      whyItMatters: "A premissa impede que objetivos e cenas virem uma lista solta."
+      prompt: "What is the premise in one or two sentences: what is happening, and why does it matter now?",
+      whyItMatters: "The premise keeps objectives and scenes from becoming a loose list."
     },
     "missing-dramatic-question": {
-      prompt: "Qual pergunta dramatica deve ficar em aberto durante a quest?",
-      whyItMatters: "A pergunta dramatica define a incerteza central que a mesa vai resolver."
+      prompt: "Which dramatic question should stay open through the quest?",
+      whyItMatters: "The dramatic question sets the central uncertainty the table will resolve."
     },
     "missing-objectives": {
-      prompt: "O que os personagens precisam descobrir, conquistar, impedir ou decidir para a quest avancar?",
-      whyItMatters: "Objetivos transformam a ideia em algo operavel pelo mestre."
+      prompt: "What do the characters need to find out, win, prevent or decide for the quest to move?",
+      whyItMatters: "Objectives turn the idea into something the GM can actually run."
     },
     "missing-opposition": {
-      prompt: "Quem ou o que se opoe aos personagens: inimigo, faccao, ambiente, relogio ou complicacao?",
-      whyItMatters: "Sem oposicao ou pressao, a quest ainda nao produz jogo."
+      prompt: "Who or what opposes the characters: enemy, faction, environment, clock or complication?",
+      whyItMatters: "With no opposition or pressure, the quest does not produce play yet."
     },
     "missing-consequence": {
-      prompt: "O que muda se os personagens tiverem sucesso, falharem ou demorarem demais?",
-      whyItMatters: "Consequencias dao peso as escolhas e preparam recompensas, custos e relogios."
+      prompt: "What changes if the characters succeed, fail, or take too long?",
+      whyItMatters: "Consequences give weight to choices and set up rewards, costs and clocks."
     },
     "missing-player-safe-summary": {
-      prompt: "Que resumo pode ser mostrado aos jogadores sem entregar segredos?",
-      whyItMatters: "Isso separa o que orienta a mesa do que pertence so ao GM."
+      prompt: "What summary can be shown to the players without giving away secrets?",
+      whyItMatters: "This separates what guides the table from what belongs to the GM alone."
     },
     "missing-scenes": {
-      prompt: "Qual primeira cena ou situacao coloca a quest em movimento na mesa?",
-      whyItMatters: "Uma cena inicial reduz a friccao entre planejamento e jogo."
+      prompt: "Which first scene or situation puts the quest in motion at the table?",
+      whyItMatters: "An opening scene reduces the friction between prep and play."
     }
   };
 

@@ -136,8 +136,11 @@ export function downloadQuestSnapshot(options = {}) {
   const snapshot = buildQuestSnapshot(options);
   const json = JSON.stringify(snapshot, null, 2);
   const filename = makeSnapshotFilename(snapshot);
-  const save = options.saveDataToFile ?? globalThis.saveDataToFile
-    ?? globalThis.foundry?.utils?.saveDataToFile;
+  // DEC-027: a global `saveDataToFile` esta DEPRECADA desde a v13 e sai na v15 — o aviso
+  // apareceu no console de Mario em 2026-08-06, apontando esta linha. A forma namespaced
+  // vem primeiro; a global fica como ultimo recurso, para ambiente antigo e para teste.
+  const save = options.saveDataToFile ?? globalThis.foundry?.utils?.saveDataToFile
+    ?? globalThis.saveDataToFile;
 
   if (typeof save === "function") {
     save(json, "application/json", filename);
@@ -272,8 +275,13 @@ function describeQuest(entry, quest) {
     })),
     log: toArray(quest.log).map((entry) => ({ ...entry })),
     // 0.23: tempo de mesa e encerramento editorial, aditivos — leitores antigos ignoram.
+    // A sessao carrega, desde a 0.25, `sealed` e `pageUuid` (DEC-038) — vao junto pelo
+    // spread, e o snapshot continua sendo a radiografia completa do que a quest guarda.
     sessions: toArray(quest.sessions).map((session) => ({ ...session })),
     wrappedUp: quest.wrappedUp === true,
+    // DEC-038: o endereco do caderno de Journal. Sem ele, um snapshot lido noutro dia
+    // nao saberia dizer onde as notas daquela mesa foram parar.
+    playerNotesUuid: quest.playerNotesUuid ?? null,
     complications: toArray(quest.complications).map((complication) => ({
       id: complication?.id ?? null,
       name: complication?.name ?? "",

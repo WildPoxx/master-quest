@@ -150,15 +150,15 @@ export function createMasterQuestAuthoringConsoleClass(ApplicationV2) {
       });
 
       element.querySelector("[data-action='copy-gm']").addEventListener("click", () =>
-        this.copyText(this.session.previews.gm.markdown, "Preview do GM copiado para a área de transferência.")
+        this.copyText(this.session.previews.gm.markdown, "GM preview copied to the clipboard.")
       );
 
       element.querySelector("[data-action='copy-player']").addEventListener("click", () =>
-        this.copyText(this.session.previews.playerSafe.markdown, "Preview player-safe copiado para a área de transferência.")
+        this.copyText(this.session.previews.playerSafe.markdown, "Player-safe preview copied to the clipboard.")
       );
 
       element.querySelector("[data-action='copy-json']").addEventListener("click", () =>
-        this.copyText(JSON.stringify(this.session.draft, null, 2), "Dados do draft copiados para a área de transferência.")
+        this.copyText(JSON.stringify(this.session.draft, null, 2), "Draft data copied to the clipboard.")
       );
     }
 
@@ -201,12 +201,12 @@ export function createMasterQuestAuthoringConsoleClass(ApplicationV2) {
 
     advanceToAdventureReview() {
       if (!this.savedDraft) {
-        notifyWarning("Salve o draft em Journal antes de avançar.", this.ui);
+        notifyWarning("Save the draft to a Journal before advancing.", this.ui);
         return;
       }
 
       if (!this.api.masterQuest.openAdventureReview) {
-        notifyWarning("Adventure Review não está disponível neste build.", this.ui);
+        notifyWarning("Adventure Review is not available in this build.", this.ui);
         return;
       }
 
@@ -254,69 +254,69 @@ function renderConsole(context) {
 
     <section class="mq-panel mq-assistant-bar">
       <div>
-        <h2>Assistente</h2>
+        <h2>Assistant</h2>
       </div>
       <button type="button" data-action="suggest" data-target="complete">
-        <i class="fas fa-wand-magic-sparkles"></i> Sugerir derivados
+        <i class="fas fa-wand-magic-sparkles"></i> Suggest derived fields
       </button>
     </section>
 
     <div class="mq-grid">
       <form data-masterquest-authoring-form class="mq-panel mq-form">
         <div class="mq-field">
-          <label for="mq-title">Titulo</label>
+          <label for="mq-title">Title</label>
           <input id="mq-title" name="title" type="text" value="${escapeAttribute(seed.title)}">
         </div>
 
         <div class="mq-field">
-          <label for="mq-premise">Premissa</label>
+          <label for="mq-premise">Premise</label>
           <textarea id="mq-premise" name="premise" rows="4">${escapeHtml(seed.premise)}</textarea>
         </div>
 
         <div class="mq-field">
-          <label for="mq-dramatic-question">Pergunta dramatica</label>
+          <label for="mq-dramatic-question">Dramatic question</label>
           <textarea id="mq-dramatic-question" name="dramaticQuestion" rows="2">${escapeHtml(seed.dramaticQuestion)}</textarea>
         </div>
 
         <div class="mq-field">
-          <label for="mq-player-summary">Resumo player-safe</label>
+          <label for="mq-player-summary">Player-safe summary</label>
           <textarea id="mq-player-summary" name="playerSafeSummary" rows="2">${escapeHtml(seed.playerSafeSummary)}</textarea>
         </div>
 
         <div class="mq-two">
-          ${renderTextarea("objectives", "Objetivos", seed.objectives, { suggest: true })}
-          ${renderTextarea("threats", "Oposicao", seed.threats, { suggest: true })}
-          ${renderTextarea("scenes", "Cenas", seed.scenes, { suggest: true })}
-          ${renderTextarea("clues", "Pistas", seed.clues, { suggest: true })}
-          ${renderTextarea("rewards", "Recompensas", seed.rewards, { suggest: true })}
-          ${renderTextarea("gmSecrets", "Segredos GM", seed.gmSecrets, { suggest: true })}
-          ${renderTextarea("locations", "Locais", seed.locations, { suggest: true })}
+          ${renderTextarea("objectives", "Objectives", seed.objectives, { suggest: true })}
+          ${renderTextarea("threats", "Opposition", seed.threats, { suggest: true })}
+          ${renderTextarea("scenes", "Scenes", seed.scenes, { suggest: true })}
+          ${renderTextarea("clues", "Clues", seed.clues, { suggest: true })}
+          ${renderTextarea("rewards", "Rewards", seed.rewards, { suggest: true })}
+          ${renderTextarea("gmSecrets", "GM secrets", seed.gmSecrets, { suggest: true })}
+          ${renderTextarea("locations", "Locations", seed.locations, { suggest: true })}
           ${renderTextarea("factions", "Factions", seed.factions, { suggest: true })}
-          ${renderTextarea("clocks", "Relogios", seed.clocks, { suggest: true })}
-          ${renderTextarea("riskNotes", "Riscos", seed.riskNotes, { suggest: true })}
+          ${renderTextarea("clocks", "Clocks", seed.clocks, { suggest: true })}
+          ${renderTextarea("riskNotes", "Risks", seed.riskNotes, { suggest: true })}
         </div>
 
         <div class="mq-two">
-          ${renderTextarea("partyAnchors", "Âncoras de Party", seed.partyAnchors, { hint: "Liga a quest aos PCs e aos interesses da party. Uma âncora por linha." })}
-          ${renderTextarea("storyAnchors", "Âncoras de História", seed.storyAnchors, { hint: "Liga a quest à continuidade: NPCs, facções, locais, itens, pontas soltas. Uma âncora por linha." })}
+          ${renderTextarea("partyAnchors", "Party anchors", seed.partyAnchors, { hint: "Ties the quest to the PCs and to what the party wants. One anchor per line." })}
+          ${renderTextarea("storyAnchors", "Story anchors", seed.storyAnchors, { hint: "Ties the quest to continuity: NPCs, factions, places, items, loose ends. One anchor per line." })}
         </div>
 
         <footer class="mq-actions">
-          <button type="submit"><i class="fas fa-wand-magic-sparkles"></i> Atualizar</button>
-          <button type="button" data-action="save-journal"><i class="fas fa-book"></i> Salvar em Journal</button>
-          ${savedDraft ? `<button type="button" data-action="advance" title="Abrir a revisão da aventura a partir do draft salvo"><i class="fas fa-arrow-right"></i> Avançar</button>` : ""}
-          <button type="button" data-action="reset"><i class="fas fa-rotate-left"></i> Limpar</button>
+          <button type="submit"><i class="fas fa-wand-magic-sparkles"></i> Update</button>
+          <button type="button" data-action="save-journal"><i class="fas fa-book"></i> Save to Journal</button>
+          ${savedDraft ? `<button type="button" data-action="advance" title="Open the adventure review from the saved draft"><i class="fas fa-arrow-right"></i> Advance</button>` : ""}
+          <button type="button" data-action="reset"><i class="fas fa-rotate-left"></i> Clear</button>
         </footer>
       </form>
 
       <aside class="mq-panel mq-review">
         <section>
-          <h2>Lacunas</h2>
+          <h2>Gaps</h2>
           ${renderQuestions(questions)}
         </section>
 
         <section>
-          <h2>Contagem</h2>
+          <h2>Counts</h2>
           ${renderCounts(assessment.counts)}
         </section>
 
@@ -337,12 +337,12 @@ function renderConsole(context) {
       <div class="mq-preview-toolbar">
         <h2>Previews</h2>
         <div class="mq-copy-actions">
-          <button type="button" data-action="copy-gm" title="Copiar o preview do GM para a área de transferência"><i class="fas fa-copy"></i> Copiar GM</button>
-          <button type="button" data-action="copy-player" title="Copiar o preview player-safe para a área de transferência"><i class="fas fa-copy"></i> Copiar Player</button>
-          <button type="button" data-action="copy-json" title="Copiar os dados do draft (JSON) para a área de transferência"><i class="fas fa-code"></i> Copiar Dados</button>
+          <button type="button" data-action="copy-gm" title="Copy the GM preview to the clipboard"><i class="fas fa-copy"></i> Copy GM</button>
+          <button type="button" data-action="copy-player" title="Copy the player-safe preview to the clipboard"><i class="fas fa-copy"></i> Copy Player</button>
+          <button type="button" data-action="copy-json" title="Copy the draft data (JSON) to the clipboard"><i class="fas fa-code"></i> Copy Data</button>
         </div>
       </div>
-      <p class="mq-copy-note">Estes botões copiam para a área de transferência. Para salvar o rascunho, use <strong>Salvar em Journal</strong>.</p>
+      <p class="mq-copy-note">These buttons copy to the clipboard. To store the draft, use <strong>Save to Journal</strong>.</p>
       <div class="mq-preview-grid">
         <article>
           <h3>GM</h3>
@@ -359,7 +359,7 @@ function renderConsole(context) {
 
 function renderTextarea(name, label, value, options = {}) {
   const suggestButton = options.suggest
-    ? `<button type="button" class="mq-suggest-button" data-action="suggest" data-target="${escapeAttribute(name)}" title="Sugerir ${escapeAttribute(label)}"><i class="fas fa-wand-magic-sparkles"></i> Sugerir</button>`
+    ? `<button type="button" class="mq-suggest-button" data-action="suggest" data-target="${escapeAttribute(name)}" title="Suggest ${escapeAttribute(label)}"><i class="fas fa-wand-magic-sparkles"></i> Suggest</button>`
     : "";
 
   return `
