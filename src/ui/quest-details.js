@@ -20,6 +20,7 @@ import {
 } from "../quest/quest-store.js";
 import { buildQuestDetailsViewModel } from "../quest/quest-view-model.js";
 import { diffQuestForLog, logToMarkdown, sessionHeading, sessionOpenedEntry } from "../quest/quest-log-diff.js";
+import { appendUnderSection } from "../notes/session-sections.js";
 import { sessionsToSeal, toggleWrapUp } from "../quest/quest-wrapup.js";
 import { SEVERITIES, currentSession, makeId, normalizeClue, normalizeComplication, normalizeDilemma, normalizeLogEntry, normalizeObjective, normalizeOutcome, normalizeReward, normalizeSession, reorderById } from "../quest/quest-schema.js";
 import { readAllQuests } from "../quest/quest-store.js";
@@ -339,11 +340,15 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
               return;
             }
 
-            await this.commit((draft) => {
-              const stamp = item.session != null ? `Session ${item.session}: ` : "";
-              const line = `<p><em>${stamp}</em>${written}</p>`;
-              return { ...draft, [field]: `${draft[field] ?? ""}${line}` };
-            });
+            // 0.28 (Mario, teste de mesa da 0.27.0): a linha empurrada entra na SECAO da
+            // sessao — cabecalho `<h4>` e regua —, e nao mais como paragrafo solto com a
+            // sessao em italico no comeco. A forma e o exemplo que o proprio Mario deixou
+            // no mundo e que o Quest Devs recolheu como especificacao (Pedido 3).
+            const session = (this.quest?.sessions ?? []).find((s) => s.number === item.session) ?? null;
+            await this.commit((draft) => ({
+              ...draft,
+              [field]: appendUnderSection(draft[field] ?? "", { session, line: written })
+            }));
             notifyInfo(field === "gmcomments" ? "Sent to GM Notes." : "Sent to Player Notes.", this.ui);
           });
         });

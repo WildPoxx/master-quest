@@ -1534,9 +1534,33 @@
 .masterquest .mq-log-target-text:focus,
 .masterquest .mq-log-change-text:focus { outline: 1px solid var(--mq-accent-bright); font-style: normal; }
 .masterquest tr.mq-log-manual td:first-child { border-left: 3px solid var(--mq-accent); }
-.masterquest .mq-log-row-actions { width: 0.1%; white-space: nowrap; text-align: right; }
-.masterquest .mq-log-row-actions .mq-icon-button { opacity: 0.35; }
-.masterquest .mq-log-table tr:hover .mq-icon-button { opacity: 1; }
+/* 0.28 (Mario, teste de mesa da 0.27.0): as acoes da linha do Log ficam SEMPRE visiveis.
+ *
+ * Ate a 0.27.0 elas viviam a 35% de opacidade e so acendiam no hover da linha. Os botoes
+ * sempre estiveram la, em toda linha — mas Mario, olhando a tela, concluiu que "nao temos
+ * mais a opcao de enviar aquela parte do log para as notas", e que empurrar so funcionava
+ * "logo depois da criacao". Estava certo sobre o que via: affordance que so existe sob o
+ * mouse nao existe para quem esta decidindo o que fazer.
+ *
+ * Mesma licao da 0.27.0, no indice do GM Panel: um botao que se anuncia quando o mouse
+ * chega ja chegou tarde. E a mesma da lista de sessoes: economia de pixel que esconde
+ * confirmacao nao economiza nada.
+ *
+ * `display: flex` aqui tambem conserta o empilhamento vertical dos tres icones numa
+ * celula estreita, visivel na captura que Mario enviou. */
+.masterquest .mq-log-row-actions {
+  width: 0.1%;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.masterquest .mq-log-row-actions > * {
+  display: inline-flex;
+}
+
+.masterquest .mq-log-row-actions .mq-icon-button { opacity: 0.7; }
+.masterquest .mq-log-table tr:hover .mq-icon-button,
+.masterquest .mq-log-row-actions .mq-icon-button:focus-visible { opacity: 1; }
 
 /* Wrap Up: o caderno fechado ganha peso visual; a ata e um botao irmao do Snapshot. */
 .masterquest .mq-wrapup-button.is-wrapped {

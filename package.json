@@ -1,12 +1,12 @@
 {
   "name": "master-quest",
-  "version": "0.27.0",
+  "version": "0.28.0",
   "private": true,
   "type": "module",
   "description": "Native Foundry VTT adventure and quest authoring module for MasterQuest GM operations.",
   "scripts": {
     "test": "node --test tests/*.test.js",
-    "test:ci": "node --test tests/api.test.js tests/manifest.test.js tests/quest-pipeline.test.js tests/quest-blueprint.test.js tests/quest-import-sources.test.js tests/master-quest-authoring.test.js tests/master-quest-authoring-wizard.test.js tests/master-quest-authoring-console.test.js tests/master-quest-adventure-review.test.js tests/master-quest-quest-model.test.js tests/master-quest-css.test.js tests/master-quest-gm-panel.test.js tests/master-quest-field-safety.test.js tests/master-quest-merge.test.js tests/quest-operations.test.js tests/foundry-v14-compat.test.js tests/master-quest-export-preview.test.js tests/master-quest-import-preview.test.js tests/master-quest-journal-button.test.js tests/master-quest-journal-storage.test.js tests/system-profile-detection.test.js tests/master-quest-025.test.js tests/master-quest-026.test.js tests/master-quest-session-delete.test.js tests/master-quest-027.test.js",
+    "test:ci": "node --test tests/api.test.js tests/manifest.test.js tests/quest-pipeline.test.js tests/quest-blueprint.test.js tests/quest-import-sources.test.js tests/master-quest-authoring.test.js tests/master-quest-authoring-wizard.test.js tests/master-quest-authoring-console.test.js tests/master-quest-adventure-review.test.js tests/master-quest-quest-model.test.js tests/master-quest-css.test.js tests/master-quest-gm-panel.test.js tests/master-quest-field-safety.test.js tests/master-quest-merge.test.js tests/quest-operations.test.js tests/foundry-v14-compat.test.js tests/master-quest-export-preview.test.js tests/master-quest-import-preview.test.js tests/master-quest-journal-button.test.js tests/master-quest-journal-storage.test.js tests/system-profile-detection.test.js tests/master-quest-025.test.js tests/master-quest-026.test.js tests/master-quest-session-delete.test.js tests/master-quest-027.test.js tests/master-quest-028.test.js",
     "package": "powershell -ExecutionPolicy Bypass -File scripts/build-module-package.ps1"
   }
 }
