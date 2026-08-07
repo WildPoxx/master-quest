@@ -10,9 +10,23 @@
  * quest e, por isso, nao pode gravar no JournalEntry dela — mas `JournalEntryPage` tem
  * `ownership` PROPRIO (core 14.365, `BaseJournalEntryPage.defineSchema`, campo
  * `ownership`, `DocumentOwnershipField` com default `INHERIT`, verificado em disco em
- * 2026-08-06). Entao a entrada fica Observer e a PAGINA fica Owner do jogador: ele
- * escreve com o editor nativo do Foundry, sem socket e sem Owner na quest inteira.
- * A DEC-005 permanece intacta.
+ * 2026-08-06). A DEC-005 permanece intacta: a QUEST segue Observer para o jogador.
+ *
+ * DEC-042 (2026-08-07) fixou o desenho de permissao do CADERNO, que e outro documento:
+ *
+ *   entrada   ownership.default = OWNER     porque criar pagina nova exige ser Owner da
+ *                                           ENTRADA. Sem isso o jogador so escreve nas
+ *                                           paginas que o modulo abriu por ele.
+ *   pagina    default = OBSERVER            EXPLICITO, nao INHERIT. Valor declarado na
+ *             + dono = OWNER                pagina nao herda o da entrada, e e o que
+ *                                           impede cada jogador de editar o caderno dos
+ *                                           outros — o defeito que o teste manual de
+ *                                           2026-08-06 produzira.
+ *
+ * O ponto que so o Foundry vivo comprova: que o core respeite pagina OBSERVER dentro de
+ * entrada OWNER. Se nao respeitar, degrada para heranca pura (todos Owner de tudo), que
+ * funciona e nao perde nota — e o achado vira DEC de emenda. Passo de teste em mesa:
+ * jogador A tentando editar a pagina do jogador B deve ser negado.
  *
  * Nada aqui escreve sem previa (DEC-004) e nada aqui APAGA documento: quest removida nao
  * arrasta a nota; orfao e reportado, nunca destruido — a mesma filosofia do `mergeQuest`.
@@ -29,7 +43,18 @@ export const PLAYER_NOTES_FOLDER = "Player Notes";
 /** Titulo da pagina que recebe o que ja existia em `playernotes` antes da migracao. */
 export const LEGACY_PAGE_NAME = "Before session records";
 
-const OWNERSHIP = Object.freeze({ INHERIT: -1, NONE: 0, LIMITED: 1, OBSERVER: 2, OWNER: 3 });
+export const OWNERSHIP = Object.freeze({ INHERIT: -1, NONE: 0, LIMITED: 1, OBSERVER: 2, OWNER: 3 });
+
+/**
+ * DEC-042: o desenho de permissao do caderno, num lugar so, para a previa (DEC-004) poder
+ * ANUNCIA-LO e o teste poder trava-lo. Mudanca de permissao e o tipo de coisa que uma
+ * previa nao pode omitir: e a parte irreversivel-por-descuido da operacao.
+ */
+export const PLAYER_NOTES_OWNERSHIP = Object.freeze({
+  entry: OWNERSHIP.OWNER,
+  pageDefault: OWNERSHIP.OBSERVER,
+  pageOwner: OWNERSHIP.OWNER
+});
 
 const toArray = (value) => (Array.isArray(value) ? value : Array.from(value?.values?.() ?? []));
 const text = (value) => (typeof value === "string" ? value.trim() : "");
@@ -68,10 +93,19 @@ export function sessionPageName(session) {
  * @param {object} options
  * @param {object} options.quest A quest normalizada.
  * @param {object} [options.game] O game do Foundry.
- * @returns {object} `{status, entryName, folderPath, pages, existing}`.
+ * @returns {object} `{status, entryName, folderPath, pages, ownership, existing}`.
  */
 export function planPlayerNotes({ quest, game = globalThis.game } = {}) {
-  if (!quest) return { status: "no-quest", entryName: "", folderPath: "", pages: [], existing: null };
+  if (!quest) {
+    return {
+      status: "no-quest",
+      entryName: "",
+      folderPath: "",
+      pages: [],
+      ownership: PLAYER_NOTES_OWNERSHIP,
+      existing: null
+    };
+  }
 
   const entryName = playerNotesEntryName(quest);
   const existing = findEntryByUuidOrName({ uuid: quest.playerNotesUuid, name: entryName, game });
@@ -91,6 +125,7 @@ export function planPlayerNotes({ quest, game = globalThis.game } = {}) {
     entryName,
     folderPath: `${MASTERQUEST_FOLDER} / ${PLAYER_NOTES_FOLDER}`,
     pages,
+    ownership: PLAYER_NOTES_OWNERSHIP,
     existing: existing ? { uuid: entryUuid(existing), name: existing.name } : null
   };
 }
@@ -123,13 +158,14 @@ export async function ensurePlayerNotesEntry({
 
   const folder = await ensureNestedFolder({ game, Folder, path: [MASTERQUEST_FOLDER, PLAYER_NOTES_FOLDER] });
 
-  // A ENTRADA fica Observer: o jogador ve, mas a escrita e por pagina (ownership propria).
-  // O desenho oposto — entrada Owner para todos — foi o que o teste manual produziu, e
-  // torna todo jogador dono da pagina dos outros.
+  // DEC-042: a ENTRADA nasce Owner para que o jogador possa CRIAR paginas proprias. O
+  // isolamento entre cadernos nao vem daqui — vem do ownership explicito de cada pagina
+  // (ver `ensureSessionPage`). Trocar este valor por OBSERVER devolve o jogador a condicao
+  // de so escrever nas paginas que o modulo abriu por ele.
   const entry = await JournalEntry.create({
     name: entryName,
     folder: folder?.id ?? folder?._id ?? null,
-    ownership: { default: OWNERSHIP.OBSERVER },
+    ownership: { default: OWNERSHIP.OWNER },
     flags: { [MODULE_ID]: { playerNotesFor: quest.id ?? null } }
   });
 
@@ -158,7 +194,10 @@ export async function ensureSessionPage({ entry, session, owners = [], content =
     return { status: "missing-create-embedded", uuid: null, page: null };
   }
 
-  const ownership = { default: OWNERSHIP.INHERIT };
+  // DEC-042: `default` EXPLICITO, nunca INHERIT. A entrada e Owner (para o jogador poder
+  // criar paginas); herdar isso faria cada jogador dono do caderno de todos os outros.
+  // Declarado na pagina, o valor menor prevalece sobre o do documento-mae.
+  const ownership = { default: OWNERSHIP.OBSERVER };
   for (const userId of owners) ownership[userId] = OWNERSHIP.OWNER;
 
   const [page] = await entry.createEmbeddedDocuments("JournalEntryPage", [
