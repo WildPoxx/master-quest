@@ -20,6 +20,7 @@ import {
 } from "../quest/quest-store.js";
 import { buildQuestDetailsViewModel } from "../quest/quest-view-model.js";
 import { diffQuestForLog, logToMarkdown, sessionHeading } from "../quest/quest-log-diff.js";
+import { sessionsToSeal, toggleWrapUp } from "../quest/quest-wrapup.js";
 import { SEVERITIES, currentSession, makeId, normalizeClue, normalizeComplication, normalizeDilemma, normalizeLogEntry, normalizeObjective, normalizeOutcome, normalizeReward, normalizeSession, reorderById } from "../quest/quest-schema.js";
 import { readAllQuests } from "../quest/quest-store.js";
 // DEC-038 (0.25): as notas do jogador moram no Journal; a aba as espelha e aponta.
@@ -436,10 +437,11 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
     /**
      * DEC-038: cria o caderno de Journal desta quest, com previa (DEC-004).
      *
-     * O que a previa mostra: onde a entrada nasce, com que nome, e quais paginas. O que a
-     * criacao faz: entrada Observer na pasta `MasterQuest / Player Notes`, uma pagina por
-     * sessao com os jogadores como donos DA PAGINA, e a prosa que ja estava no campo
-     * migrada para "Before session records" — nada se apaga.
+     * O que a previa mostra: onde a entrada nasce, com que nome, quais paginas e QUEM FICA
+     * DONO DO QUE (DEC-042 — permissao e a parte irreversivel-por-descuido). O que a
+     * criacao faz: entrada Owner dos jogadores na pasta `MasterQuest / Player Notes`, uma
+     * pagina por sessao com o jogador daquela sessao como dono e os demais em leitura, e a
+     * prosa que ja estava no campo migrada para "Before session records" — nada se apaga.
      */
     async createPlayerNotes() {
       const quest = this.quest;
@@ -456,10 +458,7 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
       }
 
       // Jogadores donos da propria pagina; o Mestre ja e dono de tudo por ser GM.
-      const owners = Array.from(this.game?.users ?? [])
-        .filter((user) => user?.isGM !== true && user?.active !== false)
-        .map((user) => user.id)
-        .filter(Boolean);
+      const owners = playerUserIds(this.game);
 
       const legacy = (quest.playernotes ?? "").trim();
       if (legacy) {
@@ -507,7 +506,11 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
       const session = (quest.sessions ?? []).find((s) => s.number === number)
         ?? { number: number ?? 1, date: "", title: "" };
 
-      const page = await ensureSessionPage({ entry, session, owners: [] });
+      // DEC-042: a pagina criada pelo push nasce com os mesmos donos da criada pelo
+      // caderno. Antes ia com lista vazia — sob `INHERIT` isso passava despercebido, mas
+      // com `default: OBSERVER` explicito a pagina nasceria sem dono nenhum e o jogador
+      // nao poderia escrever nela, que e exatamente o problema que a DEC-038 resolve.
+      const page = await ensureSessionPage({ entry, session, owners: playerUserIds(this.game) });
       if (!page.page) return { status: "no-page" };
 
       const result = await appendToSessionPage({
@@ -570,11 +573,18 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
      * o status — status e a ficcao; Wrap Up e fechar o caderno. Com o caderno fechado, o
      * botao de relatorio gera a ata consolidada em Markdown (leitura pura, como o
      * snapshot).
+     *
+     * 0.26 (DEC-043): fechar o caderno SELA todas as sessoes; reabrir nao desselar. A
+     * regra inteira mora em `toggleWrapUp` — aqui so se avisa quantas sessoes o gesto
+     * alcancou, porque um efeito colateral silencioso em cima de outro documento e
+     * exatamente o que a DEC-004 existe para impedir.
      */
     activateWrapupHandlers(root) {
       root.querySelector("[data-action='toggle-wrapup']")?.addEventListener("click", async (event) => {
         event.preventDefault();
-        await this.commit((draft) => ({ ...draft, wrappedUp: draft.wrappedUp !== true }));
+        const sealing = sessionsToSeal(this.quest);
+        await this.commit((draft) => toggleWrapUp(draft));
+        if (sealing > 0) notifyInfo(`${sealing} session(s) sealed with the wrap-up.`, this.ui);
       });
 
       root.querySelector("[data-action='wrapup-report']")?.addEventListener("click", async (event) => {
@@ -2080,6 +2090,26 @@ export async function confirmDialog({ game = globalThis.game, title = "", conten
 }
 
 /**
+ * Ids dos usuarios que sao JOGADORES — os que recebem OWNER na propria pagina (DEC-042).
+ *
+ * O Mestre fica de fora por ser GM: ele ja alcanca tudo, e inscreve-lo explicitamente so
+ * criaria uma segunda fonte de verdade sobre a permissao dele. Usuario desativado
+ * (`active === false`) tambem fica de fora; qualquer outro estado conta como jogador.
+ *
+ * Existe como funcao propria porque DOIS caminhos criam pagina — o botao do caderno e o
+ * push do Log — e ate a 0.25.0 eles discordavam: o segundo passava lista vazia.
+ *
+ * @param {object} [game] O game do Foundry.
+ * @returns {string[]} Os ids.
+ */
+export function playerUserIds(game = globalThis.game) {
+  return Array.from(game?.users ?? [])
+    .filter((user) => user?.isGM !== true && user?.active !== false)
+    .map((user) => user?.id)
+    .filter(Boolean);
+}
+
+/**
  * Previa da criacao do caderno (DEC-004): nada e escrito antes desta confirmacao.
  *
  * @param {object} plan O resultado de `planPlayerNotes`.
@@ -2095,6 +2125,8 @@ export async function confirmPlan(plan, { game = globalThis.game } = {}) {
     title: "Create the players' note",
     content: `<p>A Journal entry named <strong>${esc(plan.entryName)}</strong> will be created in
       <em>${esc(plan.folderPath)}</em>, with these pages:</p>${pages}
-      <p>The entry stays Observer; each page is owned by the players. Nothing is deleted.</p>`
+      <p><strong>Who owns what (DEC-042):</strong> the entry is owned by the players, so they
+      can add pages of their own; each session page is owned by its player and stays
+      read-only to the others. Nothing is deleted, ever.</p>`
   });
 }
