@@ -411,6 +411,18 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
         });
       });
 
+      // Apagar sessao (Mario, 2026-08-07). So chega aqui quem esta desselado: o botao nao
+      // se desenha em sessao selada (renderSessionDelete). O gesto leva a sessao e as
+      // linhas de Log dela; nao toca na pagina de Journal; e nao precisa mexer na sessao
+      // corrente, porque `currentSession` e a de maior numero e recua sozinha. Ver
+      // `deleteSession` para o porque de cada uma das tres.
+      root.querySelectorAll("[data-action='session-delete']").forEach((node) => {
+        node.addEventListener("click", async (event) => {
+          event.preventDefault();
+          await this.deleteSession({ number: Number(node.dataset.sessionNumber) });
+        });
+      });
+
       // DEC-038: abre a pagina de Journal da sessao. O modulo aponta; o conteudo mora la.
       root.querySelectorAll("[data-action='open-session-page']").forEach((node) => {
         node.addEventListener("click", async (event) => {
@@ -529,6 +541,59 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
       }
 
       return result;
+    }
+
+    /**
+     * Apagar uma sessao (Mario, 2026-08-07).
+     *
+     * A guarda e o SELO, e ela e dupla: o botao nao se desenha em sessao selada
+     * (`renderSessionDelete`), e este metodo recusa a operacao se for chamado assim mesmo.
+     * Nao ha dialogo de confirmacao por decisao expressa de Mario — desselar ja e o gesto
+     * deliberado, e pedir um segundo gesto logo depois e cerimonia, nao salvaguarda (mesmo
+     * raciocinio que a DEC-043 aplicou ao Wrap Up).
+     *
+     * A sessao leva junto AS LINHAS DE LOG dela (Mario, 2026-08-07, escolhendo entre as
+     * tres formas possiveis). Apagar apaga, sem historico de exclusao — e o mesmo criterio
+     * que a DEC-039 ja fixara para o Clear log. O que segura a mao do Mestre e o SELO,
+     * antes do gesto, nao um arrependimento depois dele.
+     *
+     * Isso tambem fecha um buraco: "New session" numera por `maior + 1`, entao uma linha
+     * orfa deixada por uma sessao apagada seria ADOTADA pela proxima sessao a reusar o
+     * numero. Levando as linhas junto, nao sobra orfa para ser readotada.
+     *
+     * O que este metodo nunca toca: o documento de Journal da sessao. `pageUuid` some, a
+     * pagina fica — nenhum caminho do modulo apaga documento de conteudo (DEC-038).
+     */
+    async deleteSession({ number } = {}) {
+      const quest = this.quest;
+      if (!quest) return { status: "no-quest" };
+
+      const target = (quest.sessions ?? []).find((s) => s.number === number);
+      if (!target) return { status: "no-session" };
+      if (target.sealed) {
+        notifyInfo(`Session ${number} is sealed — unseal it first.`, this.ui);
+        return { status: "sealed" };
+      }
+
+      const doomedEntries = (quest.log ?? []).filter((entry) => entry.session === number).length;
+      const keptPage = Boolean(target.pageUuid);
+
+      await this.commit((draft) => ({
+        ...draft,
+        sessions: (draft.sessions ?? []).filter((s) => s.number !== number),
+        log: (draft.log ?? []).filter((entry) => entry.session !== number)
+      }));
+
+      // Sem dialogo — o desselar ja foi o gesto deliberado —, mas com numeros: o Mestre
+      // precisa saber quanto se foi junto, e o que sobreviveu apesar do gesto.
+      const parts = [];
+      if (doomedEntries) parts.push(`${doomedEntries} log ${doomedEntries === 1 ? "entry" : "entries"} deleted`);
+      if (keptPage) parts.push("the players' page kept");
+      notifyInfo(
+        parts.length ? `Session ${number} deleted — ${parts.join(", ")}.` : `Session ${number} deleted.`,
+        this.ui
+      );
+      return { status: "deleted", deletedEntries: doomedEntries, keptPage };
     }
 
     /**
@@ -1162,6 +1227,7 @@ function renderSessionControl(model) {
         <span class="mq-session-number" ${model.canEdit ? `contenteditable="true" data-session-field="number" data-session-number="${session.number}"` : ""}>${session.number}</span>
         <span class="mq-session-date" ${model.canEdit ? `contenteditable="true" data-session-field="date" data-session-number="${session.number}"` : ""}>${esc(session.date)}</span>
         <span class="${cls("mq-session-title", !session.title && "is-pending")}" ${model.canEdit ? `contenteditable="true" data-session-field="title" data-session-number="${session.number}"` : ""}>${esc(session.title)}</span>
+        ${renderSessionDelete(model, session)}
       </span>`
     : `<span class="mq-session-current mq-session-none">No session opened yet.</span>`;
 
@@ -1176,6 +1242,27 @@ function renderSessionControl(model) {
     </div>
     ${renderSessionList(model)}
   `;
+}
+
+/**
+ * A lixeira da sessao (Mario, 2026-08-07). Ate a 0.25.0 havia como ABRIR sessao e nenhum
+ * jeito de remover a que fosse aberta por engano.
+ *
+ * Regra inteira, nas palavras de Mario: "um icone de lixo que funciona para deletar, mas
+ * ela apenas fica ativa quando esta destravado". O botao NAO EXISTE em sessao selada — o
+ * gesto de desselar e a confirmacao, e por isso nao ha dialogo. Isto estende o selo da
+ * DEC-039 sem contradiz-la: aquela decisao poupou a mao do Mestre item a item, e apagar a
+ * sessao inteira nao e gesto item a item, e remover o continente de um grupo do Log.
+ *
+ * A lixeira aparece nos dois lugares em que uma sessao se apresenta — a tira da corrente e
+ * a lista — porque a lista so se desenha a partir de duas sessoes, e a sessao unica aberta
+ * por engano e justamente o caso que originou o pedido.
+ */
+function renderSessionDelete(model, session) {
+  if (!model.canEdit || !session || session.sealed) return "";
+  return `<button type="button" class="mq-icon-button mq-danger" data-action="session-delete"
+      data-session-number="${session.number}"
+      title="Delete this session and its log entries — the players' page is kept"><i class="fa-solid fa-trash" inert></i></button>`;
 }
 
 /**
@@ -1213,7 +1300,7 @@ function renderSessionList(model) {
           <span class="mq-session-number" ${model.canEdit && !session.sealed ? `contenteditable="true" data-session-field="number" data-session-number="${session.number}"` : ""}>${session.number}</span>
           <span class="mq-session-date" ${model.canEdit && !session.sealed ? `contenteditable="true" data-session-field="date" data-session-number="${session.number}"` : ""}>${esc(session.date)}</span>
           <span class="${cls("mq-session-title", !session.title && "is-pending")}" ${model.canEdit && !session.sealed ? `contenteditable="true" data-session-field="title" data-session-number="${session.number}"` : ""}>${esc(session.title)}</span>
-          <span class="mq-session-row-actions">${link}${seal}</span>
+          <span class="mq-session-row-actions">${link}${seal}${renderSessionDelete(model, session)}</span>
         </li>`;
     })
     .join("");
@@ -1309,7 +1396,7 @@ function renderClue(clue, model) {
 
   const found = model.canEdit
     ? `<button type="button" class="${cls("mq-icon-button", "mq-found", clue.found && "is-found")}" data-action="toggle-clue-found" data-item-id="${esc(clue.id)}"
-        title="${clue.found ? "The party has this clue" : "Not found yet"}">
+        title="${clue.found ? "The party found this clue" : "Not found yet"}">
         <i class="fa-solid ${clue.found ? "fa-magnifying-glass-plus" : "fa-magnifying-glass"}" inert></i></button>`
     : `<span class="${cls("mq-icon-button", "mq-found", clue.found && "is-found")}"><i class="fa-solid ${clue.found ? "fa-magnifying-glass-plus" : "fa-magnifying-glass"}" inert></i></span>`;
 
