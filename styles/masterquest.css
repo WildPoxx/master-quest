@@ -1255,6 +1255,62 @@
   margin: 0 0 8px;
 }
 
+/* 0.29 — o indice de sessoes da aba de notas (Mario, 2026-08-08, desenhado por ele em
+   maquete). Derivado a cada render, nunca gravado. */
+.masterquest .mq-notes-index {
+  background: var(--mq-surface-1);
+  border: 1px solid var(--mq-border);
+  border-radius: var(--mq-radius-3);
+  padding: var(--mq-space-3) var(--mq-space-4);
+  margin: 0 0 var(--mq-space-3);
+}
+
+.masterquest .mq-note-section { margin: 0 0 var(--mq-space-5); }
+.masterquest .mq-note-section:last-child { margin-bottom: 0; }
+
+.masterquest .mq-note-section h4 {
+  font-family: var(--mq-font-display);
+  font-size: var(--mq-text-lg);
+  letter-spacing: var(--mq-display-tracking);
+  color: var(--mq-text);
+  margin: 0 0 var(--mq-space-1);
+}
+
+.masterquest .mq-note-section hr {
+  border: 0;
+  border-top: 1px solid var(--mq-border);
+  margin: 0 0 var(--mq-space-3);
+}
+
+/* Parece link de conteudo do Foundry porque e o que ele faz: abre um documento. Nao e o
+   elemento do core (DEC-029 nao se aplica): e botao nosso, com o handler nosso. */
+.masterquest .mq-note-link {
+  background: var(--mq-surface-2);
+  border: 1px solid var(--mq-border-strong);
+  border-radius: var(--mq-radius-2);
+  color: var(--mq-accent);
+  cursor: pointer;
+  font-size: var(--mq-text-sm);
+  padding: 2px var(--mq-space-2);
+  text-align: left;
+  white-space: normal;
+  width: auto;
+}
+
+.masterquest .mq-note-link:hover { background: var(--mq-surface-1); }
+.masterquest .mq-note-link i { margin-right: var(--mq-space-1); color: var(--mq-text-muted); }
+
+.masterquest .mq-note-empty {
+  font-style: italic;
+  color: var(--mq-text-muted);
+  font-size: var(--mq-text-sm);
+  margin: 0;
+}
+
+/* Com indice acima, o campo livre para de ocupar a aba inteira: ele e coadjuvante, e a
+   altura tem de dizer isso. */
+.masterquest .mq-notes-aside .mq-notes-read { min-height: 120px; }
+
 .masterquest .mq-log-sealed {
   margin-left: 8px;
   color: var(--mq-chip-outline);

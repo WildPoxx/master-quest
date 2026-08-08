@@ -20,7 +20,7 @@ import {
 } from "../quest/quest-store.js";
 import { buildQuestDetailsViewModel } from "../quest/quest-view-model.js";
 import { diffQuestForLog, logToMarkdown, sessionHeading, sessionOpenedEntry } from "../quest/quest-log-diff.js";
-import { appendUnderSection } from "../notes/session-sections.js";
+import { appendUnderSection, sectionHeading } from "../notes/session-sections.js";
 import { sessionsToSeal, toggleWrapUp } from "../quest/quest-wrapup.js";
 import { SEVERITIES, currentSession, makeId, normalizeClue, normalizeComplication, normalizeDilemma, normalizeLogEntry, normalizeObjective, normalizeOutcome, normalizeReward, normalizeSession, reorderById } from "../quest/quest-schema.js";
 import { readAllQuests } from "../quest/quest-store.js";
@@ -155,6 +155,11 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
         gmnotes: isGM ? await enrichQuestHtml(model.gmnotes, { secrets: true }) : "",
         gmcomments: isGM ? await enrichQuestHtml(model.gmcomments, { secrets: true }) : ""
       };
+
+      // 0.29: a morada do caderno depende da arvore de pastas do mundo, que so existe
+      // aqui — os renderizadores abaixo sao puros e nao consultam o Foundry. Calculado uma
+      // vez por render e entregue pronto ao desenho, como o enriquecimento acima.
+      model.notesFolder = planPlayerNotes({ quest, game: this.game });
 
       // Sumario do painel: derivado do HTML de exibicao, nunca gravado (ver buildPanelToc).
       const paneled = buildPanelToc(model.enriched.gmnotes);
@@ -1874,6 +1879,25 @@ function renderNotesTab(model, field, label) {
 
   const derived = field === "playernotes" ? renderDerivedProgress(model) : "";
   const journal = field === "playernotes" ? renderPlayerNotesJournalBar(model) : "";
+  const index = field === "playernotes" ? renderSessionNotesIndex(model) : "";
+
+  // 0.29: com indice, o campo livre deixa de ser o CORPO da aba e vira o que ele ja era na
+  // pratica desde a DEC-038 — um espaco de prosa solta, que nenhum push escreve. Ele
+  // continua existindo e editavel; o que muda e a moldura, que passa a dizer o que ele e.
+  // Caixa grande, vazia e sem rotulo foi exatamente o que fez Mario concluir, em mesa, que
+  // a aba estava quebrada quando o dado estava intacto.
+  //
+  // Para quem nao edita, campo vazio simplesmente nao se desenha: o jogador nao tem o que
+  // fazer com uma caixa que diz "Nothing here yet".
+  const hasProse = Boolean(String(model[field] ?? "").trim());
+  const aside = !index
+    ? body
+    : model.canEdit || hasProse
+      ? `<div class="mq-notes-aside">
+           <span class="mq-hint">Free prose, visible to the players. The session records live in the pages above.</span>
+           ${body}
+         </div>`
+      : "";
 
   return `
     <section class="${cls("mq-notes", isPanel && "mq-gm-panel")}">
@@ -1883,7 +1907,8 @@ function renderNotesTab(model, field, label) {
       ${toc}
       ${derived}
       ${journal}
-      ${body}
+      ${index}
+      ${aside}
     </section>
   `;
 }
@@ -1891,17 +1916,19 @@ function renderNotesTab(model, field, label) {
 /**
  * DEC-038: a ponte entre a aba e o caderno de Journal.
  *
- * Sem nota criada, o Mestre ve o botao que a cria (com previa, DEC-004). Com nota criada,
- * todos veem o link — e o link aponta para a PAGINA DA SESSAO CORRENTE, nao para a
- * entrada inteira (escolha de Mario, 2026-08-06): a sessao do caderno equivale um-para-um
- * a uma pagina do Journal, entao abrir a nota e abrir onde a mesa esta agora.
+ * 0.29 (Mario, teste de mesa da 0.28.0): a tira FIXA saiu. Ela repetia, presa no topo, o
+ * link da sessao corrente — *"esse botao preso la em cima (...) e totalmente desnecessario
+ * e acho que so complica mais"*. Quem abre a aba tres semanas depois quer a sessao 2, nao
+ * a corrente; o indice abaixo da todas.
+ *
+ * Sobra para esta tira o que so ela pode fazer: criar o caderno quando ele nao existe, e
+ * oferecer a MUDANCA DE MORADA quando o caderno existe fora do lugar novo. Sem esta
+ * segunda metade, um caderno criado antes da 0.29 nunca teria como se mudar.
  */
 function renderPlayerNotesJournalBar(model) {
-  const session = model.session;
-  const uuid = session?.pageUuid ?? model.playerNotesUuid ?? null;
+  if (!model.isGM) return "";
 
   if (!model.playerNotesUuid) {
-    if (!model.isGM) return "";
     return `
       <div class="mq-notes-journal">
         <span class="mq-hint">The players write in a Journal of their own — MasterQuest only points to it.</span>
@@ -1910,16 +1937,60 @@ function renderPlayerNotesJournalBar(model) {
       </div>`;
   }
 
-  const label = session?.pageUuid
-    ? `Open ${esc(sessionPageName(session))}`
-    : "Open the players' note";
+  if (!model.notesFolder?.willMove) return "";
 
   return `
     <div class="mq-notes-journal">
-      <button type="button" class="mq-bulk" data-action="open-session-page" data-uuid="${esc(uuid)}">
-        <i class="fa-solid fa-book-open" inert></i> ${label}</button>
-      ${model.isGM ? `<span class="mq-hint">Players are owners of their own page; this tab mirrors it.</span>` : ""}
+      <span class="mq-hint">This note still lives in the old place.</span>
+      <button type="button" class="mq-bulk" data-action="player-notes-create">
+        <i class="fa-solid fa-folder-tree" inert></i> Move to ${esc(model.notesFolder.folderPath)}</button>
     </div>`;
+}
+
+/**
+ * O indice de sessoes da aba de notas (Mario, 2026-08-08, desenhado por ele em maquete).
+ *
+ * Cada sessao vira uma secao: o cabecalho que `sectionHeading` ja produz para o Log e para
+ * o push, uma regua, e o LINK para a pagina daquela sessao — nao o texto dela. O texto
+ * mora no Journal desde a DEC-038; repeti-lo aqui criaria duas verdades sobre a mesma
+ * prosa.
+ *
+ * **Este bloco e DERIVADO e nunca gravado**, pelas mesmas tres razoes que valem para o
+ * sumario do GM Panel: renumerar ou apagar uma sessao deixaria link morto dentro de texto
+ * gravado; o ProseMirror reescreve marcacao que o Mestre nao digitou; e foi marcacao
+ * artesanal em campo de texto que produziu a perda de 3.804 caracteres em 2026-08-03.
+ *
+ * Sessao sem pagina aparece assim mesmo, dizendo por que esta vazia — a licao da 0.27.0,
+ * onde esconder a sessao unica fez Mario concluir que ela nao tinha sido gravada.
+ */
+function renderSessionNotesIndex(model) {
+  if (!model.playerNotesUuid) return "";
+
+  const sessions = [...(model.sessions ?? [])].sort((a, b) => (a.number ?? 0) - (b.number ?? 0));
+
+  // Caderno sem sessao nenhuma seria um beco sem saida: nao ha secao, logo nao ha link, e
+  // a aba nao teria como abrir o caderno. Aqui, e so aqui, o link e o da entrada inteira.
+  if (!sessions.length) {
+    return `
+      <div class="mq-notes-index">
+        <p class="mq-note-empty">No session opened yet — open one in the Details tab and it shows up here.</p>
+        <button type="button" class="mq-note-link" data-action="open-session-page" data-uuid="${esc(model.playerNotesUuid)}">
+          <i class="fa-solid fa-book-open" inert></i> Open the note</button>
+      </div>`;
+  }
+
+  const blocks = sessions.map((session) => {
+    const body = session.pageUuid
+      ? `<button type="button" class="mq-note-link" data-action="open-session-page" data-uuid="${esc(session.pageUuid)}">
+           <i class="fa-solid fa-file-lines" inert></i> ${esc(sessionPageName(session))}</button>`
+      : `<p class="mq-note-empty">No page yet — it is created on the first push from the Log.</p>`;
+
+    return `<section class="mq-note-section">
+      <h4>${esc(sectionHeading(session))}</h4><hr>${body}
+    </section>`;
+  });
+
+  return `<div class="mq-notes-index">${blocks.join("")}</div>`;
 }
 
 
@@ -2259,11 +2330,29 @@ export async function confirmPlan(plan, { game = globalThis.game } = {}) {
   const pages = plan.pages.length
     ? `<ul>${plan.pages.map((page) => `<li>${esc(page.name)}</li>`).join("")}</ul>`
     : `<p class="mq-hint">No session opened yet — the note starts empty.</p>`;
+  // 0.29: a morada mudou (Mario, 2026-08-08) e pode implicar MOVER um caderno que ja
+  // existe. Mover e mudanca de estado; previa que a omite nao cumpre a DEC-004 — mesma
+  // razao pela qual a previa passou a dizer quem fica dono do que, na 0.26.
+  const move = plan.willMove
+    ? `<p><strong>The existing note will MOVE</strong> from <em>${esc(plan.moveFrom || "the Journal root")}</em>
+       to <em>${esc(plan.folderPath)}</em>. Moving changes the folder only: the document keeps
+       its id, so every link to it — including this tab's — keeps working. Nothing is copied
+       and nothing is deleted; the old folder stays where it is.</p>`
+    : "";
+
+  const fallback = plan.folderMode === "module-root"
+    ? `<p class="mq-hint">This quest is not inside a folder, so the note falls back to the
+       module's own folder.</p>`
+    : plan.folderMode === "adventure-flat"
+      ? `<p class="mq-hint">The adventure folder is already at the maximum depth Foundry
+         allows, so the note is created directly inside it, without a subfolder.</p>`
+      : "";
+
   return confirmDialog({
     game,
-    title: "Create the players' note",
-    content: `<p>A Journal entry named <strong>${esc(plan.entryName)}</strong> will be created in
-      <em>${esc(plan.folderPath)}</em>, with these pages:</p>${pages}
+    title: plan.willMove ? "Move the players' note" : "Create the players' note",
+    content: `<p>A Journal entry named <strong>${esc(plan.entryName)}</strong> will live in
+      <em>${esc(plan.folderPath)}</em>, with these pages:</p>${pages}${move}${fallback}
       <p><strong>Who owns what (DEC-042):</strong> the entry is owned by the players, so they
       can add pages of their own; each session page is owned by its player and stays
       read-only to the others. Nothing is deleted, ever.</p>`

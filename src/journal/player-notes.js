@@ -38,8 +38,21 @@ const JOURNAL_ENTRY_TYPE = "JournalEntry";
 
 /** Raiz de tudo que o modulo cria ou le como conteudo, na arvore de Journals. */
 export const MASTERQUEST_FOLDER = "MasterQuest";
-/** Subpasta das notas de jogador. Profundidade 2 — o core permite 4 (FOLDER_MAX_DEPTH). */
+/** Subpasta das notas de jogador na raiz do modulo. Hoje so a QUEDA usa este caminho. */
 export const PLAYER_NOTES_FOLDER = "Player Notes";
+/**
+ * A morada nova (Mario, 2026-08-08): o caderno nasce DENTRO da pasta da aventura, numa
+ * subpasta com este nome — que veio dele, e nao do modulo: ele a criou a mao no mundo
+ * antes de pedir a mudanca.
+ *
+ * Emenda a resposta que ele mesmo dera em 2026-08-06 (DEC-038), depois de ver o resultado
+ * em mesa. O motivo, na leitura do Design: o caderno e materia DAQUELA aventura, nao
+ * infraestrutura do modulo — guardado com os fasciculos e os handouts, ele viaja junto se
+ * a aventura for exportada; na pasta `MasterQuest` fica orfao da historia que o produziu.
+ */
+export const PLAYER_NOTES_SUBFOLDER = "Player Notes' Entries";
+/** `Folder.MAX_DEPTH` do core 14.365. Guardado aqui para a queda ser explicita, nao muda. */
+export const FOLDER_MAX_DEPTH = 4;
 /** Titulo da pagina que recebe o que ja existia em `playernotes` antes da migracao. */
 export const LEGACY_PAGE_NAME = "Before session records";
 
@@ -88,6 +101,60 @@ export function sessionPageName(session) {
 }
 
 /**
+ * Onde o caderno desta quest deve morar, e por que.
+ *
+ * Puro: nao cria pasta, nao grava nada, nao depende de o Foundry estar rodando. So le a
+ * arvore e devolve o plano — para a previa poder anuncia-lo e o teste poder trava-lo.
+ *
+ * Tres modos, e as duas quedas existem porque a arvore do Mestre nao e obrigada a ter a
+ * forma que o modulo prefere:
+ *
+ * ```text
+ * adventure       o caso normal: <pasta da quest> / Player Notes' Entries
+ * adventure-flat  a pasta da aventura ja esta no nivel maximo do core, e nao cabe
+ *                 subpasta: a entrada nasce direto nela
+ * module-root     a quest nao esta em pasta nenhuma: cai no caminho antigo,
+ *                 MasterQuest / Player Notes. Queda declarada, nao erro
+ * ```
+ *
+ * @param {object} options
+ * @param {object} options.quest A quest normalizada (usa `quest.entry.folder`).
+ * @param {object} [options.game] O game do Foundry.
+ * @returns {object} `{mode, parent, path, label, reason}`.
+ */
+export function planNotesFolder({ quest, game = globalThis.game } = {}) {
+  const questFolder = resolveFolder(quest?.entry?.folder ?? quest?.folder ?? null, game);
+
+  if (!questFolder) {
+    return {
+      mode: "module-root",
+      parent: null,
+      path: [MASTERQUEST_FOLDER, PLAYER_NOTES_FOLDER],
+      label: `${MASTERQUEST_FOLDER} / ${PLAYER_NOTES_FOLDER}`,
+      reason: "the quest is not inside any folder"
+    };
+  }
+
+  if (folderDepth(questFolder, game) >= FOLDER_MAX_DEPTH) {
+    return {
+      mode: "adventure-flat",
+      parent: questFolder,
+      path: [],
+      label: folderLabel(questFolder, game),
+      reason: "the adventure folder is already at the core's maximum depth"
+    };
+  }
+
+  return {
+    mode: "adventure",
+    parent: questFolder,
+    path: [PLAYER_NOTES_SUBFOLDER],
+    label: `${folderLabel(questFolder, game)} / ${PLAYER_NOTES_SUBFOLDER}`,
+    reason: ""
+  };
+}
+
+/**
  * Previa da criacao (DEC-004): o que seria criado, sem escrever nada.
  *
  * @param {object} options
@@ -101,6 +168,9 @@ export function planPlayerNotes({ quest, game = globalThis.game } = {}) {
       status: "no-quest",
       entryName: "",
       folderPath: "",
+      folderMode: "",
+      moveFrom: "",
+      willMove: false,
       pages: [],
       ownership: PLAYER_NOTES_OWNERSHIP,
       existing: null
@@ -110,6 +180,13 @@ export function planPlayerNotes({ quest, game = globalThis.game } = {}) {
   const entryName = playerNotesEntryName(quest);
   const existing = findEntryByUuidOrName({ uuid: quest.playerNotesUuid, name: entryName, game });
   const sessions = toArray(quest.sessions);
+  const target = planNotesFolder({ quest, game });
+
+  // Mover e mudanca de estado, logo a previa TEM de dizer de onde para onde (DEC-004).
+  // Trocar `folder` nao muda o UUID do documento, entao `playerNotesUuid` e os `pageUuid`
+  // continuam validos — mas isso e razao para a operacao ser segura, nao para ser calada.
+  const moveFrom = existing ? folderLabel(resolveFolder(existing.folder ?? null, game), game) : "";
+  const willMove = Boolean(existing) && moveFrom !== target.label;
 
   const pages = sessions.map((session) => ({
     number: session.number,
@@ -123,7 +200,10 @@ export function planPlayerNotes({ quest, game = globalThis.game } = {}) {
   return {
     status: existing ? "update" : "create",
     entryName,
-    folderPath: `${MASTERQUEST_FOLDER} / ${PLAYER_NOTES_FOLDER}`,
+    folderPath: target.label,
+    folderMode: target.mode,
+    moveFrom,
+    willMove,
     pages,
     ownership: PLAYER_NOTES_OWNERSHIP,
     existing: existing ? { uuid: entryUuid(existing), name: existing.name } : null
@@ -150,13 +230,21 @@ export async function ensurePlayerNotesEntry({
 
   const entryName = playerNotesEntryName(quest);
   const existing = findEntryByUuidOrName({ uuid: quest.playerNotesUuid, name: entryName, game });
-  if (existing) return { status: "reused", uuid: entryUuid(existing), entry: existing };
+  const target = planNotesFolder({ quest, game });
+
+  // Caderno que ja existe nao se recria: muda de pasta, se a morada mudou. Trocar `folder`
+  // preserva o UUID, entao nenhum ponteiro se perde — nem `playerNotesUuid`, nem os
+  // `pageUuid` das sessoes, nem os links que o Mestre tenha espalhado pelo mundo.
+  if (existing) {
+    const moved = await moveEntryToFolder({ entry: existing, target, game, Folder });
+    return { status: moved ? "moved" : "reused", uuid: entryUuid(existing), entry: existing };
+  }
 
   if (typeof JournalEntry?.create !== "function") {
     return { status: "missing-journal-entry-create", uuid: null, entry: null };
   }
 
-  const folder = await ensureNestedFolder({ game, Folder, path: [MASTERQUEST_FOLDER, PLAYER_NOTES_FOLDER] });
+  const folder = await ensureFolderForPlan({ game, Folder, target });
 
   // DEC-042: a ENTRADA nasce Owner para que o jogador possa CRIAR paginas proprias. O
   // isolamento entre cadernos nao vem daqui — vem do ownership explicito de cada pagina
@@ -306,13 +394,79 @@ function findEntryByUuidOrName({ uuid, name, game }) {
   return journal.find((entry) => entry?.name === name) ?? null;
 }
 
+/** Uma pasta, venha ela como documento ou como id solto — o core devolve as duas formas. */
+function resolveFolder(raw, game) {
+  if (!raw) return null;
+  if (typeof raw === "string") {
+    return toArray(game?.folders).find((folder) => (folder?.id ?? folder?._id) === raw) ?? null;
+  }
+  return raw;
+}
+
+/** Id de uma pasta, tolerante as duas formas. */
+function folderId(raw) {
+  if (!raw) return null;
+  return typeof raw === "string" ? raw : raw.id ?? raw._id ?? null;
+}
+
+/** Quantos niveis a pasta tem acima de si, contando a propria. Raiz da arvore = 1. */
+function folderDepth(folder, game) {
+  let depth = 0;
+  let current = folder;
+  // A guarda de 16 e contra ciclo de pasta — que nao deveria existir, e que travaria o
+  // laco para sempre se existisse.
+  while (current && depth < 16) {
+    depth += 1;
+    current = resolveFolder(current.folder ?? null, game);
+  }
+  return depth;
+}
+
+/** O caminho legivel de uma pasta, do topo para baixo. Pasta nula = raiz, string vazia. */
+function folderLabel(folder, game) {
+  const parts = [];
+  let current = folder;
+  while (current && parts.length < 16) {
+    parts.unshift(current.name ?? "");
+    current = resolveFolder(current.folder ?? null, game);
+  }
+  return parts.join(" / ");
+}
+
+/** Garante a pasta de destino do plano, criando o que faltar. */
+async function ensureFolderForPlan({ game, Folder, target }) {
+  if (!target?.path?.length) return target?.parent ?? null;
+  return ensureNestedFolder({
+    game,
+    Folder,
+    path: target.path,
+    parentId: folderId(target.parent)
+  });
+}
+
+/**
+ * Move a entrada para a pasta do plano, se ela ja nao estiver la.
+ *
+ * Nao apaga a pasta de origem, ainda que ela fique vazia: nenhum caminho do modulo
+ * destroi documento ou pasta do mundo (DEC-038).
+ *
+ * @returns {Promise<boolean>} `true` se moveu de fato.
+ */
+async function moveEntryToFolder({ entry, target, game, Folder }) {
+  if (!entry || typeof entry.update !== "function") return false;
+  const desired = await ensureFolderForPlan({ game, Folder, target });
+  const desiredId = folderId(desired);
+  if (desiredId === folderId(entry.folder ?? null)) return false;
+  await entry.update({ folder: desiredId });
+  return true;
+}
+
 /**
  * Cria a arvore de pastas do caminho, um nivel por vez, reaproveitando o que existir.
- * `FOLDER_MAX_DEPTH` do core e 4; o caminho usado aqui tem 2.
+ * `parentId` diz de onde partir — a raiz da arvore, ou a pasta da aventura.
  */
-async function ensureNestedFolder({ game, Folder, path }) {
-  let parentId = null;
-  let current = null;
+async function ensureNestedFolder({ game, Folder, path, parentId = null }) {
+  let current = resolveFolder(parentId, game);
 
   for (const name of path) {
     const folders = toArray(game?.folders);
