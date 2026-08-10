@@ -66,8 +66,12 @@ test("a pagina declara o default explicitamente e nunca herda a entrada", async 
   });
 
   const { ownership } = created[0];
-  assert.notEqual(ownership.default, OWNERSHIP.INHERIT, "default INHERIT devolveria o defeito");
-  assert.equal(ownership.default, OWNERSHIP.OBSERVER);
+  assert.notEqual(ownership.default, OWNERSHIP.INHERIT, "declarado na pagina, sempre — nunca herdado");
+  // 0.30 (Mario, 2026-08-10): o default deixa de ser OBSERVER e passa a ser OWNER. O
+  // isolamento entre cadernos foi ABANDONADO por decisao dele — a pagina e por SESSAO e
+  // nunca teve dono individual, entao o caderno e da mesa inteira. O teste segue a
+  // decisao, nao a implementacao antiga.
+  assert.equal(ownership.default, OWNERSHIP.OWNER);
   assert.equal(ownership["user-a"], OWNERSHIP.OWNER);
   assert.equal(ownership["user-b"], OWNERSHIP.OWNER);
 });
@@ -82,14 +86,16 @@ test("a previa anuncia o desenho de permissao, nao so os nomes das paginas", () 
 
   assert.deepEqual(plan.ownership, PLAYER_NOTES_OWNERSHIP);
   assert.equal(plan.ownership.entry, OWNERSHIP.OWNER);
-  assert.equal(plan.ownership.pageDefault, OWNERSHIP.OBSERVER);
+  assert.equal(plan.ownership.pageDefault, OWNERSHIP.OWNER, "0.30: o caderno e da mesa");
 });
 
 test("o texto da previa diz ao Mestre quem fica dono do que", () => {
   const source = readFileSync(fileURLToPath(new URL("../src/ui/quest-details.js", import.meta.url)), "utf8");
   const preview = source.slice(source.indexOf("export async function confirmPlan"));
   assert.match(preview, /owned by the players/i);
-  assert.match(preview, /read-only to the others/i);
+  // 0.30: a previa deixa de prometer isolamento (que nunca existiu de fato) e passa a
+  // dizer o preco real do caderno compartilhado — que qualquer um pode apagar.
+  assert.match(preview, /erase/i);
 });
 
 test("os dois caminhos que criam pagina usam a mesma lista de donos", () => {
@@ -101,7 +107,11 @@ test("os dois caminhos que criam pagina usam a mesma lista de donos", () => {
   assert.equal((source.match(/playerUserIds\(this\.game\)/g) ?? []).length, 2);
 });
 
-test("a lista de donos e so de jogadores: o Mestre fica de fora, o desativado tambem", () => {
+test("a lista de donos e so de jogadores: o Mestre fica de fora, o offline NAO", () => {
+  // 0.30 — CORRECAO. Este teste travava o defeito em vez da regra: `beto` era excluido
+  // por `active: false`, que no Foundry significa DESCONECTADO, nao desativado. Caderno
+  // criado com a mesa offline nascia sem dono nenhum (verificado no mundo de Mario em
+  // 2026-08-10). Jogador continua jogador com o navegador fechado.
   const ids = playerUserIds({
     users: [
       { id: "gm", isGM: true },
@@ -111,7 +121,7 @@ test("a lista de donos e so de jogadores: o Mestre fica de fora, o desativado ta
     ]
   });
 
-  assert.deepEqual(ids, ["ana", "caio"]);
+  assert.deepEqual(ids, ["ana", "beto", "caio"]);
 });
 
 /* --- DEC-043: o Wrap Up sela -------------------------------------------------------- */

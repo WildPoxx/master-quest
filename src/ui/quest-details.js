@@ -26,11 +26,15 @@ import { SEVERITIES, currentSession, makeId, normalizeClue, normalizeComplicatio
 import { readAllQuests } from "../quest/quest-store.js";
 // DEC-038 (0.25): as notas do jogador moram no Journal; a aba as espelha e aponta.
 import {
+  LEGACY_PAGE_NAME,
   appendToSessionPage,
+  applyPageOwnership,
   ensurePlayerNotesEntry,
   ensureSessionPage,
   openJournalByUuid,
+  pagesNeedingOwnership,
   planPlayerNotes,
+  readSessionSummaries,
   sessionPageName
 } from "../journal/player-notes.js";
 import { cls, esc, escUrl, renderEmpty, renderStatusActions, safeHtml } from "./render-utils.js";
@@ -160,6 +164,19 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
       // aqui — os renderizadores abaixo sao puros e nao consultam o Foundry. Calculado uma
       // vez por render e entregue pronto ao desenho, como o enriquecimento acima.
       model.notesFolder = planPlayerNotes({ quest, game: this.game });
+
+      // 0.30: o painel passa a mostrar o que ESTA na pagina, e nao so o link para ela.
+      // Lido aqui, do proprio documento, e nunca gravado: sumario gravado envelheceria a
+      // cada edicao do jogador, e o painel voltaria a mentir. Lido, acompanha sozinho.
+      model.sessionNotes = await readSessionSummaries({ quest, fromUuid: globalThis.fromUuid });
+
+      // Quantas paginas ainda estao fora do desenho de permissao. So o Mestre ve, e so
+      // aparece quando ha o que consertar.
+      model.notesOwnershipPending = 0;
+      if (isGM && quest.playerNotesUuid) {
+        const entry = await (globalThis.fromUuid?.(quest.playerNotesUuid) ?? null);
+        if (entry) model.notesOwnershipPending = pagesNeedingOwnership(entry);
+      }
 
       // Sumario do painel: derivado do HTML de exibicao, nunca gravado (ver buildPanelToc).
       const paneled = buildPanelToc(model.enriched.gmnotes);
@@ -407,9 +424,27 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
         await this.render({ force: false });
       });
 
+      // 0.30: um gesto por tarefa. Criar, mudar de pasta, acertar permissao e limpar o
+      // campo antigo sao quatro coisas diferentes, e cada uma diz na tampa o que faz —
+      // botao que faz mais do que anuncia foi o que produziu a "Session 0" inesperada.
       root.querySelector("[data-action='player-notes-create']")?.addEventListener("click", async (event) => {
         event.preventDefault();
-        await this.createPlayerNotes();
+        await this.createPlayerNotes({ migrate: true });
+      });
+
+      root.querySelector("[data-action='player-notes-move']")?.addEventListener("click", async (event) => {
+        event.preventDefault();
+        await this.createPlayerNotes({ migrate: false });
+      });
+
+      root.querySelector("[data-action='player-notes-fix-ownership']")?.addEventListener("click", async (event) => {
+        event.preventDefault();
+        await this.fixPlayerNotesOwnership();
+      });
+
+      root.querySelector("[data-action='player-notes-clear-legacy']")?.addEventListener("click", async (event) => {
+        event.preventDefault();
+        await this.clearLegacyPlayerNotes();
       });
 
       root.querySelectorAll("[data-action='log-clear']").forEach((node) => {
@@ -479,12 +514,12 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
      * pagina por sessao com o jogador daquela sessao como dono e os demais em leitura, e a
      * prosa que ja estava no campo migrada para "Before session records" — nada se apaga.
      */
-    async createPlayerNotes() {
+    async createPlayerNotes({ migrate = true } = {}) {
       const quest = this.quest;
       if (!quest) return { status: "no-quest" };
 
       const plan = planPlayerNotes({ quest, game: this.game });
-      const confirmed = await confirmPlan(plan, { game: this.game });
+      const confirmed = await confirmPlan({ ...plan, migrate }, { game: this.game });
       if (!confirmed) return { status: "cancelled" };
 
       const { status, entry, uuid } = await ensurePlayerNotesEntry({ quest, game: this.game });
@@ -493,14 +528,23 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
         return { status };
       }
 
-      // Jogadores donos da propria pagina; o Mestre ja e dono de tudo por ser GM.
+      // Jogadores marcados por nome, alem do `default: OWNER` da pagina. Redundante por
+      // desenho: a permissao nao depende mais desta lista (0.30), mas registra-la mantem
+      // legivel, no proprio documento, quem a mesa era quando o caderno nasceu.
       const owners = playerUserIds(this.game);
 
-      const legacy = (quest.playernotes ?? "").trim();
+      // 0.30 (Mario, 2026-08-10): a migracao do texto antigo acontece SO na criacao. Ela
+      // rodava tambem no gesto de mudar de pasta, e Mario clicou em "mover" e ganhou uma
+      // pagina nova que nao tinha pedido. Mover move; mais nada.
+      const legacy = migrate ? (quest.playernotes ?? "").trim() : "";
       if (legacy) {
+        // O nome vem da constante que a PREVIA anuncia. Antes saia "Session 0", porque a
+        // rotina generica derivava o nome do numero — a previa prometia uma coisa e o
+        // modulo criava outra, e previa que mente deixa de ser previa.
         await ensureSessionPage({
           entry,
           session: { number: 0, date: "", title: "" },
+          name: LEGACY_PAGE_NAME,
           owners,
           content: legacy
         });
@@ -520,8 +564,79 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
         )
       }));
 
-      notifyInfo("Players' note created in the Journal.", this.ui);
-      return { status: "created", uuid };
+      notifyInfo(
+        status === "moved" ? "Players' note moved." : "Players' note created in the Journal.",
+        this.ui
+      );
+      return { status: status === "moved" ? "moved" : "created", uuid };
+    }
+
+    /**
+     * Poe as paginas que ja existem no desenho de permissao vigente.
+     *
+     * Gesto proprio, e nao efeito colateral de outro, porque permissao e a parte que nao
+     * se desfaz por descuido: entra com previa dizendo quantas paginas mudam e o que isso
+     * libera (DEC-004).
+     */
+    async fixPlayerNotesOwnership() {
+      const quest = this.quest;
+      const uuid = quest?.playerNotesUuid;
+      if (!uuid) return { status: "no-entry" };
+
+      const entry = await (globalThis.fromUuid?.(uuid) ?? null);
+      if (!entry) return { status: "missing-entry" };
+
+      const pending = pagesNeedingOwnership(entry);
+      if (!pending) {
+        notifyInfo("Every page is already owned by the players.", this.ui);
+        return { status: "nothing-to-do" };
+      }
+
+      const confirmed = await confirmDialog({
+        game: this.game,
+        title: "Give the players ownership",
+        content: `<p><strong>${pending}</strong> page(s) of this note will change permission to
+          <strong>Owner for all players</strong> — today they can only read them.</p>
+          <p>From then on any player can write in, and also erase from, any page of this note.
+          It is the shared notebook of the table, and that is deliberate. Nothing is deleted by
+          this operation; only the permission changes.</p>`
+      });
+      if (!confirmed) return { status: "cancelled" };
+
+      const result = await applyPageOwnership({ entry });
+      notifyInfo(`${result.fixed} page(s) now owned by the players.`, this.ui);
+      this.render();
+      return result;
+    }
+
+    /**
+     * Limpa o campo antigo de notas, depois de o conteudo ja viver no Journal.
+     *
+     * Nao apaga documento nenhum — apaga a COPIA que sobrou no flag da quest depois da
+     * migracao. A previa diz onde o texto continua, para o gesto nao parecer perda.
+     */
+    async clearLegacyPlayerNotes() {
+      const quest = this.quest;
+      const legacy = (quest?.playernotes ?? "").trim();
+      if (!legacy) return { status: "nothing-to-clear" };
+
+      const migrated = Boolean(quest?.playerNotesUuid);
+      const confirmed = await confirmDialog({
+        game: this.game,
+        title: "Clear the old free prose",
+        content: `<p>This clears the leftover text from the quest's own field.</p>
+          ${migrated
+            ? `<p>The same text already lives in the note's page <em>${esc(LEGACY_PAGE_NAME)}</em>
+               (older notes may still call it <em>Session 0</em>), so nothing is lost — this only
+               removes the second copy.</p>`
+            : `<p><strong>There is no Journal note yet</strong>, so this text exists only here.
+               Clearing it now loses it. Create the note first if you want to keep it.</p>`}`
+      });
+      if (!confirmed) return { status: "cancelled" };
+
+      await this.commit((draft) => ({ ...draft, playernotes: "" }));
+      notifyInfo("Old free prose cleared.", this.ui);
+      return { status: "cleared" };
     }
 
     /**
@@ -1889,12 +2004,25 @@ function renderNotesTab(model, field, label) {
   //
   // Para quem nao edita, campo vazio simplesmente nao se desenha: o jogador nao tem o que
   // fazer com uma caixa que diz "Nothing here yet".
+  // 0.30 (Mario, 2026-08-10): *"lembrar de tirar aquele residuo de baixo do Player Notes,
+  // que essa parte de baixo ai nao funciona mais"*. Com caderno criado, nada escreve neste
+  // campo — nem o push, nem o modulo. Ele deixa de ser superficie de trabalho e passa a ser
+  // o que sobrou da migracao: aparece SO se tiver texto, dito com todas as letras, e com o
+  // gesto de limpar ao lado. Campo vazio nao se desenha, porque caixa vazia sem funcao foi
+  // exatamente o que fez a aba parecer quebrada quando o dado estava intacto.
   const hasProse = Boolean(String(model[field] ?? "").trim());
   const aside = !index
     ? body
-    : model.canEdit || hasProse
+    : hasProse
       ? `<div class="mq-notes-aside">
-           <span class="mq-hint">Free prose, visible to the players. The session records live in the pages above.</span>
+           <div class="mq-notes-aside-head">
+             <span class="mq-hint">Old free prose, kept from before this note moved to the Journal.
+             Nothing writes here anymore.</span>
+             ${model.canEdit
+               ? `<button type="button" class="mq-bulk" data-action="player-notes-clear-legacy">
+                    <i class="fa-solid fa-broom" inert></i> Clear</button>`
+               : ""}
+           </div>
            ${body}
          </div>`
       : "";
@@ -1937,14 +2065,25 @@ function renderPlayerNotesJournalBar(model) {
       </div>`;
   }
 
-  if (!model.notesFolder?.willMove) return "";
+  const chores = [];
 
-  return `
-    <div class="mq-notes-journal">
-      <span class="mq-hint">This note still lives in the old place.</span>
-      <button type="button" class="mq-bulk" data-action="player-notes-create">
-        <i class="fa-solid fa-folder-tree" inert></i> Move to ${esc(model.notesFolder.folderPath)}</button>
-    </div>`;
+  if (model.notesFolder?.willMove) {
+    chores.push(`
+      <button type="button" class="mq-bulk" data-action="player-notes-move">
+        <i class="fa-solid fa-folder-tree" inert></i> Move to ${esc(model.notesFolder.folderPath)}</button>`);
+  }
+
+  // 0.30: so aparece quando ha o que consertar, e diz o numero. Botao permanente que nao
+  // faz nada na maioria dos cliques ensina o Mestre a ignora-lo.
+  if (model.notesOwnershipPending > 0) {
+    chores.push(`
+      <button type="button" class="mq-bulk" data-action="player-notes-fix-ownership">
+        <i class="fa-solid fa-user-pen" inert></i> Give the players ownership (${model.notesOwnershipPending})</button>`);
+  }
+
+  if (!chores.length) return "";
+
+  return `<div class="mq-notes-journal">${chores.join("")}</div>`;
 }
 
 /**
@@ -1980,13 +2119,29 @@ function renderSessionNotesIndex(model) {
   }
 
   const blocks = sessions.map((session) => {
-    const body = session.pageUuid
-      ? `<button type="button" class="mq-note-link" data-action="open-session-page" data-uuid="${esc(session.pageUuid)}">
-           <i class="fa-solid fa-file-lines" inert></i> ${esc(sessionPageName(session))}</button>`
-      : `<p class="mq-note-empty">No page yet — it is created on the first push from the Log.</p>`;
+    if (!session.pageUuid) {
+      return `<section class="mq-note-section">
+        <h4>${esc(sectionHeading(session))}</h4><hr>
+        <p class="mq-note-empty">No page yet — it is created on the first push from the Log.</p>
+      </section>`;
+    }
+
+    // 0.30 (Mario, 2026-08-10): as linhas que ele empurra sao resumos curtos, e ele quer
+    // le-las AQUI, sem abrir o documento — *"seria interessante que essas coisas
+    // aparecessem no texto do painel de visualizacao"*. Vem da propria pagina, entao o
+    // painel nunca discorda dela.
+    const summary = model.sessionNotes?.[session.number];
+    const lines = (summary?.lines ?? []).map((line) => `<p class="mq-note-line">${safeHtml(line)}</p>`).join("");
+    const more = summary?.more
+      ? `<p class="mq-note-empty">and ${summary.more} more — open the page to read it all.</p>`
+      : "";
+    const empty = !lines && !more ? `<p class="mq-note-empty">Nothing written in this session yet.</p>` : "";
 
     return `<section class="mq-note-section">
-      <h4>${esc(sectionHeading(session))}</h4><hr>${body}
+      <h4>${esc(sectionHeading(session))}</h4><hr>
+      ${lines}${more}${empty}
+      <button type="button" class="mq-note-link" data-action="open-session-page" data-uuid="${esc(session.pageUuid)}">
+        <i class="fa-solid fa-file-lines" inert></i> ${esc(sessionPageName(session))}</button>
     </section>`;
   });
 
@@ -2303,8 +2458,9 @@ export async function confirmDialog({ game = globalThis.game, title = "", conten
  * Ids dos usuarios que sao JOGADORES — os que recebem OWNER na propria pagina (DEC-042).
  *
  * O Mestre fica de fora por ser GM: ele ja alcanca tudo, e inscreve-lo explicitamente so
- * criaria uma segunda fonte de verdade sobre a permissao dele. Usuario desativado
- * (`active === false`) tambem fica de fora; qualquer outro estado conta como jogador.
+ * criaria uma segunda fonte de verdade sobre a permissao dele. Conta sem funcao
+ * (`role: NONE`) tambem fica de fora; qualquer outro estado conta como jogador, esteja
+ * ele conectado ou nao.
  *
  * Existe como funcao propria porque DOIS caminhos criam pagina — o botao do caderno e o
  * push do Log — e ate a 0.25.0 eles discordavam: o segundo passava lista vazia.
@@ -2313,8 +2469,13 @@ export async function confirmDialog({ game = globalThis.game, title = "", conten
  * @returns {string[]} Os ids.
  */
 export function playerUserIds(game = globalThis.game) {
+  // 0.30 — CORRECAO. A versao anterior filtrava por `user.active !== false`, e no Foundry
+  // `active` significa CONECTADO AGORA, nao "conta habilitada". O efeito, verificado no
+  // mundo de Mario em 2026-08-10: caderno criado com a mesa offline nascia com lista de
+  // donos VAZIA, e os cinco jogadores ficavam em Observer, sem conseguir escrever. Quem
+  // decide quem e jogador e a funcao (`role`), nao a presenca no servidor.
   return Array.from(game?.users ?? [])
-    .filter((user) => user?.isGM !== true && user?.active !== false)
+    .filter((user) => user?.isGM !== true && (user?.role ?? 1) > 0)
     .map((user) => user?.id)
     .filter(Boolean);
 }
@@ -2353,8 +2514,8 @@ export async function confirmPlan(plan, { game = globalThis.game } = {}) {
     title: plan.willMove ? "Move the players' note" : "Create the players' note",
     content: `<p>A Journal entry named <strong>${esc(plan.entryName)}</strong> will live in
       <em>${esc(plan.folderPath)}</em>, with these pages:</p>${pages}${move}${fallback}
-      <p><strong>Who owns what (DEC-042):</strong> the entry is owned by the players, so they
-      can add pages of their own; each session page is owned by its player and stays
-      read-only to the others. Nothing is deleted, ever.</p>`
+      <p><strong>Who owns what:</strong> the entry and every page are owned by the players —
+      this is the shared notebook of the table, so any of them can write in it, and also erase
+      from it. Nothing is deleted by MasterQuest, ever.</p>`
   });
 }

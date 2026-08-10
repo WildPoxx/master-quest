@@ -59,13 +59,33 @@ export const LEGACY_PAGE_NAME = "Before session records";
 export const OWNERSHIP = Object.freeze({ INHERIT: -1, NONE: 0, LIMITED: 1, OBSERVER: 2, OWNER: 3 });
 
 /**
- * DEC-042: o desenho de permissao do caderno, num lugar so, para a previa (DEC-004) poder
+ * O desenho de permissao do caderno, num lugar so, para a previa (DEC-004) poder
  * ANUNCIA-LO e o teste poder trava-lo. Mudanca de permissao e o tipo de coisa que uma
  * previa nao pode omitir: e a parte irreversivel-por-descuido da operacao.
+ *
+ * 0.30 — EMENDA a DEC-042, por decisao de Mario em 2026-08-10, depois de ver o resultado
+ * em mesa: *"tem que ser deles, nao apenas observavel por eles. Essas entradas de jornal,
+ * eles fazem o que eles quiserem. E o caderninho deles."*
+ *
+ * A pagina passa a nascer `default: OWNER`. O que isso corrige e o que isso abandona:
+ *
+ * CORRIGE um defeito real. O desenho anterior marcava dono por dono, a partir de
+ * `playerUserIds` — que so lista quem esta CONECTADO. Caderno criado com a mesa offline
+ * nascia sem dono nenhum: os cinco jogadores de Mario ficaram em Observer, sem conseguir
+ * escrever. Verificado no export do mundo em 2026-08-10.
+ *
+ * ABANDONA o isolamento entre cadernos, deliberadamente. E a leitura correta do que o
+ * documento sempre foi: **a pagina e por SESSAO, nao por jogador** — `sessions[]` nunca
+ * teve campo de dono, entao "o jogador daquela sessao" era figura de linguagem que a
+ * implementacao nao tinha como cumprir. A pagina e o caderno da MESA.
+ *
+ * PRECO ACEITO, escrito para nao ser descoberto depois: qualquer jogador pode apagar o
+ * que outro escreveu na mesma pagina. E o regime de um caderno passado de mao em mao, e
+ * foi pedido nessas palavras.
  */
 export const PLAYER_NOTES_OWNERSHIP = Object.freeze({
   entry: OWNERSHIP.OWNER,
-  pageDefault: OWNERSHIP.OBSERVER,
+  pageDefault: OWNERSHIP.OWNER,
   pageOwner: OWNERSHIP.OWNER
 });
 
@@ -270,10 +290,10 @@ export async function ensurePlayerNotesEntry({
  * @param {string} [options.content] HTML inicial da pagina.
  * @returns {Promise<object>} `{status, uuid, page}`.
  */
-export async function ensureSessionPage({ entry, session, owners = [], content = "" } = {}) {
+export async function ensureSessionPage({ entry, session, owners = [], content = "", name: forcedName } = {}) {
   if (!entry || !session) return { status: "no-target", uuid: null, page: null };
 
-  const name = sessionPageName(session);
+  const name = text(forcedName) || sessionPageName(session);
   const pages = toArray(entry.pages);
   const existing = pages.find((page) => page?.name === name);
   if (existing) return { status: "reused", uuid: pageUuid(entry, existing), page: existing };
@@ -282,11 +302,13 @@ export async function ensureSessionPage({ entry, session, owners = [], content =
     return { status: "missing-create-embedded", uuid: null, page: null };
   }
 
-  // DEC-042: `default` EXPLICITO, nunca INHERIT. A entrada e Owner (para o jogador poder
-  // criar paginas); herdar isso faria cada jogador dono do caderno de todos os outros.
-  // Declarado na pagina, o valor menor prevalece sobre o do documento-mae.
-  const ownership = { default: OWNERSHIP.OBSERVER };
-  for (const userId of owners) ownership[userId] = OWNERSHIP.OWNER;
+  // 0.30: `default` EXPLICITO e OWNER — a pagina e o caderno da MESA. Continua explicito,
+  // nunca INHERIT, porque valor declarado na pagina e o que se pode ler no diagrama de
+  // permissao sem adivinhar de onde ele veio. Os donos nomeados seguem sendo marcados,
+  // quando houver lista, mas a permissao nao DEPENDE mais dela — foi essa dependencia que
+  // produziu paginas sem dono nenhum quando a mesa estava offline.
+  const ownership = { default: PLAYER_NOTES_OWNERSHIP.pageDefault };
+  for (const userId of owners) ownership[userId] = PLAYER_NOTES_OWNERSHIP.pageOwner;
 
   const [page] = await entry.createEmbeddedDocuments("JournalEntryPage", [
     {
@@ -310,9 +332,22 @@ export async function ensureSessionPage({ entry, session, owners = [], content =
  * editor) arrastava `<span style="scrollbar-color:...">` e colava as linhas umas nas
  * outras — visto no export de 2026-08-06. Escrever pelo modulo elimina os dois defeitos.
  *
- * Idempotencia: cada linha carrega o id da entrada de log de origem num comentario HTML,
- * e a que ja estiver la nao entra de novo. E o remedio para a linha duplicada observada
- * na Session 4 do teste de mesa.
+ * Idempotencia por TEXTO VISIVEL, e a mudanca merece explicacao porque contradiz o que o
+ * projeto acreditava.
+ *
+ * Ate a 0.29 cada linha levava o id da entrada de log num comentario HTML invisivel
+ * (`<!--mq:id-->`), e a garantia de nao duplicar dependia dele. **O carimbo nao sobrevive
+ * ao Foundry.** Verificado no export do mundo de Mario em 2026-08-10: a pagina da Sessao 3
+ * tinha cinco paragrafos escritos pelo modulo e ZERO carimbos — e, por isso, duas linhas
+ * repetidas. O nucleo higieniza o HTML da pagina e come o comentario.
+ *
+ * Isso derruba a afirmacao da DEC-038 de que o push para a PAGINA era idempotente
+ * enquanto o push para o campo nao era: os dois duplicavam. Ninguem tinha olhado dentro da
+ * pagina ate agora.
+ *
+ * Comparar o texto visivel resolve o caso real (clicar duas vezes) e nao depende de nada
+ * que um editor possa apagar. Limite honesto: se o Mestre EDITAR a linha depois, ela deixa
+ * de ser identica e um push novo entra outra vez.
  *
  * @param {object} options
  * @param {object} options.page A pagina de Journal.
@@ -323,22 +358,138 @@ export async function appendToSessionPage({ page, lines = [] } = {}) {
   if (!page || typeof page.update !== "function") return { status: "no-page", appended: 0, skipped: 0 };
 
   const current = page.text?.content ?? "";
+  const seen = new Set(paragraphsOf(current).map(plainText));
   const fresh = [];
   let skipped = 0;
 
   for (const line of lines) {
-    const marker = `<!--mq:${line.id}-->`;
-    if (line.id && current.includes(marker)) {
+    const key = plainText(line.html);
+    if (key && seen.has(key)) {
       skipped += 1;
       continue;
     }
-    fresh.push(`<p>${line.html}${line.id ? marker : ""}</p>`);
+    if (key) seen.add(key);
+    fresh.push(`<p>${line.html}</p>`);
   }
 
   if (!fresh.length) return { status: "nothing-to-append", appended: 0, skipped };
 
   await page.update({ text: { content: `${current}${fresh.join("")}` } });
   return { status: "appended", appended: fresh.length, skipped };
+}
+
+/**
+ * Os paragrafos de um HTML, na ordem, sem os vazios.
+ *
+ * @param {string} html O conteudo.
+ * @returns {string[]} O HTML INTERNO de cada `<p>`.
+ */
+export function paragraphsOf(html) {
+  const out = [];
+  const re = /<p[^>]*>([\s\S]*?)<\/p>/gi;
+  let match;
+  while ((match = re.exec(String(html ?? "")))) {
+    const inner = match[1];
+    if (plainText(inner)) out.push(inner);
+  }
+  return out;
+}
+
+/** O texto puro de um trecho de HTML, normalizado para comparacao. */
+function plainText(html) {
+  return String(html ?? "")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLocaleLowerCase();
+}
+
+/** As tags que sobrevivem ao sumario: enfase, e nada mais. */
+const SUMMARY_TAGS = /<(?!\/?(?:strong|em|b|i)\b)[^>]*>/gi;
+
+/**
+ * O sumario de uma pagina, para o painel exibir sem abrir o documento.
+ *
+ * Puro e sem Foundry: recebe HTML, devolve as primeiras linhas e quantas ficaram de fora.
+ * Mantem so marcacao de enfase — link, imagem e script saem, porque o painel nao e o
+ * documento e nao deve tentar se passar por ele.
+ *
+ * @param {string} html O conteudo da pagina.
+ * @param {object} [options]
+ * @param {number} [options.limit] Quantas linhas mostrar.
+ * @returns {object} `{lines, more}`.
+ */
+export function summarizePageContent(html, { limit = 4 } = {}) {
+  const all = paragraphsOf(html).map((line) => line.replace(SUMMARY_TAGS, "").trim()).filter(Boolean);
+  return { lines: all.slice(0, limit), more: Math.max(0, all.length - limit) };
+}
+
+/**
+ * Le o sumario da pagina de cada sessao. Async porque resolve UUID contra o mundo; fica
+ * FORA dos desenhadores, que sao puros e testaveis sem Foundry.
+ *
+ * @param {object} options
+ * @param {object} options.quest A quest normalizada.
+ * @param {Function} [options.fromUuid] Resolvedor de UUID, injetavel.
+ * @param {number} [options.limit] Linhas por sessao.
+ * @returns {Promise<object>} Mapa `numero da sessao -> {lines, more}`.
+ */
+export async function readSessionSummaries({ quest, fromUuid = globalThis.fromUuid, limit = 4 } = {}) {
+  const out = {};
+  if (!quest || typeof fromUuid !== "function") return out;
+
+  for (const session of toArray(quest.sessions)) {
+    if (!session?.pageUuid) continue;
+    try {
+      const page = await fromUuid(session.pageUuid);
+      out[session.number] = summarizePageContent(page?.text?.content ?? "", { limit });
+    } catch (error) {
+      console.error(`${MODULE_ID} | failed to read session page ${session.pageUuid}`, error);
+    }
+  }
+
+  return out;
+}
+
+/**
+ * Poe as paginas ja existentes no desenho de permissao vigente (0.30: `default: OWNER`).
+ *
+ * Existe porque decisao de permissao nao alcanca retroativamente o que ja foi criado: o
+ * caderno de Mario nasceu com as paginas em Observer e os cinco jogadores nao conseguiam
+ * escrever. Sem este gesto, cada caderno antigo precisaria ser consertado a mao, pagina
+ * por pagina, no dialogo do Foundry.
+ *
+ * @param {object} options
+ * @param {object} options.entry A entrada de Journal.
+ * @returns {Promise<object>} `{status, fixed, total}`.
+ */
+export async function applyPageOwnership({ entry } = {}) {
+  const pages = toArray(entry?.pages);
+  if (!pages.length) return { status: "no-pages", fixed: 0, total: 0 };
+
+  let fixed = 0;
+  for (const page of pages) {
+    if (page?.ownership?.default === PLAYER_NOTES_OWNERSHIP.pageDefault) continue;
+    if (typeof page?.update !== "function") continue;
+    await page.update({ ownership: { ...(page.ownership ?? {}), default: PLAYER_NOTES_OWNERSHIP.pageDefault } });
+    fixed += 1;
+  }
+
+  return { status: "done", fixed, total: pages.length };
+}
+
+/**
+ * Quantas paginas ainda estao fora do desenho de permissao vigente. Leitura pura, para a
+ * previa poder dizer o numero antes de qualquer escrita.
+ *
+ * @param {object} entry A entrada de Journal.
+ * @returns {number} Quantas paginas seriam alteradas.
+ */
+export function pagesNeedingOwnership(entry) {
+  return toArray(entry?.pages).filter(
+    (page) => page?.ownership?.default !== PLAYER_NOTES_OWNERSHIP.pageDefault
+  ).length;
 }
 
 /**

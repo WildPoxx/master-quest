@@ -44,6 +44,36 @@ function esc(value) {
     .replace(/"/g, "&quot;");
 }
 
+/** O texto puro de um trecho de HTML, normalizado para comparacao. */
+function plainText(html) {
+  return String(html ?? "")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLocaleLowerCase();
+}
+
+/**
+ * A secao daquele cabecalho ja contem esta linha?
+ *
+ * Procura DENTRO da secao, nao no campo inteiro: a mesma frase pode legitimamente
+ * aparecer em duas sessoes diferentes — "a porta se abre" na 2 e na 5 sao dois fatos.
+ */
+function sectionHasLine(html, heading, line) {
+  const pattern = new RegExp(`<h4[^>]*>\\s*${heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*</h4>`, "i");
+  const found = html.match(pattern);
+  if (found?.index === undefined) return false;
+
+  const start = found.index + found[0].length;
+  const section = html.slice(start, sectionEnd(html, start));
+  const target = plainText(line);
+
+  return [...section.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)].some(
+    (match) => plainText(match[1]) === target
+  );
+}
+
 /**
  * Onde termina a secao que comeca em `start`: no proximo `<h4>` ou no fim do texto.
  *
@@ -79,6 +109,12 @@ export function appendUnderSection(html, { session = null, line = "" } = {}) {
   const current = String(html ?? "");
   const paragraph = `<p>${line}</p>`;
   const heading = sectionHeading(session);
+
+  // 0.30: a MESMA linha nao entra duas vezes. Ate a 0.29 o campo nao tinha defesa nenhuma
+  // — e a pagina de Journal tinha uma que nao funcionava, porque dependia de um comentario
+  // HTML que o Foundry apaga. Comparar texto visivel nao depende de nada invisivel.
+  // Limite honesto: linha EDITADA pelo Mestre deixa de ser identica e um push novo entra.
+  if (plainText(line) && sectionHasLine(current, heading, line)) return current;
 
   // Casa o cabecalho pelo TEXTO, nao pela marcacao: depois de o Mestre editar o campo no
   // ProseMirror, o `<h4>` volta com atributos e espacos que nao estavam aqui quando o

@@ -1307,9 +1307,26 @@
   margin: 0;
 }
 
-/* Com indice acima, o campo livre para de ocupar a aba inteira: ele e coadjuvante, e a
-   altura tem de dizer isso. */
-.masterquest .mq-notes-aside .mq-notes-read { min-height: 120px; }
+/* 0.30 — as linhas que o Mestre empurrou, lidas da propria pagina e exibidas aqui. */
+.masterquest .mq-note-line {
+  margin: 0 0 var(--mq-space-1);
+  font-size: var(--mq-text-sm);
+  color: var(--mq-text);
+}
+
+.masterquest .mq-note-section .mq-note-link { margin-top: var(--mq-space-2); }
+
+/* O que sobrou da migracao. So aparece com texto dentro; 120px produziam uma janelinha
+   com rolagem propria dentro de uma aba com espaco de sobra — reclamado em mesa. */
+.masterquest .mq-notes-aside .mq-notes-read { min-height: 220px; }
+
+.masterquest .mq-notes-aside-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mq-space-2);
+  margin: 0 0 var(--mq-space-1);
+}
 
 .masterquest .mq-log-sealed {
   margin-left: 8px;

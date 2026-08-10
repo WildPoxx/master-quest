@@ -126,7 +126,10 @@ test("o push para a pagina escreve HTML limpo e nao duplica linha", async () => 
 
   const first = await appendToSessionPage({ page, lines: [{ id: "abc", html: "<strong>Clue found</strong>: Os sonhos" }] });
   assert.equal(first.appended, 1);
-  assert.match(page.text.content, /^<p><strong>Clue found<\/strong>: Os sonhos<!--mq:abc--><\/p>$/);
+  // 0.30: o carimbo invisivel `<!--mq:abc-->` saiu. Ele NAO sobrevivia ao Foundry — o
+  // export do mundo de Mario em 2026-08-10 mostrou cinco paragrafos escritos pelo modulo
+  // e zero carimbos, com duas linhas repetidas. A defesa passou a ser o texto visivel.
+  assert.match(page.text.content, /^<p><strong>Clue found<\/strong>: Os sonhos<\/p>$/);
   // Sem `style` inline: o caminho manual (copiar do painel, colar no editor) arrastava
   // spans de scrollbar-color e colava as linhas umas nas outras.
   assert.equal(/style=/.test(page.text.content), false);

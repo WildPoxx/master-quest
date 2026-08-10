@@ -207,7 +207,9 @@ test("caderno fora do lugar novo oferece a mudanca; no lugar certo, nao oferece 
   const fora = view(COM_CADERNO, {
     notesFolder: { willMove: true, folderPath: "Módulo 01 / Player Notes' Entries" }
   });
-  assert.ok(fora.includes('data-action="player-notes-create"'), "a mudanca reusa o gesto, com previa propria");
+  // 0.30: mover ganhou gesto PROPRIO. Reusar o de criar fazia a migracao rodar junto, e
+  // Mario clicou em "mover" e ganhou uma pagina nova que nao pediu.
+  assert.ok(fora.includes('data-action="player-notes-move"'), "mover e mover, e nada mais");
   assert.ok(fora.includes("Move to"));
 
   const dentro = view(COM_CADERNO);
