@@ -63,11 +63,23 @@ test("o campo do Log grava as quebras que o Mestre digitou", async () => {
   // Com o campo em foco quem quebrava era o `<br>` do navegador; ao sair, `textContent`
   // o ignorava e gravava texto corrido — a linha voltava a estourar a janela. `innerText`
   // le o texto como ele aparece.
+  // Procura no arquivo inteiro, e nao numa fatia de tamanho fixo a partir do metodo: a
+  // primeira versao deste teste fatiava 1600 caracteres, e o proprio comentario que
+  // explica a correcao empurrou a linha para fora da fatia. O CI pegou. Teste que depende
+  // do tamanho de um comentario testa a coisa errada.
+  // Recorte por MARCO, nao por tamanho: a primeira versao deste teste fatiava 1600
+  // caracteres a partir do metodo, e o proprio comentario que explica a correcao empurrou
+  // a linha para fora da fatia — o CI pegou. Teste que depende do tamanho de um comentario
+  // esta testando a coisa errada.
+  //
+  // E o recorte precisa ser do bloco DO LOG: outros campos de uma linha so (numero da
+  // sessao, data, nome de pista) seguem lendo `textContent` de proposito, porque neles
+  // quebra de linha nao existe.
   const source = await readFile(resolve("src/ui/quest-details.js"), "utf8");
-  const at = source.indexOf("activateLogHandlers(root)");
-  const block = source.slice(at, at + 1600);
+  const from = source.indexOf("activateLogHandlers(root)");
+  const block = source.slice(from, source.indexOf("data-action='log-delete'", from));
 
-  assert.match(block, /node\.innerText/);
+  assert.match(block, /const value = \(node\.innerText/);
   assert.doesNotMatch(block, /const value = node\.textContent\.trim\(\)/, "textContent perde a quebra");
 });
 
