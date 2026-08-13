@@ -294,7 +294,15 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
         root.querySelectorAll(selector).forEach((node) => {
           node.addEventListener("blur", async () => {
             const id = node.dataset.logReason ?? node.dataset.logTarget ?? node.dataset.logChange;
-            const value = node.textContent.trim();
+            // 0.30.1: `innerText`, nao `textContent`. Ao apertar Enter o navegador poe um
+            // `<br>` (ou um `<div>`) dentro do campo; `textContent` os ignora e a quebra
+            // MORRE na gravacao. Mario descreveu o sintoma com precisao: "quebro linhas e
+            // a janela se ajeita, mas assim que tiro o mouse do campo ela volta a se
+            // estender". Era isso: com o campo em foco quem quebrava era o `<br>` do
+            // navegador; ao sair, gravava-se texto corrido e o desenho voltava ao que era.
+            // `innerText` le o texto como ele APARECE, com as quebras, e o `pre-wrap` do
+            // CSS as devolve na tela.
+            const value = (node.innerText ?? node.textContent ?? "").trim();
             await this.commit((draft) => ({
               ...draft,
               log: (draft.log ?? []).map((item) => (item.id === id ? { ...item, [field]: value } : item))
@@ -355,10 +363,15 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
             // enviado. O campo da aba so recebe o texto quando ainda nao ha caderno.
             if (field === "playernotes" && this.quest?.playerNotesUuid) {
               const sent = await this.pushToPlayerNotesJournal(item, written);
-              notifyInfo(
-                sent.status === "appended" ? "Sent to the players' note." : "Already in the players' note.",
-                this.ui
-              );
+
+              // 0.30.1: falha deixa de se disfarcar de sucesso. Ate aqui, QUALQUER status
+              // diferente de "appended" — caderno apagado do mundo, pagina que nao nasce,
+              // entrada inalcancavel — era anunciado como "Already in the players' note".
+              // O Mestre via uma mensagem tranquilizadora e o texto nao existia em lugar
+              // nenhum. Aviso que mente sobre gravacao e pior que aviso nenhum.
+              if (sent.status === "appended") notifyInfo("Sent to the players' note.", this.ui);
+              else if (sent.status === "nothing-to-append") notifyInfo("Already in the players' note.", this.ui);
+              else notifyWarning(`MasterQuest could not write to the players' note (${sent.status}).`, this.ui);
               return;
             }
 

@@ -1462,13 +1462,15 @@
   margin: 12px 0 4px;
   padding-bottom: 2px;
 }
-.masterquest .mq-log-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.masterquest .mq-log-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 12px; }
 .masterquest .mq-log-table td {
   padding: 5px 6px;
   border-bottom: 1px solid var(--mq-border);
   vertical-align: top;
 }
-.masterquest .mq-log-target { width: 40%; }
+/* As tres somam 90%: os 10% restantes, mais os 78px da coluna de acoes, sao a folga que
+   impede a tabela de disputar espaco com os botoes. */
+.masterquest .mq-log-target { width: 34%; }
 .masterquest .mq-log-type {
   font-family: var(--mq-font-display);
   font-size: 9px;
@@ -1477,8 +1479,16 @@
   color: var(--mq-text-muted);
   margin-left: 6px;
 }
-.masterquest .mq-log-change { width: 24%; color: var(--mq-text-muted); white-space: nowrap; }
-.masterquest .mq-log-reason { width: 36%; }
+/* 0.30.1 — a tabela do Log NUNCA passa da largura da janela.
+   O defeito, relatado por Mario em 2026-08-13 com um texto longo de mesa: esta coluna
+   tinha `white-space: nowrap`. Sem poder quebrar, ela exigia a largura inteira do texto;
+   as porcentagens viravam sugestao (table-layout auto), as outras colunas eram espremidas
+   ate quebrar palavra a palavra, e a coluna das ACOES saia da janela. Como largura de
+   coluna e da TABELA e nao da linha, UMA entrada longa levava os botoes de TODAS as linhas
+   daquele grupo junto — "agora qualquer log fica com o botao perdido".
+   `table-layout: fixed` faz as porcentagens valerem de verdade e trava o total em 100%. */
+.masterquest .mq-log-change { width: 24%; color: var(--mq-text-muted); }
+.masterquest .mq-log-reason { width: 32%; }
 .masterquest .mq-log-reason-text { display: block; min-height: 1.2em; border-radius: 3px; padding: 1px 5px; }
 .masterquest .mq-log-reason-text.is-pending {
   border: 1px dashed var(--mq-border-strong);
@@ -1621,10 +1631,22 @@
  *
  * `display: flex` aqui tambem conserta o empilhamento vertical dos tres icones numa
  * celula estreita, visivel na captura que Mario enviou. */
+/* Com `table-layout: fixed` a largura precisa ser real: 0.1% daria uma coluna de nada e
+   os tres icones vazariam para fora dela. */
 .masterquest .mq-log-row-actions {
-  width: 0.1%;
+  width: 78px;
   white-space: nowrap;
   text-align: right;
+}
+
+/* Texto de mesa e prosa: quebra onde der, e RESPEITA as quebras que o Mestre digitou.
+   Sem `pre-wrap`, apertar Enter gravava a quebra no dado (o campo salva textContent) e o
+   HTML a colapsava em espaco no redesenho — o texto "voltava" ao corrido. */
+.masterquest .mq-log-target-text,
+.masterquest .mq-log-change-text,
+.masterquest .mq-log-reason-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .masterquest .mq-log-row-actions > * {
