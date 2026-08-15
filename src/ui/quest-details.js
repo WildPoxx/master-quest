@@ -2273,24 +2273,46 @@ function renderLogTab(model) {
 
 /**
  * DEC-031: o bloco derivado do Player Notes. Montado a CADA render a partir de
- * completed/granted; nada e gravado em playernotes — derivado que se grava vira
- * duplicata na proxima edicao. Objetivo oculto nunca entra, mesmo completo. Bloco
- * vazio nao se desenha.
+ * completed/granted e clues found+known; nada e gravado em playernotes — derivado que
+ * se grava vira duplicata na proxima edicao. Elemento oculto nunca entra, mesmo que
+ * seu estado de ficcao tenha avancado. Bloco vazio nao se desenha.
  */
 function renderDerivedProgress(model) {
   const objectives = model.objectives.filter((o) => o.completed && !o.hidden);
   const rewards = model.rewards.filter((r) => r.granted && !r.hidden);
-  if (!objectives.length && !rewards.length) return "";
+  // `found` diz que a mesa obteve a pista; `known` garante que os PCs podem le-la no
+  // painel. Sao eixos distintos por DEC-035, entao nao basta qualquer um isoladamente.
+  const clues = model.clues.filter((c) => c.found && c.known && !c.hidden);
+  if (!objectives.length && !rewards.length && !clues.length) return "";
 
-  const rows = [
-    ...objectives.map((o) => `<li><i class="fa-solid fa-check" inert></i> ${esc(o.name)}</li>`),
-    ...rewards.map((r) => `<li><i class="fa-solid fa-trophy" inert></i> ${esc(r.name)}</li>`)
-  ].join("");
+  const sections = [
+    {
+      title: "Objectives",
+      rows: objectives.map((o) => `<li><i class="fa-solid fa-check" inert></i> ${esc(o.name)}</li>`)
+    },
+    {
+      title: "Rewards",
+      rows: rewards.map((r) => `<li><i class="fa-solid fa-trophy" inert></i> ${esc(r.name)}</li>`)
+    },
+    {
+      title: "Clues",
+      rows: clues.map((c) => `<li><i class="fa-solid fa-magnifying-glass-plus" inert></i> ${esc(c.name)}</li>`)
+    }
+  ].filter((section) => section.rows.length);
+
+  const content = sections
+    .map((section) => `
+      <section class="mq-derived-section">
+        <h4 class="mq-derived-section-title">${section.title}</h4>
+        <ul class="mq-derived-list">${section.rows.join("")}</ul>
+      </section>
+    `)
+    .join("");
 
   return `
     <aside class="mq-derived" aria-label="Progress so far">
       <h3>Progress so far</h3>
-      <ul>${rows}</ul>
+      ${content}
     </aside>
   `;
 }

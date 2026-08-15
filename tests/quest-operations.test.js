@@ -754,7 +754,7 @@ test("0.23: o carimbo de sessao entra em cada linha e o Markdown agrupa por sess
   assert.ok(legacy.includes("## Before session records"));
 });
 
-test("0.22: o bloco derivado do Player Notes mostra so o nao-oculto concluido/concedido, e nada e gravado", () => {
+test("0.30.3: o bloco derivado do Player Notes separa progresso e mostra so clues encontradas, conhecidas e visiveis", () => {
   const quest = questFixture({
     id: "q", name: "Q", status: "active",
     playernotes: "<p>anotacao do jogador</p>",
@@ -765,6 +765,12 @@ test("0.22: o bloco derivado do Player Notes mostra so o nao-oculto concluido/co
     rewards: [
       { id: "r1", name: "ganho visivel", granted: true, hidden: false },
       { id: "r2", name: "ganho oculto", granted: true, hidden: true }
+    ],
+    clues: [
+      { id: "c1", name: "pista encontrada, conhecida e visivel", found: true, known: true, hidden: false },
+      { id: "c2", name: "pista encontrada mas oculta", found: true, known: true, hidden: true },
+      { id: "c3", name: "pista encontrada mas ainda desconhecida", found: true, known: false, hidden: false },
+      { id: "c4", name: "pista conhecida mas nao encontrada", found: false, known: true, hidden: false }
     ]
   });
 
@@ -775,6 +781,15 @@ test("0.22: o bloco derivado do Player Notes mostra so o nao-oculto concluido/co
   assert.equal(html.includes("feito e oculto"), false, "objetivo oculto nunca entra, mesmo completo");
   assert.ok(html.includes("ganho visivel"));
   assert.equal(html.includes("ganho oculto"), false);
+  assert.ok(html.includes(">Objectives<"));
+  assert.ok(html.includes(">Rewards<"));
+  assert.ok(html.includes(">Clues<"));
+  assert.ok(html.includes("fa-magnifying-glass-plus"));
+  assert.ok(html.includes("pista encontrada, conhecida e visivel"));
+  assert.equal(html.includes("pista encontrada mas oculta"), false);
+  assert.equal(html.includes("pista encontrada mas ainda desconhecida"), false);
+  assert.equal(html.includes("pista conhecida mas nao encontrada"), false);
+  assert.ok(html.indexOf(">Rewards<") < html.indexOf(">Clues<"), "Clues ficam logo abaixo de Rewards");
   assert.equal(html.includes('contenteditable="true" data-log'), false);
 
   // bloco vazio nao se desenha

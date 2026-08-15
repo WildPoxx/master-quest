@@ -1519,9 +1519,18 @@
   border: none;
   margin: 0 0 4px;
 }
-.masterquest .mq-derived ul { list-style: none; margin: 0; padding: 0; }
-.masterquest .mq-derived li { font-size: 12px; padding: 2px 0; color: var(--mq-text); }
-.masterquest .mq-derived li i { color: var(--mq-accent); width: 16px; }
+.masterquest .mq-derived-section + .mq-derived-section { margin-top: 6px; }
+.masterquest .mq-derived-section-title {
+  color: var(--mq-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  margin: 0 0 2px;
+  text-transform: uppercase;
+}
+.masterquest .mq-derived-list { list-style: none; margin: 0; padding: 0; }
+.masterquest .mq-derived-list li { font-size: 12px; padding: 2px 0; color: var(--mq-text); }
+.masterquest .mq-derived-list li i { color: var(--mq-accent); width: 16px; }
 
 /* ===== 0.23.0 — Sessions, Log editorial, Wrap Up, contraste de tabela nas notas ===== */
 
