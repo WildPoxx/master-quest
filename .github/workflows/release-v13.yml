@@ -1,38 +1,31 @@
 # ---------------------------------------------------------------------------
-# MasterQuest — release automatizada
+# MasterQuest — beta compatível com Foundry VTT 13.351
 #
-# Como publicar uma versao:
-#   1. suba a versao no module.json (ex.: 0.15.0) e commite
-#   2. git tag v0.15.0 && git push origin main --tags
-#
-# Este workflow entao: roda test:ci, sincroniza o campo "download" do
-# module.json com a tag, empacota o master-quest.zip (sem tests/fixtures) e
-# publica a Release com module.json + zip anexados. O manifest "latest"
-# (releases/latest/download/module.json) passa a apontar para ela, e o Foundry
-# oferece a atualizacao sozinho.
+# A linha V13 vive na branch codex/compat-v13 e recebe tags com o sufixo
+# -v13.N, por exemplo v0.30.3-v13.0. Ela nunca publica em releases/latest:
+# o manifest estável dessa geração aponta diretamente para a branch de suporte.
 # ---------------------------------------------------------------------------
-name: Release
+name: Release V13 Beta
 
 on:
   push:
     tags:
-      - "v*"
+      - "v*-v13.*"
 
 permissions:
   contents: write
 
 jobs:
-  release:
-    if: ${{ !contains(github.ref_name, '-v13.') }}
+  release-v13:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "20.18.0"
 
-      - name: Testes (test:ci deve ficar 100% verde)
+      - name: Testes V13
         run: npm run test:ci
 
       - name: Conferir se a tag bate com o module.json
@@ -44,22 +37,24 @@ jobs:
             exit 1
           fi
 
-      - name: Sincronizar download URL com a tag
+      - name: Sincronizar download URL com a tag V13
         run: |
           jq --arg tag "$GITHUB_REF_NAME" \
-            '.download = "https://github.com/WildPoxx/master-quest/releases/download/\($tag)/master-quest.zip"' \
+            '.download = "https://github.com/WildPoxx/master-quest/releases/download/\($tag)/master-quest-v13.zip"' \
             module.json > module.json.tmp && mv module.json.tmp module.json
 
-      - name: Empacotar master-quest.zip
+      - name: Empacotar master-quest-v13.zip
         run: |
           mkdir -p /tmp/pkg/master-quest
           cp -r module.json README.md LICENSE data scripts src styles templates /tmp/pkg/master-quest/
-          cd /tmp/pkg && zip -rq "$GITHUB_WORKSPACE/master-quest.zip" master-quest
+          cd /tmp/pkg && zip -rq "$GITHUB_WORKSPACE/master-quest-v13.zip" master-quest
 
-      - name: Publicar Release
+      - name: Publicar pre-release V13
         uses: softprops/action-gh-release@v2
         with:
+          prerelease: true
+          name: MasterQuest ${{ github.ref_name }} — Foundry V13 beta
           files: |
-            master-quest.zip
+            master-quest-v13.zip
             module.json
           generate_release_notes: true

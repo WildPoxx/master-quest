@@ -268,7 +268,7 @@ test("importar export de Journal respeita o status escolhido", async () => {
 });
 
 test("os controles Destacar/Anexar do core sao filtrados conforme a configuracao", async () => {
-  const { filterHeaderControls, shouldHideDetachControls } = await import("../src/foundry/window-controls.js");
+  const { filterHeaderControls, registerWindowControlSettings, shouldHideDetachControls } = await import("../src/foundry/window-controls.js");
   const controls = [
     { action: "detach", label: "Detach" },
     { action: "attach", label: "Attach" },
@@ -287,4 +287,16 @@ test("os controles Destacar/Anexar do core sao filtrados conforme a configuracao
   const quebrado = { settings: { get: () => { throw new Error("not registered"); } } };
   assert.deepEqual(filterHeaderControls(controls, { game: quebrado }).map((c) => c.action), ["close"]);
   assert.deepEqual(filterHeaderControls(undefined, { game: {} }), []);
+
+  // Foundry 13.351 has no default Detach/Attach header controls. The compatibility
+  // line must neither register a dead setting nor filter controls owned by another app.
+  let registrations = 0;
+  const v13 = {
+    release: { generation: 13 },
+    settings: { register: () => { registrations += 1; } }
+  };
+  assert.equal(registerWindowControlSettings({ game: v13 }), false);
+  assert.equal(registrations, 0);
+  assert.equal(shouldHideDetachControls({ game: v13 }), false);
+  assert.deepEqual(filterHeaderControls(controls, { game: v13 }).map((c) => c.action), ["detach", "attach", "close"]);
 });

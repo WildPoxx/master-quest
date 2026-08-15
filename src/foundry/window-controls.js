@@ -16,6 +16,13 @@ export const HIDE_DETACH_SETTING = "hideDetachControls";
 /** Header control actions that come from Foundry core, not from MasterQuest. */
 const CORE_DETACH_ACTIONS = new Set(["detach", "attach"]);
 
+function supportsDetachControls(game) {
+  const generation = Number(game?.release?.generation);
+  // An incomplete test stub should preserve the V14 default. A real V13 Game always
+  // exposes release.generation, verified against 13.351.
+  return !Number.isFinite(generation) || generation >= 14;
+}
+
 /**
  * Register the setting. Safe to call when settings are unavailable.
  *
@@ -24,6 +31,7 @@ const CORE_DETACH_ACTIONS = new Set(["detach", "attach"]);
  * @returns {boolean} Whether the setting was registered.
  */
 export function registerWindowControlSettings({ game = globalThis.game } = {}) {
+  if (!supportsDetachControls(game)) return false;
   if (typeof game?.settings?.register !== "function") return false;
 
   game.settings.register(MODULE_ID, HIDE_DETACH_SETTING, {
@@ -48,6 +56,7 @@ export function registerWindowControlSettings({ game = globalThis.game } = {}) {
  * @returns {boolean} True when they should be hidden.
  */
 export function shouldHideDetachControls({ game = globalThis.game } = {}) {
+  if (!supportsDetachControls(game)) return false;
   if (typeof game?.settings?.get !== "function") return true;
   try {
     return game.settings.get(MODULE_ID, HIDE_DETACH_SETTING) !== false;

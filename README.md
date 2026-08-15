@@ -1,10 +1,10 @@
 # MasterQuest
 
-Módulo nativo de operações de quest para **Foundry VTT v14**: criação, organização e
+Linha beta de compatibilidade do módulo nativo de operações de quest para **Foundry VTT v13.351**: criação, organização e
 condução de aventuras pelo Mestre — objetivos com revelação controlada, recompensas,
 subquests, importação de aventuras com prévia e continuidade de campanha.
 
-**English:** MasterQuest is a native quest-operations module for Foundry VTT v14 —
+**English:** This is the Foundry VTT v13.351 beta compatibility line of MasterQuest —
 GM-side authoring, quest log, controlled reveal, adventure import with preview, and
 campaign continuity. It is system-agnostic with an optional SWADE profile. UI and
 notes are currently in Brazilian Portuguese; an English localization is planned.
@@ -29,14 +29,19 @@ notes are currently in Brazilian Portuguese; an English localization is planned.
 No Foundry, em **Add-on Modules → Install Module**, cole no campo **Manifest URL**:
 
 ```text
-https://github.com/WildPoxx/master-quest/releases/latest/download/module.json
+https://raw.githubusercontent.com/WildPoxx/master-quest/codex/compat-v13/module.json
 ```
 
 A partir daí o próprio Foundry oferece cada atualização — sem baixar ZIP na mão.
 
-Requisitos: **Foundry VTT v14** (verificado na build 14.365). Nenhuma dependência de
-sistema ou de outro módulo: o perfil SWADE ativa sozinho quando o sistema é SWADE, e
-o suporte ao Forien's Quest Log é apenas leitura de snapshots para importar legado.
+Requisitos: **Foundry VTT 13.351**. Esta é uma linha beta separada da V14: use-a em
+mundo de teste e mantenha backup antes de atualizar uma campanha. A primeira matriz de
+validação é **Cosmere 3.0.1** e **SWADE 5.2.6**; o núcleo continua sem dependência de
+sistema ou de outro módulo. O perfil SWADE ativa sozinho, e o suporte ao Forien's Quest
+Log é apenas leitura de snapshots para importar legado.
+
+Não instale este manifesto no Foundry V14. Para a linha V14, use o manifesto `latest`
+documentado na branch `main`.
 
 ## O que o módulo faz hoje
 
@@ -88,10 +93,11 @@ npm run test:ci    # subconjunto confiável; deve ficar 100% verde
 node --test tests/*.test.js
 ```
 
-O contrato de compatibilidade com o v14 é travado por
-`tests/foundry-v14-compat.test.js`, verificado contra o core real 14.365.
-Versionamento `0.MINOR.0` pré-1.0; cada release publica o ZIP instalável e o
-manifest na aba [Releases](https://github.com/WildPoxx/master-quest/releases).
+O contrato de compatibilidade desta linha é travado por
+`tests/foundry-v13-compat.test.js`, baseado no core real 13.351 e executado em Node
+20.18.0 no CI. A beta usa versões como `0.30.3-v13.0`; cada release publica
+`master-quest-v13.zip` e o manifest na aba
+[Releases](https://github.com/WildPoxx/master-quest/releases).
 
 ## Licença
 
