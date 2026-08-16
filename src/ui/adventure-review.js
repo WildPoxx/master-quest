@@ -1,6 +1,7 @@
 import { applySeedSuggestions, masterQuestDraftToSeed } from "../authoring/master-quest-authoring.js";
 import { MODULE_ID } from "../constants.js";
 import { notifyError, notifyInfo, notifyWarning } from "../foundry/environment.js";
+import { applyInterfaceSkin } from "../foundry/skin-settings.js";
 
 let ActiveReviewClass = null;
 let activeReview = null;
@@ -90,6 +91,7 @@ export function createMasterQuestAdventureReviewClass(ApplicationV2) {
     }
 
     _replaceHTML(result, content) {
+      applyInterfaceSkin(content, { game: this.game });
       content.replaceChildren(result);
       this.activateListeners(result);
     }
