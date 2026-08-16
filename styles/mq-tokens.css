@@ -168,3 +168,114 @@
     radial-gradient(circle at 78% 31%, rgba(239, 248, 255, 0.52) 0 1px, transparent 1.5px),
     radial-gradient(circle at 91% 72%, rgba(126, 196, 255, 0.35) 0 1px, transparent 1.5px);
 }
+
+/* Futurista — superficie escura neutra, ciano tecnico e leitura direta. */
+[data-mq-skin="sci-fi"].masterquest,
+[data-mq-skin="sci-fi"].mq-tokens {
+  --mq-surface-0: #0B1518;
+  --mq-surface-1: #132126;
+  --mq-surface-2: #1C3035;
+  --mq-chrome-bg: #061013;
+  --mq-on-chrome: #F0FCFC;
+  --mq-text: #EAF8F8;
+  --mq-text-muted: #B7CFD0;
+  --mq-accent: #4BCFC4;
+  --mq-accent-bright: #98F4EC;
+  --mq-on-accent: #051B19;
+  --mq-danger: #FF8E9A;
+  --mq-on-danger: #2B090E;
+  --mq-focus: #89F4EF;
+  --mq-highlight-bg: #1C6D70;
+  --mq-status-available: #78E5DF;
+  --mq-status-active: #4BCFC4;
+  --mq-status-completed: #8EE0B0;
+  --mq-status-failed: #FF8E9A;
+  --mq-status-inactive: #B7CFD0;
+  --mq-metal-bronze: #D99D62;
+  --mq-metal-silver: #D5E4E5;
+  --mq-metal-gold: #E7D173;
+  --mq-chip-outline: #77DDD6;
+  --mq-chip-active-bg: rgba(75, 207, 196, 0.24);
+  --mq-capture-bg: #1A5A60;
+  --mq-capture-ink: #EAF8F8;
+  --mq-capture-ink-edge: #98F4EC;
+  --mq-border: rgba(152, 244, 236, 0.26);
+  --mq-border-strong: rgba(152, 244, 236, 0.52);
+  --mq-shadow-1: 0 1px 4px rgba(0, 0, 0, 0.48);
+  --mq-shadow-2: 0 7px 22px rgba(0, 0, 0, 0.64);
+  --mq-grain: linear-gradient(135deg, rgba(75, 207, 196, 0.04), transparent 42%);
+}
+
+/* Investigacao Contemporanea — documento de campo: papel claro, carvao e tinta azul. */
+[data-mq-skin="investigacao-moderna"].masterquest,
+[data-mq-skin="investigacao-moderna"].mq-tokens {
+  --mq-surface-0: #EEE8DE;
+  --mq-surface-1: #FBF7EF;
+  --mq-surface-2: #DED5C8;
+  --mq-chrome-bg: #2D3235;
+  --mq-on-chrome: #FCF8F1;
+  --mq-text: #24292B;
+  --mq-text-muted: #586166;
+  --mq-accent: #2D6272;
+  --mq-accent-bright: #477B8C;
+  --mq-on-accent: #F6FCFE;
+  --mq-danger: #923B32;
+  --mq-on-danger: #FFF7F0;
+  --mq-focus: #315F77;
+  --mq-highlight-bg: #B9D6DD;
+  --mq-status-available: #315F77;
+  --mq-status-active: #2D6272;
+  --mq-status-completed: #3C6A4A;
+  --mq-status-failed: #923B32;
+  --mq-status-inactive: #586166;
+  --mq-metal-bronze: #795D3A;
+  --mq-metal-silver: #5E666A;
+  --mq-metal-gold: #725A1C;
+  --mq-chip-outline: #506C74;
+  --mq-chip-active-bg: rgba(45, 98, 114, 0.18);
+  --mq-capture-bg: #D9E8E8;
+  --mq-capture-ink: #2D4D56;
+  --mq-capture-ink-edge: #243B42;
+  --mq-border: rgba(36, 41, 43, 0.24);
+  --mq-border-strong: rgba(36, 41, 43, 0.46);
+  --mq-shadow-1: 0 1px 3px rgba(36, 41, 43, 0.17);
+  --mq-shadow-2: 0 4px 14px rgba(36, 41, 43, 0.24);
+  --mq-grain: linear-gradient(90deg, rgba(36, 41, 43, 0.035) 1px, transparent 1px);
+}
+
+/* Fantasia Medieval — pedra, pergaminho frio e heráldica contida; nao e a skin hyboriana. */
+[data-mq-skin="fantasia-medieval"].masterquest,
+[data-mq-skin="fantasia-medieval"].mq-tokens {
+  --mq-surface-0: #E8E2D2;
+  --mq-surface-1: #F3EFE5;
+  --mq-surface-2: #D1D3C1;
+  --mq-chrome-bg: #233726;
+  --mq-on-chrome: #F4F0E5;
+  --mq-text: #253024;
+  --mq-text-muted: #4F5D4D;
+  --mq-accent: #6B3A56;
+  --mq-accent-bright: #8C5771;
+  --mq-on-accent: #FFF7FA;
+  --mq-danger: #963B32;
+  --mq-on-danger: #FFF7F4;
+  --mq-focus: #365E67;
+  --mq-highlight-bg: #C9D5B6;
+  --mq-status-available: #365E67;
+  --mq-status-active: #6B3A56;
+  --mq-status-completed: #3F6A49;
+  --mq-status-failed: #963B32;
+  --mq-status-inactive: #4F5D4D;
+  --mq-metal-bronze: #7A5732;
+  --mq-metal-silver: #5F6964;
+  --mq-metal-gold: #6D581B;
+  --mq-chip-outline: #5B6C4C;
+  --mq-chip-active-bg: rgba(107, 58, 86, 0.18);
+  --mq-capture-bg: #DCE5CE;
+  --mq-capture-ink: #33462E;
+  --mq-capture-ink-edge: #24351F;
+  --mq-border: rgba(37, 48, 36, 0.24);
+  --mq-border-strong: rgba(37, 48, 36, 0.46);
+  --mq-shadow-1: 0 1px 3px rgba(37, 48, 36, 0.16);
+  --mq-shadow-2: 0 4px 14px rgba(37, 48, 36, 0.24);
+  --mq-grain: linear-gradient(145deg, rgba(73, 99, 58, 0.09), transparent 44%);
+}

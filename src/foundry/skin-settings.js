@@ -5,12 +5,18 @@ export const INTERFACE_SKIN_SETTING = "interfaceSkin";
 
 export const INTERFACE_SKINS = Object.freeze({
   parchment: "pergaminho",
-  cosmic: "cosmic"
+  cosmic: "cosmic",
+  sciFi: "sci-fi",
+  modernInvestigation: "investigacao-moderna",
+  medievalFantasy: "fantasia-medieval"
 });
 
 const INTERFACE_SKIN_CHOICES = Object.freeze({
   [INTERFACE_SKINS.parchment]: "Pergaminho Hyboriano",
-  [INTERFACE_SKINS.cosmic]: "Cosmic"
+  [INTERFACE_SKINS.cosmic]: "Cosmic",
+  [INTERFACE_SKINS.sciFi]: "Futurista",
+  [INTERFACE_SKINS.modernInvestigation]: "Investigação Contemporânea",
+  [INTERFACE_SKINS.medievalFantasy]: "Fantasia Medieval"
 });
 
 /**

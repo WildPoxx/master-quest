@@ -31,9 +31,18 @@ test("interface skin is a world setting with parchment as the safe default", () 
   assert.equal(config.scope, "world");
   assert.equal(config.config, true);
   assert.equal(config.default, INTERFACE_SKINS.parchment);
-  assert.deepEqual(Object.keys(config.choices), ["pergaminho", "cosmic"]);
+  assert.deepEqual(Object.keys(config.choices), [
+    "pergaminho",
+    "cosmic",
+    "sci-fi",
+    "investigacao-moderna",
+    "fantasia-medieval"
+  ]);
   assert.equal(getInterfaceSkin({ game }), INTERFACE_SKINS.cosmic);
   assert.equal(normalizeInterfaceSkin("removed-skin"), INTERFACE_SKINS.parchment);
+  for (const skin of Object.values(INTERFACE_SKINS)) {
+    assert.equal(normalizeInterfaceSkin(skin), skin);
+  }
 });
 
 test("skin is attached only to MasterQuest roots and live settings updates refresh open windows", () => {

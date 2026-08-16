@@ -28,11 +28,23 @@ test("token sheet defines the parchment skin and embeds Cinzel", async () => {
   assert.doesNotMatch(css, /:root/, "tokens nunca em :root para nao vazar para o Foundry");
 });
 
-test("token sheet defines the cosmic skin through the same semantic roles", async () => {
+test("every catalog skin defines the complete shared semantic token set", async () => {
   const css = await readFile(resolve("styles/mq-tokens.css"), "utf8");
+  const skins = ["cosmic", "sci-fi", "investigacao-moderna", "fantasia-medieval"];
+  const tokens = [
+    "surface-0", "surface-1", "surface-2", "chrome-bg", "on-chrome", "text", "text-muted",
+    "accent", "accent-bright", "on-accent", "danger", "on-danger", "focus", "highlight-bg",
+    "status-available", "status-active", "status-completed", "status-failed", "status-inactive",
+    "metal-bronze", "metal-silver", "metal-gold", "chip-outline", "chip-active-bg", "capture-bg",
+    "capture-ink", "capture-ink-edge", "border", "border-strong", "shadow-1", "shadow-2", "grain"
+  ];
 
-  assert.match(css, /\[data-mq-skin="cosmic"\]\.masterquest/);
-  for (const token of ["surface-0", "surface-1", "chrome-bg", "text", "accent", "border", "grain"]) {
-    assert.match(css, new RegExp(`--mq-${token}:`), `cosmic must define --mq-${token}`);
+  for (const skin of skins) {
+    const selector = new RegExp(`\\[data-mq-skin="${skin}"\\]\\.masterquest,[\\s\\S]*?\\n}`);
+    const block = css.match(selector)?.[0];
+    assert.ok(block, `${skin} must have its own token block`);
+    for (const token of tokens) {
+      assert.match(block, new RegExp(`--mq-${token}:`), `${skin} must define --mq-${token}`);
+    }
   }
 });
