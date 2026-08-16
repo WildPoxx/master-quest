@@ -1,6 +1,6 @@
 {
   "name": "master-quest",
-  "version": "0.30.3-v13.0",
+  "version": "0.30.3-v13.1",
   "private": true,
   "type": "module",
   "description": "Native Foundry VTT adventure and quest authoring module for MasterQuest GM operations.",
