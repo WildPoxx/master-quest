@@ -27,3 +27,12 @@ test("token sheet defines the parchment skin and embeds Cinzel", async () => {
   assert.match(css, /@font-face[\s\S]*Cinzel/);
   assert.doesNotMatch(css, /:root/, "tokens nunca em :root para nao vazar para o Foundry");
 });
+
+test("token sheet defines the cosmic skin through the same semantic roles", async () => {
+  const css = await readFile(resolve("styles/mq-tokens.css"), "utf8");
+
+  assert.match(css, /\[data-mq-skin="cosmic"\]\.masterquest/);
+  for (const token of ["surface-0", "surface-1", "chrome-bg", "text", "accent", "border", "grain"]) {
+    assert.match(css, new RegExp(`--mq-${token}:`), `cosmic must define --mq-${token}`);
+  }
+});

@@ -6,6 +6,7 @@
  */
 
 import { MODULE_ID } from "../constants.js";
+import { applyInterfaceSkin } from "../foundry/skin-settings.js";
 import { filterHeaderControls } from "../foundry/window-controls.js";
 import { notifyInfo, notifyWarning } from "../foundry/environment.js";
 import { enrichQuestHtml } from "../foundry/enrich.js";
@@ -210,6 +211,7 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
      */
     _replaceHTML(result, content) {
       const marks = captureScrollMarks(content);
+      applyInterfaceSkin(content, { game: this.game });
       content.replaceChildren(result);
       this.activateListeners(result);
       restoreScrollMarks(content, marks);

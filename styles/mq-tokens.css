@@ -107,3 +107,64 @@
   --mq-radius-1: 2px; --mq-radius-2: 4px; --mq-radius-3: 8px;
   --mq-radius-pill: 999px;
 }
+
+/* Cosmic — azul profundo, branco frio e pontos de luz procedurais.
+ * Referencia de atmosfera: fantasia cosmica/radiante; nao incorpora arte, marcas ou
+ * recursos visuais de sistemas de terceiros. Contraste: texto normal >= 4.5:1 nas
+ * superficies; acentos e ornamentos >= 3:1. */
+[data-mq-skin="cosmic"].masterquest,
+[data-mq-skin="cosmic"].mq-tokens {
+  /* Superficies */
+  --mq-surface-0: #07142B;
+  --mq-surface-1: #0D2142;
+  --mq-surface-2: #17355F;
+
+  /* Chrome */
+  --mq-chrome-bg: #040B1B;
+  --mq-on-chrome: #F7FBFF;
+
+  /* Texto */
+  --mq-text: #EAF3FF;
+  --mq-text-muted: #B9CBE5;
+
+  /* Acentos */
+  --mq-accent: #63B9FF;
+  --mq-accent-bright: #C5E5FF;
+  --mq-on-accent: #061426;
+  --mq-danger: #FF8995;
+  --mq-on-danger: #25070C;
+  --mq-focus: #91DBFF;
+  --mq-highlight-bg: #1D5B9A;
+
+  /* Status */
+  --mq-status-available: #7BDBFF;
+  --mq-status-active: #63B9FF;
+  --mq-status-completed: #8CE0B2;
+  --mq-status-failed: #FF8995;
+  --mq-status-inactive: #B9CBE5;
+
+  /* Metais */
+  --mq-metal-bronze: #E0A66B;
+  --mq-metal-silver: #D7E2F3;
+  --mq-metal-gold: #F3D77A;
+
+  /* Controles */
+  --mq-chip-outline: #8DCBFF;
+  --mq-chip-active-bg: rgba(99, 185, 255, 0.24);
+  --mq-capture-bg: #19457C;
+  --mq-capture-ink: #EAF3FF;
+  --mq-capture-ink-edge: #C5E5FF;
+
+  /* Contornos e profundidade */
+  --mq-border: rgba(197, 229, 255, 0.28);
+  --mq-border-strong: rgba(197, 229, 255, 0.55);
+  --mq-shadow-1: 0 1px 4px rgba(0, 0, 0, 0.46);
+  --mq-shadow-2: 0 7px 22px rgba(0, 0, 0, 0.62);
+
+  /* Pontos de luz discretos, sem imagem externa ou animacao. */
+  --mq-grain:
+    radial-gradient(circle at 12% 24%, rgba(239, 248, 255, 0.66) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 41% 67%, rgba(126, 196, 255, 0.42) 0 1px, transparent 1.7px),
+    radial-gradient(circle at 78% 31%, rgba(239, 248, 255, 0.52) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 91% 72%, rgba(126, 196, 255, 0.35) 0 1px, transparent 1.5px);
+}
