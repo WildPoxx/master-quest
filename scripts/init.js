@@ -3,6 +3,7 @@ import { injectMasterQuestJournalDirectoryButton } from "../src/ui/journal-direc
 import { MODULE_ID, MODULE_TITLE } from "../src/constants.js";
 import { PRIMARY_QUEST_SETTING } from "../src/quest/quest-store.js";
 import { registerWindowControlSettings } from "../src/foundry/window-controls.js";
+import { registerInterfaceSkinSettings } from "../src/foundry/skin-settings.js";
 
 Hooks.once("init", () => {
   const api = createOlfFqlApi({ game: globalThis.game, ui: globalThis.ui });
@@ -29,6 +30,7 @@ Hooks.once("init", () => {
   }
 
   registerWindowControlSettings({ game });
+  registerInterfaceSkinSettings({ game });
 
   if (game.keybindings?.register) {
     game.keybindings.register(MODULE_ID, "openMasterQuest", {

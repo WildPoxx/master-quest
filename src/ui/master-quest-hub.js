@@ -6,6 +6,7 @@
  */
 
 import { MODULE_ID } from "../constants.js";
+import { applyInterfaceSkin } from "../foundry/skin-settings.js";
 import { filterHeaderControls } from "../foundry/window-controls.js";
 import { notifyError, notifyInfo, notifyWarning } from "../foundry/environment.js";
 import { previewFqlImport, importFromFql } from "../quest/quest-import-fql.js";
@@ -123,6 +124,7 @@ export function createMasterQuestHubClass(ApplicationV2) {
     }
 
     _replaceHTML(result, content) {
+      applyInterfaceSkin(content, { game: this.game });
       content.replaceChildren(result);
       this.activateListeners(result);
     }
