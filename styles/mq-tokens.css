@@ -1,17 +1,26 @@
 /* ---------------------------------------------------------------------------
- * MasterQuest — Design Tokens (DEC-011, DEC-012)
+ * MasterQuest — Design Tokens (DEC-011, DEC-018)
  *
  * A aparencia do MasterQuest e um sistema de SKINS sobre estes tokens.
  * Uma skin troca apenas VALORES; estrutura, layout e componentes nunca mudam.
- * Regras (DEC-012):
+ * Regras (DEC-018):
  *   1. Nenhum valor visual fora de tokens (nenhum hex/fonte/textura em componente).
  *   2. Nomes descrevem PAPEL, nunca materia (--mq-chrome-bg, nao --mq-leather).
  *   3. Toda skin passa na barra de contraste medida: >=4.5:1 texto, >=3:1 ornamento.
  *   4. Fontes de skin embarcadas so com licenca redistribuivel (OFL ou equivalente).
  *
- * Skin padrao: "pergaminho" (pergaminho claro unico, bronze hyboriano — DEC-011).
- * Skins futuras: definir os mesmos tokens sob [data-mq-skin="nome"].
- * A ficha do Conan Legacy consome estes tokens via a classe .mq-tokens.
+ * ARQUIVO DE LABORATORIO — 2026-08-18.
+ * Esta copia vive APENAS no laboratorio local (_Claude-Cowork\foundry-lab) e serve
+ * para Mario ver as propostas dentro de um Foundry 14 real. NAO e o repositorio.
+ * Acrescenta, sobre o catalogo do commit 0f02ccb:
+ *   - quatro skins propostas: horror, steampunk, supers, olf;
+ *   - grafismo proprio por skin em --mq-grain, todo procedural (gradientes e SVG
+ *     inline); nenhuma imagem externa, nenhum asset de terceiro;
+ *   - --mq-font-display por skin, pela regra de Mario de 2026-08-18:
+ *       SERIFADA    pergaminho, cosmic, fantasia-medieval, horror, steampunk
+ *       SEM SERIFA  sci-fi, investigacao-moderna, supers, olf
+ *     Por ora as familias sao as ja disponiveis (Cinzel, embarcada sob SIL OFL, e
+ *     Signika, do proprio Foundry). Fontes especificas ficam para decisao posterior.
  * ------------------------------------------------------------------------- */
 
 /* Cinzel — display epigrafica, SIL OFL 1.1 (ver styles/fonts/OFL-Cinzel.txt) */
@@ -30,104 +39,70 @@
   src: url("fonts/cinzel-700.woff2") format("woff2");
 }
 
-/* Escopo raiz de componente, nunca o seletor raiz global do documento,     */
-/* para nao vazar para o resto do Foundry.                                  */
-/* Sem data-mq-skin (ou com "pergaminho"), vale a skin padrao.              */
+/* Escopo raiz de componente, nunca o seletor raiz global do documento. */
+
 .masterquest,
 .mq-tokens,
 [data-mq-skin="pergaminho"].masterquest,
-[data-mq-skin="pergaminho"].mq-tokens {
-  /* Superficies (papel) */
-  --mq-surface-0: #E9DFC6;            /* base da janela                     */
-  --mq-surface-1: #F2EAD6;            /* elevado: cartoes, linhas           */
-  --mq-surface-2: #DACCAE;            /* rebaixado: cabecalhos, campos      */
-
-  /* Chrome (barra de titulo e cabecalho de janela; couro nesta skin)       */
+[data-mq-skin="pergaminho"].mq-tokens{
+  --mq-surface-0: #E9DFC6;
+  --mq-surface-1: #F2EAD6;
+  --mq-surface-2: #DACCAE;
   --mq-chrome-bg: #3A2C1E;
-  --mq-on-chrome: #F2EAD6;            /* 11.2:1 */
-
-  /* Tinta */
-  --mq-text: #2A241A;                 /* 11.6 / 12.8 / 9.7                  */
-  --mq-text-muted: #6A5D46;           /* 4.9 / 5.4 — so em s0/s1            */
-
-  /* Acentos */
-  --mq-accent: #7A4E12;               /* acao, links, aba ativa  5.4/6.0/4.5*/
-  --mq-accent-bright: #9C6318;        /* ornamento, display >=20px  >=3:1   */
-  --mq-on-accent: #F2EAD6;            /* 6.0:1 sobre --mq-accent            */
-  --mq-danger: #8C2F26;               /* perigo, fracasso, selo GM 6.2/6.9  */
-  --mq-on-danger: #F2EAD6;            /* 6.9:1 sobre --mq-danger            */
-  --mq-focus: #33635C;                /* foco, selecao, informacao 5.1/5.7  */
-  --mq-highlight-bg: #D99A3A;         /* FUNDO de realce; nunca texto       */
-
-  /* Status de quest (SPEC-03; a cor nunca e o unico sinal) */
+  --mq-on-chrome: #F2EAD6;
+  --mq-text: #2A241A;
+  --mq-text-muted: #6A5D46;
+  --mq-accent: #7A4E12;
+  --mq-accent-bright: #9C6318;
+  --mq-on-accent: #F2EAD6;
+  --mq-danger: #8C2F26;
+  --mq-on-danger: #F2EAD6;
+  --mq-focus: #33635C;
+  --mq-highlight-bg: #D99A3A;
   --mq-status-available: #33635C;
   --mq-status-active: #7A4E12;
-  --mq-status-completed: #4A6532;     /* 5.0 / 5.5                          */
+  --mq-status-completed: #4A6532;
   --mq-status-failed: #8C2F26;
-  --mq-status-inactive: #63594A;      /* 5.2 / 5.7                          */
-
-  /* Metais da moeda (DEC-009: nome por extenso; DEC-010: nome em aberto)   */
-  --mq-metal-bronze: #7E5024;         /* 5.2 / 5.7                          */
-  --mq-metal-silver: #5F5F5F;         /* 4.8 / 5.3                          */
-  --mq-metal-gold: #6E5507;           /* 5.3 / 5.9                          */
-
-  /* Chip de aba e botao de captura (DEC-030; valores do mockup Illustrator) */
-  --mq-chip-outline: #815140;         /* contorno de aba e do botao         */
-  --mq-chip-active-bg: rgba(220, 177, 39, 0.65);  /* #DCB127 a 65%          */
-  --mq-capture-bg: #ECDD9D;           /* preenchimento do botao Snapshot    */
-  --mq-capture-ink: #815140;          /* rotulo e corpo do icone  4.8:1     */
-  --mq-capture-ink-edge: #3A1E10;     /* contorno do icone                  */
-
-  /* Bordas e sombras */
-  --mq-border: rgba(42, 36, 26, 0.25);
-  --mq-border-strong: rgba(42, 36, 26, 0.45);
-  --mq-shadow-1: 0 1px 3px rgba(42, 36, 26, 0.18);
-  --mq-shadow-2: 0 4px 14px rgba(42, 36, 26, 0.25);
-
-  /* Textura (grao restrito a chrome e cabecalhos; skin pode por "none")    */
-  --mq-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
-
-  /* Tipografia */
-  --mq-font-display: "Cinzel", "Modesto Condensed", serif;
+  --mq-status-inactive: #63594A;
+  --mq-metal-bronze: #7E5024;
+  --mq-metal-silver: #5F5F5F;
+  --mq-metal-gold: #6E5507;
+  --mq-chip-outline: #815140;
+  --mq-chip-active-bg: rgba(220,177,39,.65);
+  --mq-capture-bg: #ECDD9D;
+  --mq-capture-ink: #815140;
+  --mq-capture-ink-edge: #3A1E10;
+  --mq-border: rgba(42,36,26,.25);
+  --mq-border-strong: rgba(42,36,26,.45);
+  --mq-shadow-1: 0 1px 3px rgba(42,36,26,.18);
+  --mq-shadow-2: 0 4px 14px rgba(42,36,26,.25);
+  --mq-font-display: "Cinzel", "Modesto Condensed", Georgia, serif;
+  --mq-grain:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
   --mq-font-body: "Signika", sans-serif;
   --mq-font-mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
   --mq-display-tracking: 0.02em;
-
-  /* Escala tipografica (uso denso de mesa) */
   --mq-text-xs: 11px;   --mq-leading-xs: 1.35;
   --mq-text-sm: 12px;   --mq-leading-sm: 1.4;
   --mq-text-md: 14px;   --mq-leading-md: 1.45;
   --mq-text-lg: 16px;   --mq-leading-lg: 1.4;
   --mq-text-xl: 20px;   --mq-leading-xl: 1.25;
   --mq-text-2xl: 26px;  --mq-leading-2xl: 1.15;
-
-  /* Espacamento e raio */
   --mq-space-1: 4px;  --mq-space-2: 8px;  --mq-space-3: 12px;
   --mq-space-4: 16px; --mq-space-5: 24px; --mq-space-6: 32px;
   --mq-radius-1: 2px; --mq-radius-2: 4px; --mq-radius-3: 8px;
   --mq-radius-pill: 999px;
 }
 
-/* Cosmic — azul profundo, branco frio e pontos de luz procedurais.
- * Referencia de atmosfera: fantasia cosmica/radiante; nao incorpora arte, marcas ou
- * recursos visuais de sistemas de terceiros. Contraste: texto normal >= 4.5:1 nas
- * superficies; acentos e ornamentos >= 3:1. */
 [data-mq-skin="cosmic"].masterquest,
-[data-mq-skin="cosmic"].mq-tokens {
-  /* Superficies */
+[data-mq-skin="cosmic"].mq-tokens{
   --mq-surface-0: #07142B;
   --mq-surface-1: #0D2142;
   --mq-surface-2: #17355F;
-
-  /* Chrome */
   --mq-chrome-bg: #040B1B;
   --mq-on-chrome: #F7FBFF;
-
-  /* Texto */
   --mq-text: #EAF3FF;
   --mq-text-muted: #B9CBE5;
-
-  /* Acentos */
   --mq-accent: #63B9FF;
   --mq-accent-bright: #C5E5FF;
   --mq-on-accent: #061426;
@@ -135,43 +110,33 @@
   --mq-on-danger: #25070C;
   --mq-focus: #91DBFF;
   --mq-highlight-bg: #1D5B9A;
-
-  /* Status */
   --mq-status-available: #7BDBFF;
   --mq-status-active: #63B9FF;
   --mq-status-completed: #8CE0B2;
   --mq-status-failed: #FF8995;
   --mq-status-inactive: #B9CBE5;
-
-  /* Metais */
   --mq-metal-bronze: #E0A66B;
   --mq-metal-silver: #D7E2F3;
   --mq-metal-gold: #F3D77A;
-
-  /* Controles */
   --mq-chip-outline: #8DCBFF;
-  --mq-chip-active-bg: rgba(99, 185, 255, 0.24);
+  --mq-chip-active-bg: rgba(99,185,255,.24);
   --mq-capture-bg: #19457C;
   --mq-capture-ink: #EAF3FF;
   --mq-capture-ink-edge: #C5E5FF;
-
-  /* Contornos e profundidade */
-  --mq-border: rgba(197, 229, 255, 0.28);
-  --mq-border-strong: rgba(197, 229, 255, 0.55);
-  --mq-shadow-1: 0 1px 4px rgba(0, 0, 0, 0.46);
-  --mq-shadow-2: 0 7px 22px rgba(0, 0, 0, 0.62);
-
-  /* Pontos de luz discretos, sem imagem externa ou animacao. */
+  --mq-border: rgba(197,229,255,.28);
+  --mq-border-strong: rgba(197,229,255,.55);
+  --mq-shadow-1: 0 1px 4px rgba(0,0,0,.46);
+  --mq-shadow-2: 0 7px 22px rgba(0,0,0,.62);
+  --mq-font-display: "Cinzel", "Modesto Condensed", Georgia, serif;
   --mq-grain:
-    radial-gradient(circle at 12% 24%, rgba(239, 248, 255, 0.66) 0 1px, transparent 1.6px),
-    radial-gradient(circle at 41% 67%, rgba(126, 196, 255, 0.42) 0 1px, transparent 1.7px),
-    radial-gradient(circle at 78% 31%, rgba(239, 248, 255, 0.52) 0 1px, transparent 1.5px),
-    radial-gradient(circle at 91% 72%, rgba(126, 196, 255, 0.35) 0 1px, transparent 1.5px);
+    radial-gradient(circle at 12% 24%, rgba(239,248,255,.66) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 41% 67%, rgba(126,196,255,.42) 0 1px, transparent 1.7px),
+    radial-gradient(circle at 78% 31%, rgba(239,248,255,.52) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 91% 72%, rgba(126,196,255,.35) 0 1px, transparent 1.5px);
 }
 
-/* Futurista — superficie escura neutra, ciano tecnico e leitura direta. */
 [data-mq-skin="sci-fi"].masterquest,
-[data-mq-skin="sci-fi"].mq-tokens {
+[data-mq-skin="sci-fi"].mq-tokens{
   --mq-surface-0: #0B1518;
   --mq-surface-1: #132126;
   --mq-surface-2: #1C3035;
@@ -195,20 +160,23 @@
   --mq-metal-silver: #D5E4E5;
   --mq-metal-gold: #E7D173;
   --mq-chip-outline: #77DDD6;
-  --mq-chip-active-bg: rgba(75, 207, 196, 0.24);
+  --mq-chip-active-bg: rgba(75,207,196,.24);
   --mq-capture-bg: #1A5A60;
   --mq-capture-ink: #EAF8F8;
   --mq-capture-ink-edge: #98F4EC;
-  --mq-border: rgba(152, 244, 236, 0.26);
-  --mq-border-strong: rgba(152, 244, 236, 0.52);
-  --mq-shadow-1: 0 1px 4px rgba(0, 0, 0, 0.48);
-  --mq-shadow-2: 0 7px 22px rgba(0, 0, 0, 0.64);
-  --mq-grain: linear-gradient(135deg, rgba(75, 207, 196, 0.04), transparent 42%);
+  --mq-border: rgba(152,244,236,.26);
+  --mq-border-strong: rgba(152,244,236,.52);
+  --mq-shadow-1: 0 1px 4px rgba(0,0,0,.48);
+  --mq-shadow-2: 0 7px 22px rgba(0,0,0,.64);
+  --mq-font-display: "Signika", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --mq-grain:
+    repeating-linear-gradient(0deg, rgba(75,207,196,0.055) 0 1px, transparent 1px 13px),
+    repeating-linear-gradient(90deg, rgba(75,207,196,0.045) 0 1px, transparent 1px 13px),
+    linear-gradient(135deg, rgba(75,207,196,0.06), transparent 44%);
 }
 
-/* Investigacao Contemporanea — documento de campo: papel claro, carvao e tinta azul. */
 [data-mq-skin="investigacao-moderna"].masterquest,
-[data-mq-skin="investigacao-moderna"].mq-tokens {
+[data-mq-skin="investigacao-moderna"].mq-tokens{
   --mq-surface-0: #EEE8DE;
   --mq-surface-1: #FBF7EF;
   --mq-surface-2: #DED5C8;
@@ -232,20 +200,22 @@
   --mq-metal-silver: #5E666A;
   --mq-metal-gold: #725A1C;
   --mq-chip-outline: #506C74;
-  --mq-chip-active-bg: rgba(45, 98, 114, 0.18);
+  --mq-chip-active-bg: rgba(45,98,114,.18);
   --mq-capture-bg: #D9E8E8;
   --mq-capture-ink: #2D4D56;
   --mq-capture-ink-edge: #243B42;
-  --mq-border: rgba(36, 41, 43, 0.24);
-  --mq-border-strong: rgba(36, 41, 43, 0.46);
-  --mq-shadow-1: 0 1px 3px rgba(36, 41, 43, 0.17);
-  --mq-shadow-2: 0 4px 14px rgba(36, 41, 43, 0.24);
-  --mq-grain: linear-gradient(90deg, rgba(36, 41, 43, 0.035) 1px, transparent 1px);
+  --mq-border: rgba(36,41,43,.24);
+  --mq-border-strong: rgba(36,41,43,.46);
+  --mq-shadow-1: 0 1px 3px rgba(36,41,43,.17);
+  --mq-shadow-2: 0 4px 14px rgba(36,41,43,.24);
+  --mq-font-display: "Signika", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --mq-grain:
+    repeating-linear-gradient(0deg, rgba(36,41,43,0.055) 0 1px, transparent 1px 15px),
+    repeating-linear-gradient(90deg, rgba(36,41,43,0.04) 0 1px, transparent 1px 15px);
 }
 
-/* Fantasia Medieval — pedra, pergaminho frio e heráldica contida; nao e a skin hyboriana. */
 [data-mq-skin="fantasia-medieval"].masterquest,
-[data-mq-skin="fantasia-medieval"].mq-tokens {
+[data-mq-skin="fantasia-medieval"].mq-tokens{
   --mq-surface-0: #E8E2D2;
   --mq-surface-1: #F3EFE5;
   --mq-surface-2: #D1D3C1;
@@ -269,13 +239,172 @@
   --mq-metal-silver: #5F6964;
   --mq-metal-gold: #6D581B;
   --mq-chip-outline: #5B6C4C;
-  --mq-chip-active-bg: rgba(107, 58, 86, 0.18);
+  --mq-chip-active-bg: rgba(107,58,86,.18);
   --mq-capture-bg: #DCE5CE;
   --mq-capture-ink: #33462E;
   --mq-capture-ink-edge: #24351F;
-  --mq-border: rgba(37, 48, 36, 0.24);
-  --mq-border-strong: rgba(37, 48, 36, 0.46);
-  --mq-shadow-1: 0 1px 3px rgba(37, 48, 36, 0.16);
-  --mq-shadow-2: 0 4px 14px rgba(37, 48, 36, 0.24);
-  --mq-grain: linear-gradient(145deg, rgba(73, 99, 58, 0.09), transparent 44%);
+  --mq-border: rgba(37,48,36,.24);
+  --mq-border-strong: rgba(37,48,36,.46);
+  --mq-shadow-1: 0 1px 3px rgba(37,48,36,.16);
+  --mq-shadow-2: 0 4px 14px rgba(37,48,36,.24);
+  --mq-font-display: "Cinzel", "Modesto Condensed", Georgia, serif;
+  --mq-grain:
+    repeating-linear-gradient(45deg, rgba(244,240,229,0.06) 0 1px, transparent 1px 15px),
+    repeating-linear-gradient(-45deg, rgba(244,240,229,0.05) 0 1px, transparent 1px 15px);
+}
+
+[data-mq-skin="horror"].masterquest,
+[data-mq-skin="horror"].mq-tokens{
+  --mq-surface-0: #12101A;
+  --mq-surface-1: #1A1726;
+  --mq-surface-2: #251F35;
+  --mq-chrome-bg: #0A0812;
+  --mq-on-chrome: #E8E0EE;
+  --mq-text: #E6DEEE;
+  --mq-text-muted: #A79BB8;
+  --mq-accent: #BC90DC;
+  --mq-accent-bright: #D8B8F0;
+  --mq-on-accent: #140F1D;
+  --mq-danger: #E2737F;
+  --mq-on-danger: #1A0609;
+  --mq-focus: #84AEE6;
+  --mq-highlight-bg: #3A2A45;
+  --mq-status-available: #84AEE6;
+  --mq-status-active: #BC90DC;
+  --mq-status-completed: #8FC49E;
+  --mq-status-failed: #E2737F;
+  --mq-status-inactive: #A79BB8;
+  --mq-metal-bronze: #C89264;
+  --mq-metal-silver: #C2BDCC;
+  --mq-metal-gold: #D8BC72;
+  --mq-chip-outline: #7B6A94;
+  --mq-chip-active-bg: rgba(188,144,220,0.22);
+  --mq-capture-bg: #251F35;
+  --mq-capture-ink: #E6DEEE;
+  --mq-capture-ink-edge: #D8B8F0;
+  --mq-border: rgba(230,222,238,.20);
+  --mq-border-strong: rgba(230,222,238,.42);
+  --mq-shadow-1: 0 1px 4px rgba(0,0,0,.58);
+  --mq-shadow-2: 0 8px 28px rgba(0,0,0,.72);
+  --mq-font-display: "Cinzel", "Modesto Condensed", Georgia, serif;
+  --mq-grain:
+    url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='72'%20height='72'%20viewBox='0%200%2072%2072'%3E%3Cg%20fill='none'%20stroke='%23D8B8F0'%20stroke-opacity='0.16'%20stroke-width='0.7'%3E%3Cpath%20d='M0%200%20L72%2072%20M72%200%20L0%2072%20M36%200%20L36%2072%20M0%2036%20L72%2036'/%3E%3Cpath%20d='M0%2018%20Q18%2018%2018%200%20M72%2018%20Q54%2018%2054%200%20M0%2054%20Q18%2054%2018%2072%20M72%2054%20Q54%2054%2054%2072'/%3E%3Cpath%20d='M0%208%20Q28%2028%208%200%20M72%208%20Q44%2028%2064%200'/%3E%3C/g%3E%3Cg%20fill='%237A1420'%20fill-opacity='0.30'%3E%3Cellipse%20cx='14'%20cy='6'%20rx='1.6'%20ry='3.2'/%3E%3Cellipse%20cx='55'%20cy='10'%20rx='1.2'%20ry='2.6'/%3E%3C/g%3E%3C/svg%3E"),
+    radial-gradient(130% 100% at 50% 0%, transparent 48%, rgba(0,0,0,0.55) 100%);
+}
+
+[data-mq-skin="steampunk"].masterquest,
+[data-mq-skin="steampunk"].mq-tokens{
+  --mq-surface-0: #1B1A17;
+  --mq-surface-1: #262421;
+  --mq-surface-2: #33302B;
+  --mq-chrome-bg: #12110F;
+  --mq-on-chrome: #F0E7D5;
+  --mq-text: #EFE6D6;
+  --mq-text-muted: #B6AC98;
+  --mq-accent: #D09A48;
+  --mq-accent-bright: #E8BC73;
+  --mq-on-accent: #1B1408;
+  --mq-danger: #D4736C;
+  --mq-on-danger: #1E0807;
+  --mq-focus: #79BFB9;
+  --mq-highlight-bg: #3E3A2E;
+  --mq-status-available: #79BFB9;
+  --mq-status-active: #D09A48;
+  --mq-status-completed: #9EC47C;
+  --mq-status-failed: #D4736C;
+  --mq-status-inactive: #B6AC98;
+  --mq-metal-bronze: #C89050;
+  --mq-metal-silver: #CFCDC4;
+  --mq-metal-gold: #E0C46E;
+  --mq-chip-outline: #8A7A5A;
+  --mq-chip-active-bg: rgba(208,154,72,0.22);
+  --mq-capture-bg: #33302B;
+  --mq-capture-ink: #EFE6D6;
+  --mq-capture-ink-edge: #E8BC73;
+  --mq-border: rgba(239,230,214,.22);
+  --mq-border-strong: rgba(239,230,214,.45);
+  --mq-shadow-1: 0 1px 4px rgba(0,0,0,.5);
+  --mq-shadow-2: 0 7px 22px rgba(0,0,0,.66);
+  --mq-font-display: "Cinzel", "Modesto Condensed", Georgia, serif;
+  --mq-grain:
+    url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='28'%20height='28'%20viewBox='0%200%2028%2028'%3E%3Cg%20fill='none'%3E%3Ccircle%20cx='7'%20cy='7'%20r='2.1'%20fill='%23E8BC73'%20fill-opacity='0.14'/%3E%3Ccircle%20cx='7'%20cy='7'%20r='2.1'%20stroke='%23E8BC73'%20stroke-opacity='0.20'%20stroke-width='0.6'/%3E%3Ccircle%20cx='21'%20cy='21'%20r='2.1'%20fill='%23E8BC73'%20fill-opacity='0.10'/%3E%3Ccircle%20cx='21'%20cy='21'%20r='2.1'%20stroke='%23E8BC73'%20stroke-opacity='0.16'%20stroke-width='0.6'/%3E%3C/g%3E%3C/svg%3E"),
+    repeating-linear-gradient(45deg, rgba(208,154,72,0.05) 0 2px, transparent 2px 9px);
+}
+
+[data-mq-skin="supers"].masterquest,
+[data-mq-skin="supers"].mq-tokens{
+  --mq-surface-0: #E8ECF2;
+  --mq-surface-1: #FFFFFF;
+  --mq-surface-2: #D3DBE6;
+  --mq-chrome-bg: #16233A;
+  --mq-on-chrome: #F4F7FB;
+  --mq-text: #16202E;
+  --mq-text-muted: #4E5A6B;
+  --mq-accent: #1F5FA8;
+  --mq-accent-bright: #2E7ACB;
+  --mq-on-accent: #FFFFFF;
+  --mq-danger: #B02D2D;
+  --mq-on-danger: #FFF5F5;
+  --mq-focus: #6A2E9C;
+  --mq-highlight-bg: #C9DCF2;
+  --mq-status-available: #245D7A;
+  --mq-status-active: #1F5FA8;
+  --mq-status-completed: #1F6B3D;
+  --mq-status-failed: #B02D2D;
+  --mq-status-inactive: #4E5A6B;
+  --mq-metal-bronze: #7A5326;
+  --mq-metal-silver: #56606B;
+  --mq-metal-gold: #6E5A10;
+  --mq-chip-outline: #5B6B80;
+  --mq-chip-active-bg: rgba(31,95,168,0.16);
+  --mq-capture-bg: #D6E4F5;
+  --mq-capture-ink: #1B4470;
+  --mq-capture-ink-edge: #12314F;
+  --mq-border: rgba(22,32,46,.22);
+  --mq-border-strong: rgba(22,32,46,.45);
+  --mq-shadow-1: 0 1px 3px rgba(22,32,46,.16);
+  --mq-shadow-2: 0 5px 16px rgba(22,32,46,.22);
+  --mq-font-display: "Signika", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --mq-grain:
+    url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='16'%20height='16'%20viewBox='0%200%2016%2016'%3E%3Cg%20fill='%2316233A'%20fill-opacity='0.10'%3E%3Ccircle%20cx='4'%20cy='4'%20r='1.7'/%3E%3Ccircle%20cx='12'%20cy='12'%20r='1.7'/%3E%3C/g%3E%3C/svg%3E"),
+    linear-gradient(160deg, rgba(31,95,168,0.07), transparent 46%);
+}
+
+[data-mq-skin="olf"].masterquest,
+[data-mq-skin="olf"].mq-tokens{
+  --mq-surface-0: #211D1A;
+  --mq-surface-1: #2C2723;
+  --mq-surface-2: #3A322C;
+  --mq-chrome-bg: #4A2A1C;
+  --mq-on-chrome: #F2E4CA;
+  --mq-text: #F0E3C9;
+  --mq-text-muted: #BCAD91;
+  --mq-accent: #D3AE5A;
+  --mq-accent-bright: #E9CE86;
+  --mq-on-accent: #1B1509;
+  --mq-danger: #D4736A;
+  --mq-on-danger: #1C0705;
+  --mq-focus: #8CB8B1;
+  --mq-highlight-bg: #46372A;
+  --mq-status-available: #8CB8B1;
+  --mq-status-active: #D3AE5A;
+  --mq-status-completed: #9FC183;
+  --mq-status-failed: #D4736A;
+  --mq-status-inactive: #BCAD91;
+  --mq-metal-bronze: #C89257;
+  --mq-metal-silver: #C8C3B8;
+  --mq-metal-gold: #DDBE6C;
+  --mq-chip-outline: #8A7458;
+  --mq-chip-active-bg: rgba(211,174,90,0.20);
+  --mq-capture-bg: #3A322C;
+  --mq-capture-ink: #F0E3C9;
+  --mq-capture-ink-edge: #E9CE86;
+  --mq-border: rgba(240,227,201,.22);
+  --mq-border-strong: rgba(240,227,201,.46);
+  --mq-shadow-1: 0 1px 4px rgba(0,0,0,.5);
+  --mq-shadow-2: 0 7px 22px rgba(0,0,0,.64);
+  --mq-font-display: "Signika", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --mq-grain:
+    url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='56'%20height='56'%20viewBox='0%200%2056%2056'%3E%3Cg%20stroke='%23E9CE86'%20stroke-opacity='0.13'%20stroke-width='0.6'%3E%3Cpath%20d='M0%2012%20L56%206%20M0%2034%20L56%2028%20M0%2052%20L56%2046'/%3E%3C/g%3E%3Cg%20fill='%23E9CE86'%20fill-opacity='0.10'%3E%3Ccircle%20cx='11'%20cy='23'%20r='0.9'/%3E%3Ccircle%20cx='38'%20cy='41'%20r='0.8'/%3E%3Ccircle%20cx='48'%20cy='16'%20r='0.7'/%3E%3C/g%3E%3C/svg%3E"),
+    linear-gradient(160deg, rgba(211,174,90,0.07), transparent 46%);
 }

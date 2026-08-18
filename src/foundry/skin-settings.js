@@ -3,20 +3,36 @@ import { MODULE_ID } from "../constants.js";
 /** World setting that selects the shared MasterQuest interface skin. */
 export const INTERFACE_SKIN_SETTING = "interfaceSkin";
 
+/**
+ * As nove skins do catalogo (Mario, 2026-08-18). Cinco vieram do candidato do Codex;
+ * quatro — horror, steampunk, supers e olf — foram aprovadas nesta data.
+ *
+ * A ordem aqui e a ordem do menu em Game Settings, e ela e deliberada: o padrao primeiro,
+ * e depois as demais agrupadas por familia de genero. Menu em ordem alfabetica poria
+ * "Cosmic" antes do padrao e faria o Mestre procurar o proprio default.
+ */
 export const INTERFACE_SKINS = Object.freeze({
   parchment: "pergaminho",
+  medievalFantasy: "fantasia-medieval",
+  horror: "horror",
+  steampunk: "steampunk",
   cosmic: "cosmic",
   sciFi: "sci-fi",
+  supers: "supers",
   modernInvestigation: "investigacao-moderna",
-  medievalFantasy: "fantasia-medieval"
+  olf: "olf"
 });
 
 const INTERFACE_SKIN_CHOICES = Object.freeze({
   [INTERFACE_SKINS.parchment]: "Pergaminho Hyboriano",
+  [INTERFACE_SKINS.medievalFantasy]: "Fantasia Medieval",
+  [INTERFACE_SKINS.horror]: "Horror",
+  [INTERFACE_SKINS.steampunk]: "Steampunk",
   [INTERFACE_SKINS.cosmic]: "Cosmic",
   [INTERFACE_SKINS.sciFi]: "Futurista",
+  [INTERFACE_SKINS.supers]: "Supers",
   [INTERFACE_SKINS.modernInvestigation]: "Investigação Contemporânea",
-  [INTERFACE_SKINS.medievalFantasy]: "Fantasia Medieval"
+  [INTERFACE_SKINS.olf]: "OLF"
 });
 
 /**
@@ -89,4 +105,32 @@ export function registerInterfaceSkinSettings({
     default: INTERFACE_SKINS.parchment,
     onChange: () => refreshOpenMasterQuestSkins({ game, document })
   });
+
+  healStoredInterfaceSkin({ game });
+}
+
+/**
+ * Se o mundo tiver gravado uma skin que nao existe mais, REESCREVE o valor.
+ *
+ * Achado da homologacao de 2026-08-17: `normalizeInterfaceSkin` conserta a APLICACAO — a
+ * tela nunca mostra um seletor invalido — mas o valor errado continuava no banco do mundo.
+ * O menu de configuracao entao exibia uma opcao vazia, e a proxima leitura tinha de
+ * consertar de novo, para sempre. Guardar no banco um valor que a interface nunca honra e
+ * uma discordancia calada entre o que esta escrito e o que se ve.
+ *
+ * So o Mestre grava: `scope: "world"` e territorio do GM, e um jogador tentando escrever
+ * receberia recusa do servidor.
+ */
+export function healStoredInterfaceSkin({ game = globalThis.game } = {}) {
+  if (game?.user?.isGM !== true) return { status: "not-gm" };
+  if (typeof game?.settings?.get !== "function" || typeof game?.settings?.set !== "function") {
+    return { status: "no-settings" };
+  }
+
+  const stored = game.settings.get(MODULE_ID, INTERFACE_SKIN_SETTING);
+  const healthy = normalizeInterfaceSkin(stored);
+  if (stored === healthy) return { status: "ok", skin: healthy };
+
+  game.settings.set(MODULE_ID, INTERFACE_SKIN_SETTING, healthy);
+  return { status: "healed", from: stored, skin: healthy };
 }

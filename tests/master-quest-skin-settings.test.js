@@ -31,12 +31,19 @@ test("interface skin is a world setting with parchment as the safe default", () 
   assert.equal(config.scope, "world");
   assert.equal(config.config, true);
   assert.equal(config.default, INTERFACE_SKINS.parchment);
+  // 1.0 (Mario, 2026-08-18): o catalogo vai de cinco para NOVE, e a ordem do menu e
+  // deliberada — o padrao primeiro, depois por familia de genero. Ordem alfabetica poria
+  // "Cosmic" antes do padrao e faria o Mestre procurar o proprio default.
   assert.deepEqual(Object.keys(config.choices), [
     "pergaminho",
+    "fantasia-medieval",
+    "horror",
+    "steampunk",
     "cosmic",
     "sci-fi",
+    "supers",
     "investigacao-moderna",
-    "fantasia-medieval"
+    "olf"
   ]);
   assert.equal(getInterfaceSkin({ game }), INTERFACE_SKINS.cosmic);
   assert.equal(normalizeInterfaceSkin("removed-skin"), INTERFACE_SKINS.parchment);
