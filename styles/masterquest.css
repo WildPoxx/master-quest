@@ -691,8 +691,18 @@
   padding: 4px 2px;
 }
 
+/* 1.0 — o estado OCULTO deixa de se marcar so por luminosidade.
+   O achado, medido nas nove skins em 2026-08-18: com `opacity: 0.55`, o texto secundario
+   oculto reprova o contraste minimo em NOVE de nove — a skin padrao, em producao desde a
+   0.13.0, entre as piores (2,25:1). E nao se resolve com mais opacidade: para chegar a
+   4,5:1 seria preciso 0,92 a 0,97 nas skins claras, ou seja, "esmaecido o bastante para
+   ser legivel" e praticamente "nao esmaecido".
+   Entao o sinal muda de natureza: opacidade so como REFORCO, e a marca de verdade passa a
+   ser uma borda tracejada — nao luminosa, e legivel tambem por quem nao distingue cor.
+   O texto oculto e lido pelo Mestre AO VIVO, na mesa, muitas vezes num monitor pior que o
+   de trabalho. */
 .masterquest .mq-objective.is-hidden,
-.masterquest .mq-reward.is-hidden { opacity: 0.55; }
+.masterquest .mq-reward.is-hidden { opacity: 0.85; }
 
 .masterquest .mq-objective-name,
 .masterquest .mq-reward-name { flex: 1; margin: 0; min-width: 0; }
@@ -1375,7 +1385,19 @@
 .masterquest .mq-clue.is-hidden,
 .masterquest .mq-dilemma.is-hidden,
 .masterquest .mq-complication.is-hidden,
-.masterquest .mq-outcome.is-hidden { opacity: 0.55; }
+.masterquest .mq-outcome.is-hidden { opacity: 0.85; }
+
+/* A marca nao luminosa do oculto. Borda TRACEJADA, para nao se confundir com o filete
+   solido do spoiler (que e outro eixo e usa --mq-danger). Nenhum token novo. */
+.masterquest .mq-objective.is-hidden,
+.masterquest .mq-reward.is-hidden,
+.masterquest .mq-clue.is-hidden,
+.masterquest .mq-dilemma.is-hidden,
+.masterquest .mq-complication.is-hidden,
+.masterquest .mq-outcome.is-hidden {
+  border-left: 3px dashed var(--mq-border-strong);
+  padding-left: 5px;
+}
 
 .masterquest .mq-knot-row {
   display: flex;

@@ -6,6 +6,7 @@
  */
 
 import { MODULE_ID } from "../constants.js";
+import { applyInterfaceSkin } from "../foundry/skin-settings.js";
 import { filterHeaderControls } from "../foundry/window-controls.js";
 import { notifyWarning } from "../foundry/environment.js";
 import {
@@ -123,6 +124,7 @@ export function createMasterQuestLogClass(ApplicationV2) {
     }
 
     _replaceHTML(result, content) {
+      applyInterfaceSkin(content, { game: this.game });
       content.replaceChildren(result);
       this.activateListeners(result);
     }
