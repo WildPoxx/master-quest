@@ -1,5 +1,6 @@
 import { MODULE_ID } from "../constants.js";
 import { notifyError, notifyInfo, notifyWarning } from "../foundry/environment.js";
+import { applyInterfaceSkin } from "../foundry/skin-settings.js";
 
 let ActiveConsoleClass = null;
 let activeConsole = null;
@@ -91,6 +92,7 @@ export function createMasterQuestAuthoringConsoleClass(ApplicationV2) {
     }
 
     _replaceHTML(result, content) {
+      applyInterfaceSkin(content, { game: this.game });
       content.replaceChildren(result);
       this.activateListeners(result);
     }
