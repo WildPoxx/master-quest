@@ -3,18 +3,36 @@ import { MODULE_ID } from "../constants.js";
 /** World setting that selects the shared MasterQuest interface skin. */
 export const INTERFACE_SKIN_SETTING = "interfaceSkin";
 
+/**
+ * Linha V13 — port seletivo autorizado pela minuta de 2026-08-15.
+ *
+ * Duas skins trazidas do catalogo de nove da branch main (2026-08-18): `sci-fi` e
+ * `investigacao-moderna`. As demais do catalogo NAO foram portadas; `cosmere` e exclusiva
+ * desta linha e permanece, porque e o sistema que prende a linha 13.
+ *
+ * A ordem aqui e a ordem do menu em Game Settings, e ela e deliberada: o padrao primeiro.
+ * Menu em ordem alfabetica faria o Mestre procurar o proprio default.
+ */
 export const INTERFACE_SKINS = Object.freeze({
+  modernInvestigation: "investigacao-moderna",
   parchment: "pergaminho",
-  cosmere: "cosmere"
+  cosmere: "cosmere",
+  sciFi: "sci-fi"
 });
 
 const INTERFACE_SKIN_CHOICES = Object.freeze({
+  [INTERFACE_SKINS.modernInvestigation]: "Investigação Contemporânea",
   [INTERFACE_SKINS.parchment]: "Pergaminho Hyboriano",
-  [INTERFACE_SKINS.cosmere]: "Cosmere"
+  [INTERFACE_SKINS.cosmere]: "Cosmere",
+  [INTERFACE_SKINS.sciFi]: "Futurista"
 });
 
 /**
  * Keep a malformed or removed setting from leaking an arbitrary selector into the UI.
+ *
+ * O recuo acompanha o `default` do registro. Se os dois divergirem, a skin declarada como
+ * padrao e a skin realmente aplicada num valor invalido passam a ser coisas diferentes —
+ * discordancia calada entre o que esta escrito e o que se ve.
  *
  * @param {unknown} value Raw persisted setting value.
  * @returns {string} A supported skin id.
@@ -22,7 +40,7 @@ const INTERFACE_SKIN_CHOICES = Object.freeze({
 export function normalizeInterfaceSkin(value) {
   return Object.values(INTERFACE_SKINS).includes(value)
     ? value
-    : INTERFACE_SKINS.parchment;
+    : INTERFACE_SKINS.modernInvestigation;
 }
 
 /**
@@ -80,7 +98,7 @@ export function registerInterfaceSkinSettings({
     config: true,
     type: String,
     choices: INTERFACE_SKIN_CHOICES,
-    default: INTERFACE_SKINS.parchment,
+    default: INTERFACE_SKINS.modernInvestigation,
     onChange: () => refreshOpenMasterQuestSkins({ game, document })
   });
 }

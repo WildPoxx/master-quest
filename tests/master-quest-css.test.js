@@ -36,3 +36,31 @@ test("token sheet defines the Cosmere skin through the same semantic roles", asy
     assert.match(css, new RegExp(`--mq-${token}:`), `Cosmere must define --mq-${token}`);
   }
 });
+
+test("token sheet defines the ported sci-fi and modern investigation skins", async () => {
+  const css = await readFile(resolve("styles/mq-tokens.css"), "utf8");
+  const roles = [
+    "surface-0", "surface-1", "surface-2", "chrome-bg", "on-chrome", "text",
+    "text-muted", "accent", "danger", "focus", "border", "grain", "font-display"
+  ];
+
+  for (const skin of ["sci-fi", "investigacao-moderna"]) {
+    const block = css.match(
+      new RegExp(`\\[data-mq-skin="${skin}"\\]\\.masterquest,[\\s\\S]*?\\n\\}`)
+    );
+    assert.ok(block, `mq-tokens.css deve definir a skin ${skin}`);
+    for (const role of roles) {
+      assert.match(block[0], new RegExp(`--mq-${role}:`), `${skin} deve definir --mq-${role}`);
+    }
+  }
+});
+
+test("ported skins need no font file beyond the embedded Cinzel", async () => {
+  const css = await readFile(resolve("styles/mq-tokens.css"), "utf8");
+  const fontFiles = [...css.matchAll(/url\("(fonts\/[^"]+)"\)/g)].map((m) => m[1]);
+  assert.deepEqual(
+    [...new Set(fontFiles)].sort(),
+    ["fonts/cinzel-400.woff2", "fonts/cinzel-700.woff2"],
+    "as skins portadas usam Signika, fonte nativa do Foundry, e nao acrescentam arquivo"
+  );
+});

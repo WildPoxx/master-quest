@@ -12,7 +12,7 @@ import {
   registerInterfaceSkinSettings
 } from "../src/foundry/skin-settings.js";
 
-test("interface skin is a world setting with parchment as the safe default", () => {
+test("interface skin is a world setting with modern investigation as the safe default", () => {
   const registrations = [];
   const document = { querySelectorAll: () => [] };
   const game = {
@@ -30,10 +30,23 @@ test("interface skin is a world setting with parchment as the safe default", () 
   assert.equal(key, INTERFACE_SKIN_SETTING);
   assert.equal(config.scope, "world");
   assert.equal(config.config, true);
-  assert.equal(config.default, INTERFACE_SKINS.parchment);
-  assert.deepEqual(Object.keys(config.choices), ["pergaminho", "cosmere"]);
+  assert.equal(config.default, INTERFACE_SKINS.modernInvestigation);
+  assert.deepEqual(Object.keys(config.choices), [
+    "investigacao-moderna",
+    "pergaminho",
+    "cosmere",
+    "sci-fi"
+  ]);
+  // O primeiro item do menu tem de ser o proprio padrao: menu em ordem arbitraria faz o
+  // Mestre procurar o default entre as demais.
+  assert.equal(Object.keys(config.choices)[0], config.default);
   assert.equal(getInterfaceSkin({ game }), INTERFACE_SKINS.cosmere);
-  assert.equal(normalizeInterfaceSkin("removed-skin"), INTERFACE_SKINS.parchment);
+  assert.equal(normalizeInterfaceSkin("removed-skin"), INTERFACE_SKINS.modernInvestigation);
+  // O recuo acompanha o default declarado. Se divergirem, a skin anunciada como padrao e a
+  // efetivamente aplicada num valor invalido passam a ser coisas diferentes.
+  assert.equal(normalizeInterfaceSkin("removed-skin"), config.default);
+  assert.equal(normalizeInterfaceSkin("sci-fi"), INTERFACE_SKINS.sciFi);
+  assert.equal(normalizeInterfaceSkin("cosmere"), INTERFACE_SKINS.cosmere);
 });
 
 test("skin is attached only to MasterQuest roots and live settings updates refresh open windows", () => {

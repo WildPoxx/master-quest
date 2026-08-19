@@ -168,3 +168,91 @@
     radial-gradient(circle at 78% 31%, rgba(239, 248, 255, 0.52) 0 1px, transparent 1.5px),
     radial-gradient(circle at 91% 72%, rgba(126, 196, 255, 0.35) 0 1px, transparent 1.5px);
 }
+
+/* ---------------------------------------------------------------------------
+   Port seletivo para a linha V13 (minuta de 2026-08-15).
+   Duas skins trazidas da branch main (catalogo de nove skins, 2026-08-18):
+     sci-fi ................. rotulo "Futurista"
+     investigacao-moderna ... rotulo "Investigacao Contemporanea"
+   Nenhuma fonte nova e necessaria: as skins sao so tokens de cor.
+   Acrescentar ao FINAL de styles/mq-tokens.css, sem remover pergaminho nem cosmere.
+   --------------------------------------------------------------------------- */
+
+[data-mq-skin="sci-fi"].masterquest,
+[data-mq-skin="sci-fi"].mq-tokens{
+  --mq-surface-0: #0B1518;
+  --mq-surface-1: #132126;
+  --mq-surface-2: #1C3035;
+  --mq-chrome-bg: #061013;
+  --mq-on-chrome: #F0FCFC;
+  --mq-text: #EAF8F8;
+  --mq-text-muted: #B7CFD0;
+  --mq-accent: #4BCFC4;
+  --mq-accent-bright: #98F4EC;
+  --mq-on-accent: #051B19;
+  --mq-danger: #FF8E9A;
+  --mq-on-danger: #2B090E;
+  --mq-focus: #89F4EF;
+  --mq-highlight-bg: #1C6D70;
+  --mq-status-available: #78E5DF;
+  --mq-status-active: #4BCFC4;
+  --mq-status-completed: #8EE0B0;
+  --mq-status-failed: #FF8E9A;
+  --mq-status-inactive: #B7CFD0;
+  --mq-metal-bronze: #D99D62;
+  --mq-metal-silver: #D5E4E5;
+  --mq-metal-gold: #E7D173;
+  --mq-chip-outline: #77DDD6;
+  --mq-chip-active-bg: rgba(75,207,196,.24);
+  --mq-capture-bg: #1A5A60;
+  --mq-capture-ink: #EAF8F8;
+  --mq-capture-ink-edge: #98F4EC;
+  --mq-border: rgba(152,244,236,.26);
+  --mq-border-strong: rgba(152,244,236,.52);
+  --mq-shadow-1: 0 1px 4px rgba(0,0,0,.48);
+  --mq-shadow-2: 0 7px 22px rgba(0,0,0,.64);
+  --mq-font-display: "Signika", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --mq-grain:
+    repeating-linear-gradient(0deg, rgba(75,207,196,0.055) 0 1px, transparent 1px 13px),
+    repeating-linear-gradient(90deg, rgba(75,207,196,0.045) 0 1px, transparent 1px 13px),
+    linear-gradient(135deg, rgba(75,207,196,0.06), transparent 44%);
+}
+
+[data-mq-skin="investigacao-moderna"].masterquest,
+[data-mq-skin="investigacao-moderna"].mq-tokens{
+  --mq-surface-0: #EEE8DE;
+  --mq-surface-1: #FBF7EF;
+  --mq-surface-2: #DED5C8;
+  --mq-chrome-bg: #2D3235;
+  --mq-on-chrome: #FCF8F1;
+  --mq-text: #24292B;
+  --mq-text-muted: #586166;
+  --mq-accent: #2D6272;
+  --mq-accent-bright: #477B8C;
+  --mq-on-accent: #F6FCFE;
+  --mq-danger: #923B32;
+  --mq-on-danger: #FFF7F0;
+  --mq-focus: #315F77;
+  --mq-highlight-bg: #B9D6DD;
+  --mq-status-available: #315F77;
+  --mq-status-active: #2D6272;
+  --mq-status-completed: #3C6A4A;
+  --mq-status-failed: #923B32;
+  --mq-status-inactive: #586166;
+  --mq-metal-bronze: #795D3A;
+  --mq-metal-silver: #5E666A;
+  --mq-metal-gold: #725A1C;
+  --mq-chip-outline: #506C74;
+  --mq-chip-active-bg: rgba(45,98,114,.18);
+  --mq-capture-bg: #D9E8E8;
+  --mq-capture-ink: #2D4D56;
+  --mq-capture-ink-edge: #243B42;
+  --mq-border: rgba(36,41,43,.24);
+  --mq-border-strong: rgba(36,41,43,.46);
+  --mq-shadow-1: 0 1px 3px rgba(36,41,43,.17);
+  --mq-shadow-2: 0 4px 14px rgba(36,41,43,.24);
+  --mq-font-display: "Signika", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --mq-grain:
+    repeating-linear-gradient(0deg, rgba(36,41,43,0.055) 0 1px, transparent 1px 15px),
+    repeating-linear-gradient(90deg, rgba(36,41,43,0.04) 0 1px, transparent 1px 15px);
+}

@@ -7,7 +7,7 @@
       "name": "WildPoxx"
     }
   ],
-  "version": "0.30.3-v13.1",
+  "version": "0.30.3-v13.2",
   "compatibility": {
     "minimum": "13.351",
     "verified": "13.351",
@@ -25,7 +25,7 @@
   "protected": false,
   "url": "https://github.com/WildPoxx/master-quest",
   "manifest": "https://raw.githubusercontent.com/WildPoxx/master-quest/codex/compat-v13/module.json",
-  "download": "https://github.com/WildPoxx/master-quest/releases/download/v0.30.3-v13.1/master-quest-v13.zip",
+  "download": "https://github.com/WildPoxx/master-quest/releases/download/v0.30.3-v13.2/master-quest-v13.zip",
   "bugs": "https://github.com/WildPoxx/master-quest/issues",
   "readme": "https://github.com/WildPoxx/master-quest/blob/main/README.md",
   "changelog": "https://github.com/WildPoxx/master-quest/releases",
