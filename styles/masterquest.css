@@ -437,7 +437,10 @@
   border-radius: var(--mq-radius-2);
   color: var(--mq-text-muted);
   cursor: pointer;
-  font-size: var(--mq-text-sm);
+  /* 1.0.1, teste de mesa: 12px era pequeno demais para a fileira que o Mestre mais usa.
+     Sobe para o tamanho do texto de corpo. A fileira ja e `flex-wrap`, entao em janela
+     estreita ela quebra em duas linhas em vez de vazar. */
+  font-size: var(--mq-text-md);
   padding: 6px 10px;
   white-space: nowrap;
   width: auto;
@@ -476,7 +479,8 @@
 .masterquest .mq-tab-count {
   background: var(--mq-surface-2);
   border-radius: var(--mq-radius-pill);
-  font-size: var(--mq-text-xs);
+  /* Acompanha a aba: um degrau abaixo do rotulo, como era antes (11 para 12). */
+  font-size: var(--mq-text-sm);
   margin-left: var(--mq-space-1);
   padding: 1px 6px;
 }
@@ -742,15 +746,18 @@
 .masterquest .mq-field span { font-size: var(--mq-text-sm); color: var(--mq-text-muted); }
 
 /* Splash art: 2:1 instead of a fixed 140px strip, which cropped wide art to a letterbox
- * sliver at usual window widths (observed in play, OBS-01). */
+ * sliver at usual window widths (observed in play, OBS-01).
+ * 1.0.1: 2:1 -> 3:2, por decisao de Mario. Duas caixas de imagem com proporcoes
+ * diferentes para a MESMA arte faziam a mesma figura aparecer cortada de dois jeitos em
+ * pontos distintos da janela. Uma proporcao so para o modulo inteiro. */
 .masterquest .mq-splash {
   background-size: cover;
   background-position: center;
   border: 1px solid var(--mq-border-strong);
   border-radius: var(--mq-radius-2);
-  aspect-ratio: 2 / 1;
+  aspect-ratio: 3 / 2;
   width: 100%;
-  max-height: 340px;
+  max-height: 300px;
 }
 
 .masterquest .mq-splash-empty {
@@ -1003,14 +1010,25 @@
 .mq-quest-image-pick:hover { background: var(--mq-surface-2); }
 
 .mq-quest-image-wrap { margin: 0 0 0.7rem; display: flex; flex-direction: column; gap: 0.35rem; }
+/* 1.0.1, teste de mesa (Mario e beta): esta caixa tinha ALTURA FIXA de 150px e nenhuma
+   proporcao declarada — a forma dela variava com a largura da janela (2,7:1 numa coluna
+   de 400px, 3,7:1 numa de 560px). Como o fundo entra em `cover`, toda arte comum (3:2,
+   4:3, 1:1) perdia as bordas de cima e de baixo, e o corte mudava de tamanho conforme o
+   Mestre redimensionava a janela.
+   3:2 e a proporcao mais frequente em arte fotografada e gerada; o teto de 300px impede
+   que em janela larga a imagem coma a coluna inteira, que e a mesma da Descricao. O corte
+   que sobrar continua ajustavel pelo campo de posicao (`splashPos`). */
 .mq-quest-image {
-  width: 100%; height: 150px; border-radius: var(--mq-radius-2);
+  width: 100%; aspect-ratio: 3 / 2; max-height: 300px;
+  border-radius: var(--mq-radius-2);
   background-size: cover; background-repeat: no-repeat;
   border: 1px solid var(--mq-border);
 }
+/* A caixa vazia herda a proporcao da cheia. Antes ela tinha 90px contra 150px, e o layout
+   PULAVA no instante em que o Mestre escolhia a arte. */
 .mq-quest-image-empty {
   display: flex; align-items: center; justify-content: center;
-  height: 90px; color: var(--mq-text-muted); font-size: 0.85em; border-style: dashed;
+  color: var(--mq-text-muted); font-size: 0.85em; border-style: dashed;
 }
 .mq-quest-image-pick { align-self: flex-start; }
 
@@ -1115,8 +1133,19 @@
 
 /* A descricao pesa mais que a coluna da direita: e prosa, e as outras sao listas. */
 .masterquest .mq-details-columns { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+
+/* 1.0.1, teste de mesa: a Descricao abria com doze linhas enquanto a coluna da direita
+   tinha seis secoes vazias — espaco desperdicado de um lado, texto espremido do outro.
+   O piso sobe para 20 linhas.
+   O TETO e a outra metade do pedido de Mario: descricao longa NAO empurra o resto da
+   janela para baixo; ela rola DENTRO da propria caixa. Sem `max-height` o `overflow` nao
+   tem contra o que medir e a barra interna nunca aparece. */
 .masterquest .mq-description prose-mirror .editor-content,
-.masterquest .mq-description > .mq-readonly-html { min-height: 12em; }
+.masterquest .mq-description > .mq-readonly-html {
+  min-height: 20em;
+  max-height: 28em;
+  overflow-y: auto;
+}
 
 /* Cabecalho: camera e botoes de status na mesma fileira, como na maquete. */
 .masterquest .mq-header-actions {
@@ -1405,7 +1434,9 @@
   gap: 8px;
   min-width: 0;
 }
-.masterquest .mq-knot-name { flex: 1; margin: 0; min-width: 0; }
+/* 1.0.1: o piso passa de 0 para 8ch. Com piso zero, bastava um vizinho que nao cedesse
+   para o nome ser espremido ate uma letra por linha — foi o defeito da Complicacao. */
+.masterquest .mq-knot-name { flex: 1; margin: 0; min-width: 8ch; }
 .masterquest .mq-knot-name[contenteditable]:focus {
   outline: 1px solid var(--mq-accent-bright);
   border-radius: 2px;
@@ -1433,15 +1464,35 @@
   color: var(--mq-text);
 }
 
-.masterquest .mq-knot-ref,
-.masterquest .mq-complication-trigger {
-  flex: 0 0 auto;
+/* 1.0.1 — o defeito que o Quest Devs relatou em 2026-08-18: numa Complicacao com nome e
+   gatilho longos, o NOME quebrava letra a letra, uma por linha, enquanto o gatilho
+   aparecia truncado numa linha so.
+   A causa nao era a que se supos. O nome ja tinha `min-width: 0`. O problema era este
+   campo lateral com `flex: 0 0 auto`: ele se RECUSAVA a encolher e reservava os 180px
+   dele, e como o nome tem base zero, sobrava para o nome todo o aperto da fileira.
+   A mesma regra governa a tabela do Dilema e a do Desfecho — o mesmo defeito estava
+   armado nas tres secoes, e so a Complicacao tinha sido exercitada com texto de verdade.
+   `flex: 0 1 auto` + `min-width: 0` fazem o campo lateral ceder ANTES do nome. */
+.masterquest .mq-knot-ref {
+  flex: 0 1 auto;
+  min-width: 0;
   font-size: 11px;
   color: var(--mq-text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 180px;
+  max-width: 40%;
+}
+
+/* O gatilho da Complicacao nao e rotulo curto: e uma frase de mesa ("o primeiro conflito
+   com os Chacais de Golamra"). Por decisao de Mario ele desce para linha propria, na
+   mesma forma que a resolucao do Dilema (`mq-knot-text`) ja usava — recuo alinhado ao
+   nome, tipo menor, e quebra livre entre palavras. Nada de truncar: o campo diz QUANDO a
+   complicacao incide, e meia frase nao diz. */
+.masterquest .mq-complication-trigger {
+  margin: 4px 0 0 52px;
+  font-size: var(--mq-text-xs);
+  color: var(--mq-text-muted);
 }
 
 .masterquest .mq-resolve {

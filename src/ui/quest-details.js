@@ -1783,8 +1783,12 @@ function renderComplication(complication, model) {
         data-item-id="${esc(complication.id)}" title="Severity — click to cycle">${esc(complication.severity)}</button>`
     : `<span class="mq-pill mq-severity mq-severity-${esc(complication.severity)}">${esc(complication.severity)}</span>`;
 
+  // 1.0.1: o gatilho SAI da fileira do nome e ganha linha propria, como a resolucao do
+  // Dilema ja fazia. Ele e uma frase inteira ("o primeiro conflito com os Chacais de
+  // Golamra"); espremido ao lado do nome, truncava em tres palavras e ainda esmagava o
+  // nome ate uma letra por linha (handoff do Quest Devs, 2026-08-18).
   const trigger = complication.trigger
-    ? `<span class="mq-complication-trigger" title="Trigger"><i class="fa-solid fa-bolt-lightning" inert></i> ${esc(complication.trigger)}</span>`
+    ? `<p class="mq-complication-trigger" title="Trigger"><i class="fa-solid fa-bolt-lightning" inert></i> ${esc(complication.trigger)}</p>`
     : "";
 
   const actions = model.canEdit
@@ -1805,9 +1809,9 @@ function renderComplication(complication, model) {
       <div class="mq-knot-row">
         ${known}${severity}
         <p class="mq-knot-name" ${model.canEdit ? `contenteditable="true" data-complication-name="${esc(complication.id)}"` : ""}>${esc(complication.name)}</p>
-        ${trigger}
         ${actions}
       </div>
+      ${trigger}
     </li>
   `;
 }
