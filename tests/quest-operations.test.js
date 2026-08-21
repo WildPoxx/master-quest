@@ -701,7 +701,7 @@ test("1.1.0: a ordem canonica sobrevive, agora repartida entre Overview e Manage
   //
   // A 1.1.0 corta essa coluna em duas telas, pelo criterio de Mario de 2026-08-19:
   //   OVERVIEW  a trajetoria, o que o jogador pode ver: Objectives, Clues, Rewards
-  //   MANAGE    a maquinaria do Mestre: Dilemmas, Outcomes, Complications
+  //   MANAGE    a maquinaria do Mestre: Dilemmas, Complications, Outcomes
   // A ordem RELATIVA de cada metade continua sendo verificada aqui.
   const quest = questFixture({
     id: "q", name: "Q", status: "active",
@@ -721,7 +721,7 @@ test("1.1.0: a ordem canonica sobrevive, agora repartida entre Overview e Manage
   };
 
   emOrdem(render("details"), [">Objectives<", ">Clues<", ">Rewards"]);
-  emOrdem(render("management"), [">Dilemmas<", ">Outcomes<", ">Complications<"]);
+  emOrdem(render("management"), [">Dilemmas<", ">Complications<", ">Outcomes<"]);
 });
 
 test("0.23: o diff do Log registra so FICCAO \u2014 revelar/ocultar e gerenciamento e fica fora", () => {

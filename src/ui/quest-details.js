@@ -2392,6 +2392,10 @@ function renderManagementTab(model) {
   // 1.1.0. A Manage passa a ser "o que fica atras da cortina", pelo criterio de Mario:
   // Overview = o que pode ser mostrado aos jogadores; Manage = o resto.
   //
+  // A ORDEM segue a canonica de sempre: o Dilema abre (define o tom da quest), a
+  // Complicacao interfere no meio, o Desfecho fecha. O desenho de 20/08 trazia Desfechos
+  // em segundo; Mario corrigiu no desenho de 21/08, e a canonica prevaleceu.
+  //
   // DESCEM PARA CA, vindos da antiga Details: Dilemas, Desfechos, Complicacoes e o
   // controle de sessao. Os tres primeiros deixam de ser mostraveis ao jogador POR
   // ARQUITETURA — e por isso o campo `hidden` deles foi aposentado nesta mesma versao,
@@ -2405,8 +2409,8 @@ function renderManagementTab(model) {
     <div class="mq-manage">
       <div class="mq-manage-left">
         ${renderDilemmas(model)}
-        ${renderOutcomes(model)}
         ${renderComplications(model)}
+        ${renderOutcomes(model)}
 
         <section class="mq-subquests">
           <header>
