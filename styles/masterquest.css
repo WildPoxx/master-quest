@@ -23,6 +23,15 @@
   background: var(--mq-surface-0);
   color: var(--mq-text);
   font-family: var(--mq-font-body);
+
+  /* 1.1.0 — A JANELA E O CONTAINER, e isso nao e detalhe.
+     A janela do Foundry e redimensionada DENTRO do navegador. Uma regra de empilhamento
+     escrita com `@media` mede o NAVEGADOR e por isso NUNCA dispara: as colunas ficam
+     espremidas numa janela estreita enquanto a media query, satisfeita com a largura da
+     tela, nao faz nada. Reproduzido na bancada de 2026-08-20 antes de existir codigo.
+     Com o container declarado aqui, `@container mqwin (...)` mede a janela de verdade. */
+  container-type: inline-size;
+  container-name: mqwin;
 }
 
 /* Barra de titulo da janela = chrome da skin (couro com grao, display).     */
@@ -663,13 +672,32 @@
 .masterquest .mq-status { font-size: var(--mq-text-sm); margin: 2px 0; color: var(--mq-text-muted); }
 .masterquest .mq-subquest-link { cursor: pointer; font-size: var(--mq-text-sm); margin: 2px 0; color: var(--mq-accent); }
 
-.masterquest .mq-details-columns {
+/* 1.1.0 — A OVERVIEW tem duas faixas: em cima, prosa e imagem lado a lado; embaixo, as
+   tres colecoes que o jogador pode ver, em colunas. Dilemas, Desfechos e Complicacoes
+   desceram para a Manage, e e essa saida que abriu espaco para as tres colunas caberem. */
+.masterquest .mq-overview-top {
   display: grid;
-  gap: var(--mq-space-3);
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--mq-space-4);
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  align-items: start;
 }
 
-.masterquest .mq-details-right { display: flex; flex-direction: column; gap: var(--mq-space-3); min-width: 0; }
+.masterquest .mq-overview-columns {
+  display: grid;
+  gap: var(--mq-space-4);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: var(--mq-space-4);
+}
+
+/* Cada coluna rola por dentro, com um teto comum. Sem isso, uma quest com muitas pistas
+   faz a coluna do meio empurrar as vizinhas para longe e a tela perde o alinhamento —
+   e o caso de mesa que originou a reordenacao por arrasto e justamente esse. */
+.masterquest .mq-overview-columns > section {
+  min-width: 0;
+  max-height: 24em;
+  overflow-y: auto;
+  padding-right: 2px;
+}
 
 .masterquest .mq-editable-html,
 .masterquest .mq-readonly-html,
@@ -741,7 +769,22 @@
 .masterquest .mq-row-actions { align-items: center; display: flex; gap: 2px; }
 .masterquest .mq-handle { cursor: grab; opacity: 0.5; padding: 0 3px; }
 
-.masterquest .mq-management { display: flex; flex-direction: column; gap: 14px; }
+/* 1.1.0 — A MANAGE em duas colunas: a esquerda a maquinaria da quest (dilemas, desfechos,
+   complicacoes, ramificacao); a direita a conducao (sessoes). */
+.masterquest .mq-manage {
+  display: grid;
+  gap: var(--mq-space-5);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
+}
+
+.masterquest .mq-manage-left,
+.masterquest .mq-manage-right {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mq-space-3);
+  min-width: 0;
+}
 .masterquest .mq-field { display: flex; flex-direction: column; gap: 3px; margin: 8px 0; }
 .masterquest .mq-field span { font-size: var(--mq-text-sm); color: var(--mq-text-muted); }
 
@@ -951,9 +994,22 @@
 .masterquest .mq-hub-import p { font-size: var(--mq-text-sm); margin: 0 0 6px; }
 .masterquest .mq-hint { font-size: var(--mq-text-xs); margin-top: 6px; color: var(--mq-text-muted); }
 
-@media (max-width: 720px) {
-  .masterquest .mq-details-columns,
-  .masterquest .mq-hub-cards { grid-template-columns: 1fr; }
+/* 1.1.0 — empilhamento medido pela JANELA. Os dois pontos de quebra vieram da bancada de
+   2026-08-20, arrastando a regua ate a tela reclamar:
+     780px  as tres colunas da Overview viram duas
+     620px  tudo empilha: prosa e imagem, colunas e as duas metades da Manage
+   Abaixo de 620px o teto de rolagem das colunas sai — com uma coluna so, rolar por dentro
+   de cada secao seria tres barras de rolagem empilhadas. */
+@container mqwin (max-width: 780px) {
+  .masterquest .mq-overview-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@container mqwin (max-width: 620px) {
+  .masterquest .mq-overview-top,
+  .masterquest .mq-overview-columns,
+  .masterquest .mq-manage,
+  .masterquest .mq-hub-cards { grid-template-columns: minmax(0, 1fr); }
+  .masterquest .mq-overview-columns > section { max-height: none; overflow-y: visible; }
 }
 
 /* ---------------------------------------------------------------------------
@@ -1131,8 +1187,8 @@
 .mq-gm-panel prose-mirror.mq-panel-doc .editor-content,
 .masterquest .mq-gm-panel .mq-panel-doc { min-height: 16em; }
 
-/* A descricao pesa mais que a coluna da direita: e prosa, e as outras sao listas. */
-.masterquest .mq-details-columns { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+/* A descricao pesa mais que a imagem ao lado: e prosa, e a outra e uma figura de teto
+   fixo. Declarado junto da grade em .mq-overview-top; esta linha ficou aqui por historia. */
 
 /* 1.0.1, teste de mesa: a Descricao abria com doze linhas enquanto a coluna da direita
    tinha seis secoes vazias — espaco desperdicado de um lado, texto espremido do outro.
@@ -1756,3 +1812,88 @@
   margin-left: 6px;
   vertical-align: middle;
 }
+
+/* ---------------------------------------------------------------------------
+ * 1.1.0 — A fileira de abas em DOIS BLOCOS, e o rodape da Manage
+ *
+ * Decisao de Mario, 2026-08-20: as seis abas nao sao um conjunto so. Tres operam o JOGO
+ * (Overview, Manage, GM Panel) e tres guardam o REGISTRO (GM Notes, Player Notes, Logs).
+ * A cor diz isso antes da leitura, e um filete marca a virada.
+ *
+ * As tres regras de cor abaixo NAO sao valores: sao misturas dos tokens que cada skin ja
+ * define. E deliberado. Escrever hex aqui quebraria a DEC-018 e obrigaria a inventar
+ * vinte e sete cores novas — tres por skin, nove vezes. Com `color-mix`, cada skin resolve
+ * a sua sozinha, e as nove passam na barra de contraste (medido na bancada de 20/08).
+ *
+ * Tres armadilhas que a medicao pegou, e por isso valem comentario:
+ *
+ *   1. RECUAR NAO E ESCURECER. A primeira versao recuava a aba Logs escurecendo-a, e o
+ *      texto caia para ~3,1:1 nas QUATRO skins claras. A regra que sobreviveu: o recuo e
+ *      carregado pelo FUNDO; o texto nunca enfraquece. Por isso a Logs usa --mq-text.
+ *   2. "MAIS ESCURO" NAO E UNIVERSAL. O contorno da aba ativa em --mq-chrome-bg sumia nas
+ *      CINCO skins escuras (1,11:1 na OLF). O que e universal e "mais contrastante" —
+ *      --mq-text contrasta com as superficies por definicao, nas nove.
+ *   3. ALFA NAO E COR. O filete em --mq-border-strong (que e alfa) ficava ~2,8:1 nas
+ *      claras. --mq-chip-outline e cor cheia e passa.
+ * ------------------------------------------------------------------------- */
+
+.masterquest {
+  --mq-tab-play:     color-mix(in oklab, var(--mq-accent) 14%, var(--mq-surface-1));
+  --mq-tab-record:   color-mix(in oklab, var(--mq-text-muted) 12%, var(--mq-surface-1));
+  --mq-tab-recessed: color-mix(in oklab, var(--mq-chrome-bg) 12%, var(--mq-surface-0));
+}
+
+.masterquest .mq-tab[data-tab-block="play"] { background: var(--mq-tab-play); color: var(--mq-text); }
+.masterquest .mq-tab[data-tab-block="record"] { background: var(--mq-tab-record); color: var(--mq-text); }
+
+/* A Logs recua um degrau a mais: e o que o Mestre consulta depois, nao durante. */
+.masterquest .mq-tab[data-tab-target="log"] {
+  background: var(--mq-tab-recessed);
+  border-color: var(--mq-border-strong);
+  color: var(--mq-text);
+}
+
+/* O filete entre os dois blocos. Nasce do modelo, nao de uma posicao fixa — com abas
+   suprimidas pela guarda isGM o ponto de virada muda de lugar.
+   NAO usar o icone de alca aqui: depois da 1.1.0 a alca significa "arraste isto" em toda
+   a interface, e aba nao se arrasta. Ornamento ambiguo ensina gesto que nao existe. */
+.masterquest .mq-tab-separator {
+  align-self: stretch;
+  background: var(--mq-chip-outline);
+  flex: 0 0 1px;
+  margin: 0 var(--mq-space-2);
+  min-height: 22px;
+  width: 1px;
+}
+
+/* Alca de arrasto: 1.1.0 leva-a as SEIS colecoes, e nao mais so a duas. */
+.masterquest .mq-clue > .mq-handle,
+.masterquest .mq-dilemma > .mq-handle,
+.masterquest .mq-complication > .mq-handle,
+.masterquest .mq-outcome > .mq-handle {
+  align-self: flex-start;
+  color: var(--mq-text-muted);
+  cursor: grab;
+  flex: 0 0 auto;
+  font-size: var(--mq-text-sm);
+  margin-top: 2px;
+}
+
+.masterquest .mq-sessions-section > header { align-items: center; display: flex; gap: var(--mq-space-2); }
+
+/* Rodape da Manage: permissoes, encerramento e snapshot na mesma fileira. */
+.masterquest .mq-manage-button {
+  align-items: center;
+  background: var(--mq-surface-2);
+  border: 1px solid var(--mq-chip-outline);
+  border-radius: var(--mq-radius-2);
+  color: var(--mq-text);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: inherit;
+  font-size: var(--mq-text-sm);
+  gap: 6px;
+  padding: 5px 12px;
+}
+
+.masterquest .mq-manage-button:hover { background: var(--mq-chip-active-bg); }

@@ -630,7 +630,9 @@ test("DEC-035: a linha de Dilema nao tem checkbox, e resolve preserva o desfecho
     dilemmas: [{ id: "p1", name: "O destino de Ygerr", state: "open", table: "Cofre", hidden: false, known: true }]
   });
 
-  const gm = buildQuestDetailsViewModel(quest, { isGM: true, canEdit: true });
+  // 1.1.0: o Dilema desceu para a Manage. O contrato do gesto (Resolve, nunca checkbox)
+  // e o mesmo — DEC-035 nao mudou, so mudou de aba.
+  const gm = buildQuestDetailsViewModel(quest, { isGM: true, canEdit: true, activeTab: "management" });
   const html = renderQuestDetails(gm);
 
   assert.ok(html.includes("Dilemmas"), "a secao existe");
@@ -692,21 +694,34 @@ test("DEC-035: jogador ve dilema/complicacao nao-ocultos, sem controles", () => 
 
 import { diffQuestForLog, logToMarkdown } from "../src/quest/quest-log-diff.js";
 
-test("0.23: Dilemmas primeiro, Outcomes por ultimo, na Details do GM", () => {
-  // Mario, 2026-08-06: o dilema define o tom da quest \u2014 abre a coluna.
+test("1.1.0: a ordem canonica sobrevive, agora repartida entre Overview e Manage", () => {
+  // Ate a 1.0.1 as seis colecoes desciam numa coluna so, nesta ordem: Dilemmas,
+  // Objectives, Clues, Rewards, Complications, Outcomes (Mario, 2026-08-06: o dilema
+  // define o tom da quest e abre a coluna).
+  //
+  // A 1.1.0 corta essa coluna em duas telas, pelo criterio de Mario de 2026-08-19:
+  //   OVERVIEW  a trajetoria, o que o jogador pode ver: Objectives, Clues, Rewards
+  //   MANAGE    a maquinaria do Mestre: Dilemmas, Outcomes, Complications
+  // A ordem RELATIVA de cada metade continua sendo verificada aqui.
   const quest = questFixture({
     id: "q", name: "Q", status: "active",
     clues: [{ id: "c1", name: "A pagina arrancada", hidden: false }],
     outcomes: [{ id: "o1", name: "O desfecho do cofre", hidden: false }]
   });
-  const html = renderQuestDetails(buildQuestDetailsViewModel(quest, { isGM: true, canEdit: true }));
-  const ordem = [">Dilemmas<", ">Objectives<", ">Clues<", ">Rewards", ">Complications<", ">Outcomes<"];
-  let pos = -1;
-  for (const marca of ordem) {
-    const i = html.indexOf(marca);
-    assert.ok(i > pos, `${marca} fora de ordem`);
-    pos = i;
-  }
+  const render = (activeTab) =>
+    renderQuestDetails(buildQuestDetailsViewModel(quest, { isGM: true, canEdit: true, activeTab }));
+
+  const emOrdem = (html, marcas) => {
+    let pos = -1;
+    for (const marca of marcas) {
+      const i = html.indexOf(marca);
+      assert.ok(i > pos, `${marca} fora de ordem`);
+      pos = i;
+    }
+  };
+
+  emOrdem(render("details"), [">Objectives<", ">Clues<", ">Rewards"]);
+  emOrdem(render("management"), [">Dilemmas<", ">Outcomes<", ">Complications<"]);
 });
 
 test("0.23: o diff do Log registra so FICCAO \u2014 revelar/ocultar e gerenciamento e fica fora", () => {
@@ -857,12 +872,16 @@ test("0.23: wrappedUp e flag da mesa, reversivel, default false", () => {
   assert.equal(normalizeQuest({ name: "Q", wrappedUp: true }).wrappedUp, true);
 });
 
-test("0.23: a Details do GM mostra a sessao corrente sob a Description e o botao New session", () => {
+test("1.1.0: a MANAGE mostra a sessao corrente e o botao New session", () => {
   const quest = questFixture({
     id: "q", name: "Q", status: "active",
     sessions: [{ number: 2, date: "2026-08-06", title: "A sombra" }]
   });
-  const html = renderQuestDetails(buildQuestDetailsViewModel(quest, { isGM: true, canEdit: true }));
+  // 1.1.0: o controle de sessao saiu da aba que o jogador ve. Sessao e instrumento puro
+  // do Mestre, e o criterio novo poe isso atras da cortina.
+  const html = renderQuestDetails(
+    buildQuestDetailsViewModel(quest, { isGM: true, canEdit: true, activeTab: "management" })
+  );
   assert.ok(html.includes("mq-session"), "controle de sessao presente");
   assert.ok(html.includes("New session"));
   assert.ok(html.includes("A sombra"));
@@ -891,12 +910,17 @@ test("0.23: aba Log agrupa por sessao, tem + Entry, delete e push-to-notes por l
 
 test("0.23: Wrap Up reversivel no rodape; Report so com o caderno fechado", () => {
   const quest = questFixture({ id: "q", name: "Q", status: "active" });
-  const open = renderQuestDetails(buildQuestDetailsViewModel(quest, { isGM: true, canEdit: true }));
+  // 1.1.0: o rodape com Wrap Up e Snapshot desceu para a Manage e ganhou Permissions.
+  const open = renderQuestDetails(
+    buildQuestDetailsViewModel(quest, { isGM: true, canEdit: true, activeTab: "management" })
+  );
   assert.ok(open.includes("toggle-wrapup") && open.includes("Wrap Up"));
   assert.equal(open.includes("wrapup-report"), false, "sem relatorio antes do encerramento");
 
   const wrapped = questFixture({ id: "q2", name: "Q", status: "completed", wrappedUp: true });
-  const closed = renderQuestDetails(buildQuestDetailsViewModel(wrapped, { isGM: true, canEdit: true }));
+  const closed = renderQuestDetails(
+    buildQuestDetailsViewModel(wrapped, { isGM: true, canEdit: true, activeTab: "management" })
+  );
   assert.ok(closed.includes("Reopen"), "gesto reversivel");
   assert.ok(closed.includes("wrapup-report"), "a ata aparece");
   assert.ok(closed.includes("wrapped up"), "selo no cabecalho");

@@ -180,19 +180,35 @@ export function buildQuestDetailsViewModel(quest, {
     .filter((complication) => isGM || !complication.hidden)
     .map((complication) => ({ ...complication, spoiler: !complication.hidden && !complication.known }));
 
-  // A ordem e deliberada: GM Panel em SEGUNDO, logo depois de Details, porque e de onde o
-  // Mestre conduz a quest na mesa (DIR-05); GM Notes vem colado nele porque e o rascunho
-  // do mesmo trabalho. Os dois sao um par, e nenhum dos dois existe para o jogador — a
-  // guarda isGM abaixo e a mesma invariante de visibilidade de sempre.
-  const tabs = [{ id: "details", label: "Details", active: activeTab === "details" }];
-  if (isGM) {
-    tabs.push({ id: "gmnotes", label: "GM Panel", active: activeTab === "gmnotes" });
-    tabs.push({ id: "gmcomments", label: "GM Notes", active: activeTab === "gmcomments" });
-  }
-  tabs.push({ id: "playernotes", label: "Player Notes", active: activeTab === "playernotes" });
+  // 1.1.0 — a fileira passa a ter DOIS BLOCOS, por decisao de Mario (2026-08-20):
+  //
+  //     JOGO      Overview · Manage · GM Panel      o que se opera DURANTE a mesa
+  //     REGISTRO  GM Notes · Player Notes · Logs    o que se escreve SOBRE a mesa
+  //
+  // O campo `block` existe para o CSS pintar os dois conjuntos de forma distinta e para o
+  // desenho saber onde entra o filete separador. Sem ele, a interface teria de adivinhar
+  // isso a partir do id de cada aba — e adivinhacao envelhece mal.
+  //
+  // ROTULOS trocados, IDS INTACTOS. "Details" passa a chamar-se **Overview** (a aba e o
+  // resumo da quest, nao uma amostra dela) e "Log" passa a **Logs**. Os ids `details` e
+  // `log` ficam como estao DE PROPOSITO: o id e o que o modulo guarda como aba corrente e
+  // o que `activeTab` e os testes usam. Renomear o id invalidaria a aba guardada de quem
+  // ja usa o modulo, em troca de nada.
+  //
+  // A ordem antiga punha o GM Panel em segundo, colado em Details, porque os dois eram o
+  // par de conducao (DIR-05). A ordem nova cumpre o mesmo proposito por outro meio: o
+  // bloco do JOGO fica inteiro junto, e o GM Panel segue dentro dele.
+  const tabs = [{ id: "details", label: "Overview", block: "play", active: activeTab === "details" }];
+  // 1.1.0: a Manage passa a ser guardada por `isGM`, e nao mais por `canEdit`. Ela agora
+  // abriga Dilemas, Desfechos e Complicacoes — "o que fica atras da cortina", pelo criterio
+  // de Mario. `canEdit` e `isGM || canUserModify(...)`, ou seja, um JOGADOR com posse do
+  // JournalEntry da quest entrava aqui. Com o conteudo novo, isso seria a cortina aberta.
+  if (isGM) tabs.push({ id: "management", label: "Manage", block: "play", active: activeTab === "management" });
+  if (isGM) tabs.push({ id: "gmnotes", label: "GM Panel", block: "play", active: activeTab === "gmnotes" });
+  if (isGM) tabs.push({ id: "gmcomments", label: "GM Notes", block: "record", active: activeTab === "gmcomments" });
+  tabs.push({ id: "playernotes", label: "Player Notes", block: "record", active: activeTab === "playernotes" });
   // DEC-032: a sexta aba. So o Mestre — o Log e instrumento de conducao e de export.
-  if (isGM) tabs.push({ id: "log", label: "Log", active: activeTab === "log" });
-  if (canEdit) tabs.push({ id: "management", label: "Manage", active: activeTab === "management" });
+  if (isGM) tabs.push({ id: "log", label: "Logs", block: "record", active: activeTab === "log" });
 
   return {
     id: quest.id,
