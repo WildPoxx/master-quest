@@ -18,7 +18,10 @@ import { sessionOpenedEntry } from "../src/quest/quest-log-diff.js";
 import { buildQuestDetailsViewModel } from "../src/quest/quest-view-model.js";
 import { renderQuestDetails } from "../src/ui/quest-details.js";
 
-function gm(quest, activeTab = "details") {
+// 1.1.0: a area de sessao saiu da aba do jogador e passou a viver na Manage — sessao e
+// instrumento puro do Mestre, e o criterio novo poe isso atras da cortina. O padrao deste
+// ajudante acompanha a mudanca; os testes de conteudo continuam os mesmos.
+function gm(quest, activeTab = "management") {
   return renderQuestDetails(
     buildQuestDetailsViewModel(normalizeQuest(quest), { isGM: true, canEdit: true, activeTab })
   );

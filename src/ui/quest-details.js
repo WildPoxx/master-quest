@@ -927,9 +927,13 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
         await this.commit((draft) => ({
           ...draft,
           // Nasce oculto: revelar é ato deliberado do Mestre, não o padrão.
+          // 1.1.0, decisao de Mario: item novo nasce NO TOPO. Ate a 1.0.1 ele era anexado
+          // ao fim, e era essa a queixa da mesa — pista que emerge no meio da sessao ia
+          // parar longe de tudo com que se relaciona. Com o arrasto disponivel em todas as
+          // listas, o topo e o lugar util: o que acabou de acontecer fica sob os olhos.
           objectives: [
-            ...draft.objectives,
-            normalizeObjective({ id: makeId(), name: "New objective", hidden: true })
+            normalizeObjective({ id: makeId(), name: "New objective", hidden: true }),
+            ...draft.objectives
           ]
         }));
       });
@@ -1001,7 +1005,7 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
         event.preventDefault();
         await this.commit((draft) => ({
           ...draft,
-          rewards: [...draft.rewards, normalizeReward({ id: makeId(), type: "abstract", name: "New reward" })]
+          rewards: [normalizeReward({ id: makeId(), type: "abstract", name: "New reward" }), ...draft.rewards]
         }));
       });
 
@@ -1049,7 +1053,7 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
         event.preventDefault();
         await this.commit((draft) => ({
           ...draft,
-          dilemmas: [...(draft.dilemmas ?? []), normalizeDilemma({ id: makeId(), name: "New dilemma" })]
+          dilemmas: [normalizeDilemma({ id: makeId(), name: "New dilemma" }), ...(draft.dilemmas ?? [])]
         }));
       });
 
@@ -1057,7 +1061,7 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
         event.preventDefault();
         await this.commit((draft) => ({
           ...draft,
-          clues: [...(draft.clues ?? []), normalizeClue({ id: makeId(), name: "New clue" })]
+          clues: [normalizeClue({ id: makeId(), name: "New clue" }), ...(draft.clues ?? [])]
         }));
       });
 
@@ -1065,7 +1069,7 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
         event.preventDefault();
         await this.commit((draft) => ({
           ...draft,
-          outcomes: [...(draft.outcomes ?? []), normalizeOutcome({ id: makeId(), name: "New outcome" })]
+          outcomes: [normalizeOutcome({ id: makeId(), name: "New outcome" }), ...(draft.outcomes ?? [])]
         }));
       });
 
@@ -1073,7 +1077,7 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
         event.preventDefault();
         await this.commit((draft) => ({
           ...draft,
-          complications: [...(draft.complications ?? []), normalizeComplication({ id: makeId(), name: "New complication" })]
+          complications: [normalizeComplication({ id: makeId(), name: "New complication" }), ...(draft.complications ?? [])]
         }));
       });
 
@@ -1214,11 +1218,33 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
       });
     }
 
-    /** Objectives and rewards reorder by dragging their handle. */
+    /**
+     * TODA lista da janela reordena por arrasto — e so o Mestre reordena.
+     *
+     * 1.1.0, decisao de Mario (2026-08-20). Ate a 1.0.1 so Objectives e Rewards
+     * arrastavam, e o limite era deliberado. Mario o derrubou com um caso de mesa: as
+     * pistas de uma quest longa chegam na ordem em que foram DIGITADAS, e pista nova cai
+     * no fim, longe do degrau a que pertence. A ordem da tela e instrumento de conducao,
+     * nao decoracao — e por isso pertence ao Mestre.
+     *
+     * Duas travas que acompanham a decisao:
+     *   - `isGM`, e nao `canEdit`. Ate a 1.0.1 o portao era `canEdit`, que e
+     *     `isGM || canUserModify(...)`: um jogador com posse do JournalEntry da quest
+     *     reordenava objetivos e recompensas. Nao era o desenhado.
+     *   - o sistema NUNCA ordena sozinho. Nenhuma destas listas pode receber `sort` na
+     *     renderizacao — ordenacao automatica desfaz em silencio o trabalho do Mestre.
+     *     Ha teste guardando isso.
+     */
     activateReordering(root) {
+      if (this.game?.user?.isGM !== true) return;
+
       for (const [selector, key] of [
         [".mq-objective", "objectives"],
-        [".mq-reward", "rewards"]
+        [".mq-reward", "rewards"],
+        [".mq-clue", "clues"],
+        [".mq-dilemma", "dilemmas"],
+        [".mq-complication", "complications"],
+        [".mq-outcome", "outcomes"]
       ]) {
         root.querySelectorAll(selector).forEach((item) => {
           item.addEventListener("dragstart", (event) => {
@@ -1280,11 +1306,20 @@ export function cycleObjectiveState(objective) {
  * @returns {string} HTML.
  */
 export function renderQuestDetails(model) {
+  // 1.1.0: a fileira tem dois blocos (jogo / registro) e um filete entre eles. O filete e
+  // desenhado a partir do MODELO, e nao numa posicao fixa: com jogador sem permissao de
+  // edicao, ou com abas suprimidas pela guarda isGM, o ponto de virada muda de lugar.
+  // Sem nenhuma aba de registro visivel, nao ha o que separar e o filete nao nasce.
   const tabs = model.tabs
-    .map(
-      (tab) => `<button type="button" class="${cls("mq-tab", tab.active && "is-active")}"
-        data-tab-target="${esc(tab.id)}" data-label="${esc(tab.label)}">${esc(tab.label)}</button>`
-    )
+    .map((tab, index) => {
+      const previous = model.tabs[index - 1];
+      const separator = previous && previous.block !== tab.block
+        ? '<span class="mq-tab-separator" aria-hidden="true"></span>'
+        : "";
+      return `${separator}<button type="button" class="${cls("mq-tab", tab.active && "is-active")}"
+        data-tab-target="${esc(tab.id)}" data-tab-block="${esc(tab.block ?? "play")}"
+        data-label="${esc(tab.label)}">${esc(tab.label)}</button>`;
+    })
     .join("");
 
   const primaryStar = model.canEdit
@@ -1304,11 +1339,23 @@ export function renderQuestDetails(model) {
 
   return `
     <nav class="mq-tabs">${tabs}${primaryStar}</nav>
+    ${renderQuestHeader(model)}
     <div class="mq-details-body">${bodies[model.activeTab] ?? bodies.details}</div>
   `;
 }
 
-function renderDetailsTab(model) {
+/**
+ * O cabecalho da quest: quem deu, o nome, o estado, o vinculo com a quest-mae e as acoes.
+ *
+ * 1.1.0 — ELE SAIU DA ABA e passou a ser COMUM a janela inteira. Ate a 1.0.1 vivia dentro
+ * da Details: bastava o Mestre trocar para Manage ou para o Log e ele perdia de vista em
+ * QUAL quest estava mexendo. Nas telas que Mario desenhou o titulo aparece nas duas abas —
+ * e ele tem razao, porque saber onde se esta nao e assunto de uma aba so.
+ *
+ * @param {object} model The quest details view model.
+ * @returns {string} HTML.
+ */
+function renderQuestHeader(model) {
   const giver = model.giverImg
     ? `<div class="mq-giver" style="background-image:url('${escUrl(model.giverImg)}')" title="${esc(model.giverName)}"></div>`
     : "";
@@ -1317,13 +1364,6 @@ function renderDetailsTab(model) {
     ? `<p class="mq-subquest-link" data-action="open-quest" data-quest-id="${esc(model.parentId)}">
         Subquest of ${esc(model.parentName)} <i class="fa-solid fa-link" inert></i></p>`
     : "";
-
-  const description = model.canEdit
-    ? `<prose-mirror name="description" data-mq-field="description"
-        value="${esc(model.description ?? "")}" toggled="true">${model.enriched?.description ?? ""}</prose-mirror>`
-    : `<div class="mq-readonly-html">${safeHtml(model.description)}</div>`;
-
-  const image = renderQuestImage(model, "details");
 
   return `
     <header class="mq-details-header">
@@ -1341,27 +1381,31 @@ function renderDetailsTab(model) {
         ${renderSnapshotIcon(model)}
         ${renderStatusActions(model.statusActions, model.id)}
       </div>
-    </header>
+    </header>`;
+}
 
-    <div class="mq-details-columns">
+function renderDetailsTab(model) {
+  const description = model.canEdit
+    ? `<prose-mirror name="description" data-mq-field="description"
+        value="${esc(model.description ?? "")}" toggled="true">${model.enriched?.description ?? ""}</prose-mirror>`
+    : `<div class="mq-readonly-html">${safeHtml(model.description)}</div>`;
+
+  const image = renderQuestImage(model, "details");
+
+  return `
+    <div class="mq-overview-top">
       <section class="mq-description">
-        ${image}
         <h2>Description</h2>
         ${description}
-        ${renderSessionControl(model)}
       </section>
-
-      <div class="mq-details-right">
-        ${renderDilemmas(model)}
-        ${renderObjectives(model)}
-        ${renderClues(model)}
-        ${renderRewards(model)}
-        ${renderComplications(model)}
-        ${renderOutcomes(model)}
-      </div>
+      ${image}
     </div>
 
-    ${renderSnapshotFooter(model)}
+    <div class="mq-overview-columns">
+      ${renderObjectives(model)}
+      ${renderClues(model)}
+      ${renderRewards(model)}
+    </div>
   `;
 }
 
@@ -1515,7 +1559,7 @@ function renderSnapshotIcon(model) {
  * @param {object} model The quest details view model.
  * @returns {string} HTML.
  */
-function renderSnapshotFooter(model) {
+function renderSnapshotFooter(model, leading = "") {
   if (!model.isGM) return "";
 
   // 0.23: o encerramento editorial, a esquerda do Snapshot (Mario, 2026-08-06).
@@ -1530,8 +1574,11 @@ function renderSnapshotFooter(model) {
         <i class="fa-solid fa-file-lines" inert></i><span>Report</span></button>`
     : "";
 
+  // 1.1.0: `leading` recebe o botao de permissoes, que a Manage passa a acrescentar aqui.
+  // Fica ANTES do Wrap Up de proposito — permissao e o ajuste que se faz no comeco, e o
+  // encerramento e o gesto que se faz no fim; a ordem da fileira conta essa historia.
   return `<footer class="mq-details-footer">
-      ${wrapup}${report}
+      ${leading}${wrapup}${report}
       <button type="button" class="mq-snapshot-button" data-action="snapshot-quest"
         title="Download this quest and its subquests as JSON">
         <i class="fa-solid fa-camera" inert></i><span>Snapshot</span></button>
@@ -1594,7 +1641,8 @@ function renderClue(clue, model) {
     : "";
 
   return `
-    <li class="${cls("mq-clue", clue.hidden && "is-hidden", clue.found && "is-found", model.isGM && clue.spoiler && "is-spoiler")}" data-entry-id="${esc(clue.id)}">
+    <li class="${cls("mq-clue", clue.hidden && "is-hidden", clue.found && "is-found", model.isGM && clue.spoiler && "is-spoiler")}" data-entry-id="${esc(clue.id)}" ${model.isGM ? 'draggable="true"' : ""}>
+      ${model.isGM ? '<i class="mq-handle fa-solid fa-grip-vertical" title="Drag to reorder" inert></i>' : ""}
       <div class="mq-knot-row">
         ${known}${found}
         <p class="mq-knot-name" ${model.canEdit ? `contenteditable="true" data-clue-name="${esc(clue.id)}"` : ""}>${esc(clue.name)}</p>
@@ -1662,7 +1710,8 @@ function renderOutcome(outcome, model) {
     : "";
 
   return `
-    <li class="${cls("mq-outcome", outcome.hidden && "is-hidden", outcome.occurred && "is-resolved", model.isGM && outcome.spoiler && "is-spoiler")}" data-entry-id="${esc(outcome.id)}">
+    <li class="${cls("mq-outcome", outcome.hidden && "is-hidden", outcome.occurred && "is-resolved", model.isGM && outcome.spoiler && "is-spoiler")}" data-entry-id="${esc(outcome.id)}" ${model.isGM ? 'draggable="true"' : ""}>
+      ${model.isGM ? '<i class="mq-handle fa-solid fa-grip-vertical" title="Drag to reorder" inert></i>' : ""}
       <div class="mq-knot-row">
         ${known}${marker}
         <p class="mq-knot-name" ${model.canEdit ? `contenteditable="true" data-outcome-name="${esc(outcome.id)}"` : ""}>${esc(outcome.name)}</p>
@@ -1734,7 +1783,8 @@ function renderDilemma(dilemma, model) {
     : "";
 
   return `
-    <li class="${cls("mq-dilemma", dilemma.hidden && "is-hidden", resolved && "is-resolved", model.isGM && dilemma.spoiler && "is-spoiler")}" data-entry-id="${esc(dilemma.id)}">
+    <li class="${cls("mq-dilemma", dilemma.hidden && "is-hidden", resolved && "is-resolved", model.isGM && dilemma.spoiler && "is-spoiler")}" data-entry-id="${esc(dilemma.id)}" ${model.isGM ? 'draggable="true"' : ""}>
+      ${model.isGM ? '<i class="mq-handle fa-solid fa-grip-vertical" title="Drag to reorder" inert></i>' : ""}
       <div class="mq-knot-row">
         ${known}${marker}${severity}
         <p class="mq-knot-name" ${model.canEdit ? `contenteditable="true" data-dilemma-name="${esc(dilemma.id)}"` : ""}>${esc(dilemma.name)}</p>
@@ -1805,7 +1855,8 @@ function renderComplication(complication, model) {
     : "";
 
   return `
-    <li class="${cls("mq-complication", complication.hidden && "is-hidden", complication.fired && "is-fired", model.isGM && complication.spoiler && "is-spoiler")}" data-entry-id="${esc(complication.id)}">
+    <li class="${cls("mq-complication", complication.hidden && "is-hidden", complication.fired && "is-fired", model.isGM && complication.spoiler && "is-spoiler")}" data-entry-id="${esc(complication.id)}" ${model.isGM ? 'draggable="true"' : ""}>
+      ${model.isGM ? '<i class="mq-handle fa-solid fa-grip-vertical" title="Drag to reorder" inert></i>' : ""}
       <div class="mq-knot-row">
         ${known}${severity}
         <p class="mq-knot-name" ${model.canEdit ? `contenteditable="true" data-complication-name="${esc(complication.id)}"` : ""}>${esc(complication.name)}</p>
@@ -1841,7 +1892,7 @@ function renderObjective(objective, model) {
 
   const actions = model.canEdit
     ? `<div class="mq-row-actions">
-        <i class="mq-handle fa-solid fa-grip-vertical" title="Drag to reorder" inert></i>
+        ${model.isGM ? '<i class="mq-handle fa-solid fa-grip-vertical" title="Drag to reorder" inert></i>' : ""}
         <button type="button" class="mq-icon-button" data-action="toggle-objective-hidden" data-objective-id="${esc(objective.id)}"
           title="${objective.hidden ? "Hidden from players" : "Visible to players"}">
           <i class="fa-solid ${objective.hidden ? "fa-eye-slash" : "fa-eye"}" inert></i></button>
@@ -1860,7 +1911,7 @@ function renderObjective(objective, model) {
 
   return `
     <li class="${cls("mq-objective", objective.hidden && "is-hidden", model.isGM && objective.spoiler && "is-spoiler")}" data-entry-id="${esc(objective.id)}"
-        ${model.canEdit ? 'draggable="true"' : ""}>
+        ${model.isGM ? 'draggable="true"' : ""}>
       ${state}
       <p class="mq-objective-name" ${model.canEdit ? `contenteditable="true" data-objective-name="${esc(objective.id)}"` : ""}>${esc(objective.name)}</p>
       ${actions}
@@ -1913,7 +1964,7 @@ function renderReward(reward, model) {
 
   const actions = model.canEdit
     ? `<div class="mq-row-actions">
-        <i class="mq-handle fa-solid fa-grip-vertical" title="Drag to reorder" inert></i>
+        ${model.isGM ? '<i class="mq-handle fa-solid fa-grip-vertical" title="Drag to reorder" inert></i>' : ""}
         <button type="button" class="mq-icon-button" data-action="toggle-reward-hidden" data-reward-id="${esc(reward.id)}"
           title="${reward.hidden ? "Hidden from players" : "Visible to players"}">
           <i class="fa-solid ${reward.hidden ? "fa-eye-slash" : "fa-eye"}" inert></i></button>
@@ -1927,7 +1978,7 @@ function renderReward(reward, model) {
 
   return `
     <li class="${cls("mq-reward", reward.hidden && "is-hidden", reward.granted && "is-granted", model.isGM && reward.spoiler && "is-spoiler")}"
-        data-entry-id="${esc(reward.id)}" ${model.canEdit ? 'draggable="true"' : ""}>
+        data-entry-id="${esc(reward.id)}" ${model.isGM ? 'draggable="true"' : ""}>
       ${known}${image}
       <p class="mq-reward-name" ${model.canEdit ? `contenteditable="true" data-reward-name="${esc(reward.id)}"` : ""}>${name}</p>
       ${actions}
@@ -2338,37 +2389,72 @@ function renderManagementTab(model) {
         .join("")
     : renderEmpty("No subquests.");
 
-  const splash = model.splash
-    ? `<div class="mq-splash" style="background-image:url('${escUrl(model.splash)}');background-position:${esc(model.splashPos)}"></div>`
-    : `<div class="mq-splash mq-splash-empty"><span>No splash art</span></div>`;
-
+  // 1.1.0. A Manage passa a ser "o que fica atras da cortina", pelo criterio de Mario:
+  // Overview = o que pode ser mostrado aos jogadores; Manage = o resto.
+  //
+  // A ORDEM segue a canonica de sempre: o Dilema abre (define o tom da quest), a
+  // Complicacao interfere no meio, o Desfecho fecha. O desenho de 20/08 trazia Desfechos
+  // em segundo; Mario corrigiu no desenho de 21/08, e a canonica prevaleceu.
+  //
+  // DESCEM PARA CA, vindos da antiga Details: Dilemas, Desfechos, Complicacoes e o
+  // controle de sessao. Os tres primeiros deixam de ser mostraveis ao jogador POR
+  // ARQUITETURA — e por isso o campo `hidden` deles foi aposentado nesta mesma versao,
+  // mantido o `known`, que e outro eixo (SPEC-03) e continua util aqui.
+  //
+  // SAIU DAQUI: a secao "Settings", com o campo de splash art e a previa. Era a MESMA
+  // imagem da quest desenhada uma segunda vez — o defeito que o diagnostico de 19/08
+  // apontou. A arte agora se troca so pela Overview, onde ela aparece. O botao de
+  // permissoes nao se perdeu: virou o primeiro botao do rodape.
   return `
-    <div class="mq-management">
-      <section>
-        <h2>Settings</h2>
-        <button type="button" class="mq-bulk" data-action="configure-ownership">
-          <i class="fa-solid fa-lock" inert></i> Configure permissions</button>
-        <label class="mq-field">
-          <span>Splash art</span>
-          <span class="mq-file-field">
-            <input type="text" data-field="splash" value="${esc(model.splash)}" placeholder="path/to/image.webp">
-            <button type="button" class="mq-browse" data-action="pick-image" data-target-field="splash"
-              title="Browse the Foundry directory"><i class="fa-solid fa-folder-open" inert></i></button>
-          </span>
-        </label>
-        ${splash}
-      </section>
+    <div class="mq-manage">
+      <div class="mq-manage-left">
+        ${renderDilemmas(model)}
+        ${renderComplications(model)}
+        ${renderOutcomes(model)}
 
-      <section class="mq-subquests">
-        <header>
-          <h2>Branching</h2>
-          <button type="button" class="mq-add" data-action="add-subquest">
-            <i class="fa-solid fa-plus" inert></i> Subquest</button>
-        </header>
-        <ul class="mq-box">${subquests}</ul>
-      </section>
+        <section class="mq-subquests">
+          <header>
+            <h2>Branching</h2>
+            <button type="button" class="mq-add" data-action="add-subquest">
+              <i class="fa-solid fa-plus" inert></i> Subquest</button>
+          </header>
+          <ul class="mq-box">${subquests}</ul>
+        </section>
+      </div>
+
+      <div class="mq-manage-right">
+        <section class="mq-sessions-section">
+          <header><h2>Quest Sessions</h2></header>
+          ${renderSessionControl(model)}
+        </section>
+      </div>
     </div>
+
+    ${renderManageFooter(model)}
   `;
+}
+
+/**
+ * O rodape da Manage (1.1.0): permissoes, snapshot e encerramento, lado a lado.
+ *
+ * Reune o que estava em dois lugares — o botao de permissoes vivia numa secao "Settings"
+ * desta aba, e o Wrap Up / Snapshot num rodape da antiga Details. Sao todos instrumentos
+ * do Mestre sobre a quest inteira, e agora moram juntos.
+ *
+ * O botao "Settings" desenhado por Mario NAO entra: ele mesmo o retirou em 2026-08-20, por
+ * nao haver ainda o que configurar. Botao que abre janela vazia e pior que botao ausente.
+ *
+ * @param {object} model The quest details view model.
+ * @returns {string} HTML.
+ */
+function renderManageFooter(model) {
+  if (!model.isGM) return "";
+
+  const permissions = `<button type="button" class="mq-manage-button" data-action="configure-ownership"
+      title="Who can see and edit this quest">
+      <i class="fa-solid fa-lock" inert></i><span>Permissions</span></button>`;
+
+  return renderSnapshotFooter(model, permissions);
 }
 
 /**

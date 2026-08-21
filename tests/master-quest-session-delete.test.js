@@ -41,8 +41,11 @@ function questWith(overrides = {}) {
   });
 }
 
+// 1.1.0: a lixeira de sessao mora na Manage, junto com o resto do controle de sessao.
 function gmMarkup(quest = questWith()) {
-  return renderQuestDetails(buildQuestDetailsViewModel(quest, { isGM: true, canEdit: true }));
+  return renderQuestDetails(
+    buildQuestDetailsViewModel(quest, { isGM: true, canEdit: true, activeTab: "management" })
+  );
 }
 
 /** Recorta a linha da sessao pedida, para nao confundir a lixeira de uma com a de outra. */

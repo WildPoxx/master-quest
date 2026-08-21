@@ -115,7 +115,10 @@ test("o gatilho NAO fica mais dentro da fileira do nome", async () => {
       trigger: "o primeiro conflito com os Chacais de Golamra"
     }]
   });
-  const html = renderQuestDetails(buildQuestDetailsViewModel(quest, { isGM: true, canEdit: true }));
+  // 1.1.0: a Complicacao desceu para a Manage. O defeito que este teste guarda e o mesmo.
+  const html = renderQuestDetails(
+    buildQuestDetailsViewModel(quest, { isGM: true, canEdit: true, activeTab: "management" })
+  );
 
   const row = html.slice(html.indexOf('class="mq-knot-row"'), html.indexOf("</div>", html.indexOf('class="mq-knot-row"')));
   assert.equal(
@@ -132,7 +135,9 @@ test("o gatilho e bloco de texto, e nao um chip inline", async () => {
     name: "Q",
     complications: [{ id: "c1", name: "N", trigger: "quando a lua virar" }]
   });
-  const html = renderQuestDetails(buildQuestDetailsViewModel(quest, { isGM: true, canEdit: true }));
+  const html = renderQuestDetails(
+    buildQuestDetailsViewModel(quest, { isGM: true, canEdit: true, activeTab: "management" })
+  );
   assert.match(html, /<p class="mq-complication-trigger"/);
 });
 
