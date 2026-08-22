@@ -152,6 +152,12 @@ export function createMasterQuestHubClass(ApplicationV2) {
         });
       });
 
+      root.querySelector("[data-action='feed-report']")?.addEventListener("click", async (event) => {
+        event.preventDefault();
+        const { openFeedReport } = await import("./feed-report.js");
+        await openFeedReport({ api: this.api, game: this.game, ui: this.ui });
+      });
+
       root.querySelector("[data-action='snapshot']")?.addEventListener("click", async (event) => {
         event.preventDefault();
         const { downloadQuestSnapshot } = await import("../quest/quest-snapshot.js");
@@ -188,6 +194,13 @@ export function createMasterQuestHubClass(ApplicationV2) {
  */
 export function renderHub(context) {
   // DEC-027: estrutura e UI em ingles, sempre; so o CONTEUDO da campanha e portugues.
+  // O mesmo gesto de sempre, em lugar de menos destaque: manutencao nao disputa espaco com
+  // o que se usa na mesa. O `data-action` NAO mudou — o ouvinte de clique segue o mesmo.
+  const snapshotButton = context.isGM
+    ? `<button type="button" class="mq-bulk mq-hub-aside" data-action="snapshot" title="Downloads a read-only JSON with the current state of every quest">
+        <i class="fa-solid fa-camera" inert></i><span>Snapshot</span></button>`
+    : "";
+
   const importCard = context.isGM && context.fqlPending > 0
     ? `<div class="mq-hub-import">
         <p>Found <strong>${esc(context.fqlPending)}</strong> Forien's Quest Log quest(s) not yet imported
@@ -200,12 +213,19 @@ export function renderHub(context) {
 
   // Export end of the pipeline: dump the current state of the log as JSON so the session
   // can be processed outside Foundry and come back as an update.
-  const snapshotCard = context.isGM
-    ? `<button type="button" class="mq-hub-card" data-action="snapshot">
-        <i class="fa-solid fa-camera-retro" inert></i>
-        <span class="mq-hub-card-title">Take snapshot</span>
-        <span class="mq-hub-card-desc">Downloads a read-only JSON with the current state of
-        every quest, for outside analysis and update scripts.</span>
+  // 1.2.0 — O QUADRANTE MUDA DE DONO, e a razao e de valor, nao de gosto.
+  //
+  // O Snapshot e utilidade de manutencao: baixa um JSON e nada mais. Ele ocupava um dos
+  // quatro quadrantes da porta de entrada — o lugar mais caro da janela — enquanto o gesto
+  // que a mesa faz TODA sessao (recuperar o que ficou estabelecido) nao tinha porta nenhuma.
+  // Decisao de Mario em 2026-08-21, repetida em 22/08: o Snapshot desce para botao de canto
+  // no cabecalho, e o quadrante passa ao Feed Report.
+  const feedReportCard = context.isGM
+    ? `<button type="button" class="mq-hub-card" data-action="feed-report">
+        <i class="fa-solid fa-file-arrow-up" inert></i>
+        <span class="mq-hub-card-title">Feed report</span>
+        <span class="mq-hub-card-desc">Reads continuity reports and shows what is established, what is
+        still hanging, and what the module is unsure about. Never writes to a quest.</span>
       </button>`
     : "";
 
@@ -229,8 +249,11 @@ export function renderHub(context) {
 
   return `
     <header class="mq-hub-header">
-      <h1>MasterQuest</h1>
-      <p>${esc(context.questCount)} quest(s) in this world, ${esc(context.activeCount)} in progress.</p>
+      <div class="mq-hub-heading">
+        <h1>MasterQuest</h1>
+        <p>${esc(context.questCount)} quest(s) in this world, ${esc(context.activeCount)} in progress.</p>
+      </div>
+      ${snapshotButton}
     </header>
 
     <div class="mq-hub-cards">
@@ -242,7 +265,7 @@ export function renderHub(context) {
         by status, objectives and rewards.</span>
       </button>
       ${adventureCard}
-      ${snapshotCard}
+      ${feedReportCard}
     </div>
 
     ${importCard}
