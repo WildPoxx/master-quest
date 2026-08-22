@@ -507,6 +507,17 @@
   gap: var(--mq-space-2);
   justify-content: space-between;
   margin-bottom: 6px;
+
+  /* 1.1.1 — A CABECA DA SECAO DOBRA EM VEZ DE CORTAR.
+     O defeito que Mario viu em Foundry vivo (o botao "+ Reward" aparecendo cortado)
+     nao era so de largura de janela: era tambem desta linha. A cabeca de Rewards carrega
+     QUATRO pecas — o titulo, "Reveal all", "Grant all" e "+ Reward" —, e as tres ultimas
+     tem `white-space: nowrap`. Sem `wrap`, o flex encolhe a CAIXA do botao abaixo do
+     texto que ela nao pode quebrar, e o rotulo vaza da propria borda. Alargar a janela
+     adia o encontro; nao o impede — bastaria uma skin de fonte mais larga para o corte
+     voltar. Com `wrap` a cabeca desce para uma segunda linha e o corte deixa de ser
+     possivel em qualquer largura. */
+  flex-wrap: wrap;
 }
 
 .masterquest .mq-log-header h2,
@@ -628,6 +639,9 @@
   padding: 3px 8px;
   white-space: nowrap;
   width: auto;
+  /* Par da regra da cabeca de secao: o botao nao encolhe. `nowrap` sem isto e o que
+     fazia o rotulo vazar da borda em vez de a cabeca dobrar. */
+  flex: 0 0 auto;
 }
 
 .masterquest .mq-new-quest:hover,
@@ -675,10 +689,18 @@
 /* 1.1.0 — A OVERVIEW tem duas faixas: em cima, prosa e imagem lado a lado; embaixo, as
    tres colecoes que o jogador pode ver, em colunas. Dilemas, Desfechos e Complicacoes
    desceram para a Manage, e e essa saida que abriu espaco para as tres colunas caberem. */
+/* 1.1.1, pedido de Mario: a imagem NAO acompanha a janela.
+   Ate a 1.1.0 a coluna da direita era `1fr` — proporcional —, entao alargar a janela
+   alargava a figura junto, e com `max-height` cortando a altura a proporcao 3:2 deixava
+   de valer acima de 450px de largura. Era o mesmo defeito que a 1.0.1 consertou, voltando
+   pela porta dos fundos.
+   Agora a coluna da imagem tem LARGURA FIXA de 450px — que e exatamente 300px de altura
+   em 3:2, o teto que Mario aprovou na 1.0.1. Toda a largura extra da janela vai para a
+   Description, que e prosa e agradece. */
 .masterquest .mq-overview-top {
   display: grid;
   gap: var(--mq-space-4);
-  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) 450px;
   align-items: start;
 }
 
@@ -1007,9 +1029,27 @@
 @container mqwin (max-width: 620px) {
   .masterquest .mq-overview-top,
   .masterquest .mq-overview-columns,
-  .masterquest .mq-manage,
-  .masterquest .mq-hub-cards { grid-template-columns: minmax(0, 1fr); }
+  .masterquest .mq-manage { grid-template-columns: minmax(0, 1fr); }
   .masterquest .mq-overview-columns > section { max-height: none; overflow-y: visible; }
+}
+
+/* 1.1.1 — CORRECAO DE REGRESSAO introduzida pela 1.1.0.
+   Ao trocar `@media` por `@container`, a lista de seletores foi herdada da regra antiga
+   sem reavaliacao, e nela ia `.mq-hub-cards`. So que as janelas do modulo tem LARGURA
+   FIXA declarada em codigo:
+       Hub .............. 560px  (resizable: false)
+       Import Adventure . 620px
+       Quest Log ........ 820px
+       Quest Details .... 1650px (a partir da 1.1.1)
+   O ponto de quebra de 620px pega o Hub por baixo e o Import EM CHEIO — `max-width` e
+   inclusivo. As duas passaram a empilhar os cartoes em uma coluna, SEMPRE. Antes o
+   comportamento dependia da largura da TELA (imprevisivel); depois virou previsivelmente
+   errado, e no sentido oposto ao que Mario queria.
+   LICAO: trocar @media por @container nao e trocar a palavra, e trocar a REGUA. Todo
+   ponto de quebra tem de ser conferido contra a largura fixa de cada janela que o herda.
+   O Hub tem 560px e quer duas colunas: o ponto de quebra dele fica bem abaixo disso. */
+@container mqwin (max-width: 420px) {
+  .masterquest .mq-hub-cards { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* ---------------------------------------------------------------------------
@@ -1838,12 +1878,45 @@
  * ------------------------------------------------------------------------- */
 
 .masterquest {
+  /* 1.1.1, pedido de Mario: as tres abas do bloco de JOGO ganham cores DISTINTAS entre
+     si, e nao mais um tom unico de bloco.
+     A trinca e a proporcao NAO foram escolhidas a olho — foram MEDIDAS nas nove skins,
+     por varredura, com dois criterios ao mesmo tempo:
+       (a) contraste do texto sobre cada fundo >= 4,5:1  (a regua da DEC-018)
+       (b) distancia PERCEPTUAL entre as tres, em OKLab  (dE)
+     O criterio (b) precisou existir porque a primeira medicao usou razao de contraste
+     para julgar "estas cores parecem diferentes?" — e razao de contraste mede LUMINANCIA,
+     nao matiz. Duas cores podem ter contraste 1,0 entre si e serem obviamente distintas.
+     A medida errada quase aprovou uma trinca indistinguivel.
+     A primeira trinca tentada foi accent + metal-bronze + metal-silver, e ela FALHOU: em
+     Pergaminho o accent e o bronze sao, na pratica, o mesmo marrom, e o dE minimo ficou em
+     0,003 — invisivel. Nas outras skins douradas o mesmo se repete.
+     A trinca que venceu a varredura, a 35%:
+       --mq-accent        a cor de acao da skin
+       --mq-highlight-bg  o fundo de destaque — distinto do accent nas nove
+       --mq-metal-silver  ornamento cinza, o unico neutro do conjunto
+     Resultado medido: texto de 5,46:1 a 9,36:1 (9/9 passam) e dE de 0,022 a 0,0625 — de
+     perceptivel a claramente distinto.
+     Descartados por CARREGAREM SIGNIFICADO: --mq-danger, --mq-status-completed e
+     --mq-status-failed. Aba vermelha diria "perigo"; verde diria "cumprido". Cor
+     semantica em elemento de navegacao mente.
+     Descartada tambem a ideia de reforcar com BORDA na cor pura: medida, ela reprova nas
+     nove (1,2 a 2,0:1 contra o proprio fundo). Obvio em retrospecto — o fundo E a cor
+     misturada com a superficie, entao a cor pura fica perto dele. Nao acrescenta sinal. */
   --mq-tab-play:     color-mix(in oklab, var(--mq-accent) 14%, var(--mq-surface-1));
+  --mq-tab-play-1:   color-mix(in oklab, var(--mq-accent) 35%, var(--mq-surface-1));
+  --mq-tab-play-2:   color-mix(in oklab, var(--mq-highlight-bg) 35%, var(--mq-surface-1));
+  --mq-tab-play-3:   color-mix(in oklab, var(--mq-metal-silver) 35%, var(--mq-surface-1));
   --mq-tab-record:   color-mix(in oklab, var(--mq-text-muted) 12%, var(--mq-surface-1));
   --mq-tab-recessed: color-mix(in oklab, var(--mq-chrome-bg) 12%, var(--mq-surface-0));
 }
 
+/* Um tom por aba no bloco do jogo; o bloco do registro segue com tom unico, por decisao
+   de Mario ("podemos deixar os tres botoes da direita a principio como esta"). */
 .masterquest .mq-tab[data-tab-block="play"] { background: var(--mq-tab-play); color: var(--mq-text); }
+.masterquest .mq-tab[data-tab-target="details"] { background: var(--mq-tab-play-1); }
+.masterquest .mq-tab[data-tab-target="management"] { background: var(--mq-tab-play-2); }
+.masterquest .mq-tab[data-tab-target="gmnotes"] { background: var(--mq-tab-play-3); }
 .masterquest .mq-tab[data-tab-block="record"] { background: var(--mq-tab-record); color: var(--mq-text); }
 
 /* A Logs recua um degrau a mais: e o que o Mestre consulta depois, nao durante. */

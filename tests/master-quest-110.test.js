@@ -286,3 +286,116 @@ test("o filete separador usa cor cheia, e nao alfa", async () => {
   assert.match(rule, /background:\s*var\(--mq-chip-outline\)/);
   assert.doesNotMatch(rule, /--mq-border-strong/, "alfa ficava em ~2,8:1 nas skins claras");
 });
+
+/* =====================================================================================
+ * 1.1.1 — o que o PRIMEIRO teste em Foundry vivo pediu, e uma regressao que ele revelou
+ *
+ * Mario abriu a 1.1.0 no Foundry e trouxe tres pedidos e um achado:
+ *   1. as tres abas do bloco de JOGO com cores distintas entre si;
+ *   2. a janela de quest abrindo maior, para a coluna de Rewards caber inteira;
+ *   3. a imagem da quest com tamanho FIXO — ela nao acompanha a janela;
+ *   e, ao investigar o Hub que ele cobrou, apareceu a regressao do @container.
+ * ===================================================================================== */
+
+/**
+ * A largura NAO e um numero de gosto: e a medicao de Mario, convertida.
+ *
+ * Ele mede a janela fotografando a tela e lendo o print no Canvas Size do Photoshop. A
+ * janela publicada, declarada 900x720 no codigo, mede 904x728 no print dele — +4 e +8 de
+ * moldura, menos de 1%. Essa diferenca minuscula e a CALIBRAGEM: prova que o monitor dele
+ * esta 1:1 com o pixel de CSS, e portanto que o que ele mede pode entrar direto aqui.
+ * A largura em que o "+ Reward" deixa de ser cortado mede 1108 no print (~1104 de codigo).
+ *
+ * O numero final, porem, nao e esse: com Signika e Font Awesome carregados no laboratorio, a
+ * cabeca de Rewards pede 344px, e as cinco skins SERIFADAS (a padrao entre elas) so alcancam
+ * isso a partir de 1136 de janela. Em 1104 e em 1120 o botao nao e cortado — o `flex-wrap`
+ * abaixo impede — mas desce para uma segunda linha. 1160 da 363px de coluna, 19px de folga,
+ * e poe a cabeca em UMA linha nas nove skins.
+ */
+test("1.1.1: a janela de quest abre maior — a largura e o que faltava", async () => {
+  const source = await detailsSource();
+  const rule = source.slice(source.indexOf("position: { width"), source.indexOf("position: { width") + 60);
+  assert.match(rule, /width:\s*1160/, "medicao: e onde a cabeca de Rewards cabe em uma linha nas nove skins");
+  assert.match(rule, /height:\s*800/);
+});
+
+/**
+ * E a trava que torna o corte IMPOSSIVEL, e nao apenas improvavel.
+ *
+ * A largura maior resolve o caso que Mario viu; nao resolve a causa. A cabeca de Rewards
+ * carrega quatro pecas com `white-space: nowrap`, e sem `flex-wrap` o flex encolhe a caixa
+ * do botao abaixo do texto que ela nao pode quebrar — o rotulo vaza da propria borda.
+ * Bastaria uma skin de fonte mais larga para o defeito voltar em 1120.
+ */
+test("1.1.1: a cabeca da secao dobra em vez de cortar o botao", async () => {
+  const source = await css();
+  // As duas regras sao de seletor AGRUPADO — a cabeca vale para as seis colecoes, e o
+  // botao para .mq-new-quest, .mq-add e .mq-bulk. `ruleFor` casa `<seletor> {`, que so
+  // existe no ULTIMO nome do grupo; por isso a fatia comeca no primeiro nome e vai ate a
+  // chave. Assim o teste tambem guarda que Rewards continua DENTRO do grupo.
+  const head = source.slice(
+    source.indexOf(".masterquest .mq-log-header,"),
+    source.indexOf("}", source.indexOf(".masterquest .mq-log-header,"))
+  );
+  assert.match(head, /\.masterquest \.mq-rewards header,/, "a cabeca de Rewards e a que carrega quatro pecas");
+  assert.match(head, /flex-wrap:\s*wrap/, "sem isto o botao vaza da propria borda em janela estreita");
+
+  const add = source.slice(
+    source.indexOf(".masterquest .mq-new-quest,"),
+    source.indexOf("}", source.indexOf(".masterquest .mq-new-quest,"))
+  );
+  assert.match(add, /\.masterquest \.mq-add,/);
+  assert.match(add, /flex:\s*0\s+0\s+auto/, "o par da regra: o botao nao encolhe");
+});
+
+test("1.1.1: a imagem NAO acompanha a janela — a coluna dela tem largura fixa", async () => {
+  const source = await css();
+  const rule = ruleFor(source, ".masterquest .mq-overview-top");
+  assert.match(
+    rule,
+    /grid-template-columns:\s*minmax\(0,\s*1fr\)\s+450px/,
+    "com a coluna em `1fr` a figura esticava junto com a janela, e a proporcao 3:2 deixava de valer"
+  );
+  assert.doesNotMatch(rule, /minmax\(0,\s*1\.25fr\)/, "a proporcao antiga era o que esticava");
+});
+
+test("1.1.1: as tres abas do bloco de jogo tem cada uma a sua cor", async () => {
+  const source = await css();
+  for (const [target, token] of [
+    ["details", "--mq-tab-play-1"],
+    ["management", "--mq-tab-play-2"],
+    ["gmnotes", "--mq-tab-play-3"]
+  ]) {
+    const rule = ruleFor(source, `.masterquest .mq-tab[data-tab-target="${target}"]`);
+    assert.match(rule, new RegExp(`background:\\s*var\\(${token}\\)`), `${target} sem cor propria`);
+  }
+});
+
+test("1.1.1: as tres cores vem de tokens NAO semanticos, e derivadas — nunca hex", async () => {
+  const source = await css();
+  const bloco = source.slice(source.indexOf("--mq-tab-play-1"), source.indexOf("--mq-tab-play-3") + 120);
+  assert.match(bloco, /--mq-accent/);
+  assert.match(bloco, /--mq-highlight-bg/);
+  assert.match(bloco, /--mq-metal-silver/);
+  assert.doesNotMatch(bloco, /#[0-9a-fA-F]{3,8}/, "hex aqui quebraria a DEC-018");
+  // Cor semantica em navegacao mente: aba vermelha diria "perigo", verde diria "cumprido".
+  assert.doesNotMatch(bloco, /--mq-danger|--mq-status-completed|--mq-status-failed/);
+});
+
+test("1.1.1: REGRESSAO CORRIGIDA — o Hub sai do ponto de quebra da janela de quest", async () => {
+  const source = await css();
+  const bloco620 = source.slice(
+    source.indexOf("@container mqwin (max-width: 620px)"),
+    source.indexOf("}", source.indexOf("mq-overview-columns > section"))
+  );
+  assert.doesNotMatch(
+    bloco620,
+    /mq-hub-cards/,
+    "o Hub tem 560px FIXOS: herdado neste bloco, ele empilhava em uma coluna sempre"
+  );
+  assert.match(
+    source,
+    /@container mqwin \(max-width:\s*420px\)[\s\S]{0,200}mq-hub-cards/,
+    "o Hub precisa de ponto de quebra proprio, abaixo da sua largura fixa"
+  );
+});
