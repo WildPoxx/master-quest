@@ -96,7 +96,28 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
       classes: ["masterquest", "masterquest-quest-details"],
       tag: "section",
       window: { title: "Quest", icon: "fa-solid fa-scroll", resizable: true },
-      position: { width: 900, height: 720 }
+      // 1.1.1, pedido de Mario depois do primeiro teste em Foundry vivo: a janela de
+      // quest abre maior, para que o botao "+ Reward" pare de aparecer cortado. So a
+      // LARGURA muda de verdade; a altura sobe pouco, porque o problema nunca foi vertical.
+      // A janela do Quest Log NAO muda — Mario a considerou "no tamanho otimo".
+      //
+      // O numero veio de MEDICAO, nao de estimativa. Mario fotografa a janela e mede o
+      // print no Canvas Size do Photoshop. A janela publicada, que o codigo declara
+      // 900x720, mede 904x728 no print dele: +4 e +8 de moldura. Essa diferenca de menos
+      // de 1% e a calibragem — o monitor dele esta 1:1 com o pixel de CSS, sem escala do
+      // Windows —, e por isso os numeros que ele mede entram DIRETO aqui. A largura em
+      // que o botao deixa de ser cortado mede 1108 no print, ou seja ~1104 de codigo.
+      //
+      // 1104 e 1120 foram descartados por MEDICAO, nao por gosto: com a Signika e o Font
+      // Awesome carregados no laboratorio, a cabeca de Rewards pede 344px, e as cinco
+      // skins SERIFADAS (pergaminho inclusive, que e a padrao) so alcancam isso a partir
+      // de 1136 de janela. Em 1120 o "+ Reward" nao e cortado — o `flex-wrap` da folha
+      // impede —, mas desce para uma segunda linha. 1160 da 363px de coluna, 19px de
+      // folga, e poe a cabeca em UMA linha nas nove skins. Escolha de Mario em 22/08.
+      //
+      // O 1650 anterior era um palpite de voz meu, tomado por especificacao: alem de nao
+      // caber em tela de 1366px, dava a Description uma linha longa demais para leitura.
+      position: { width: 1160, height: 800 }
     };
 
     /**

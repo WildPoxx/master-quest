@@ -15,7 +15,11 @@ test("module manifest matches Foundry v14 scaffold contract", async () => {
   assert.equal(manifest.id, "master-quest");
   assert.equal(manifest.title, "MasterQuest");
   assert.match(String(manifest.compatibility.minimum), /^14/);
-  assert.equal(manifest.compatibility.verified, "14.365");
+  // 1.1.1: subido de 14.365 para 14.367 depois de conferir as notas das duas releases —
+  // nenhuma toca ApplicationV2, DragDrop, abas, CSS, ProseMirror, Journal, ownership nem
+  // settings, que e onde o modulo vive. O valor fica TRAVADO de proposito: subir `verified`
+  // e ato deliberado, feito com as notas na frente, nunca um numero que acompanha o humor.
+  assert.equal(manifest.compatibility.verified, "14.367");
   assert.equal(
     Object.hasOwn(manifest.compatibility, "maximum"),
     false,
