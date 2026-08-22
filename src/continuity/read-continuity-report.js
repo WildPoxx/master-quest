@@ -49,6 +49,32 @@ function extractSections(lines) {
   return sections;
 }
 
+/**
+ * O relatorio do FQL diz "aqui nao ha nada" com uma FRASE, e a frase vem como item de lista.
+ *
+ * Ate a 1.2.0 havia uma guarda para isso, mas ela exigia que a linha NAO fosse bullet
+ * (`!line.startsWith("- ")`) — e no corpus real do Lost Frontier os marcadores de vazio sao
+ * justamente bullets: `- Nenhuma ponta solta selecionada.`, `- _Nenhum alerta registrado
+ * neste fechamento._`. Resultado: rodando contra os dez relatorios reais, o bloco de pontas
+ * soltas vinha inflado com dezenas de linhas que dizem que nao ha pontas soltas.
+ *
+ * Isso e pior do que ruido: e AUSENCIA com aparencia de CONTEUDO, no mecanismo que existe
+ * exatamente para o Mestre confiar no que le. Contraria a DEC-066 pelo lado que ela nao
+ * previu — nao e adivinhacao, e transcricao de um vazio.
+ *
+ * RISCO DECLARADO: uma ponta solta legitima que comece com "Nenhuma..." seria descartada
+ * (por exemplo, "Nenhuma testemunha apareceu — insistir na Sessao 07"). O corpus real nao
+ * tem nenhum caso assim, e o custo do erro inverso — inflar o bloco — e maior. Se aparecer,
+ * a correcao e exigir que a frase TERMINE em ponto sem oracao subordinada, nao afrouxar isto.
+ *
+ * @param {string} text One list item, already without the bullet marker.
+ * @returns {boolean} True when the line states emptiness instead of content.
+ */
+function isEmptinessMarker(text) {
+  const bare = String(text ?? "").replace(/^_+|_+$/g, "").trim();
+  return /^nenhum[ao]?\b/.test(normalizeText(bare));
+}
+
 function parseBulletSection(lines, { defaultGroup = null } = {}) {
   const items = [];
   let currentGroup = defaultGroup;
@@ -87,11 +113,10 @@ function parseBulletSection(lines, { defaultGroup = null } = {}) {
     if (normalized.includes("nenhum") && !line.startsWith("- ")) continue;
 
     if (line.startsWith("- ")) {
-      items.push({
-        group: currentGroup,
-        date: currentDate,
-        text: line.slice(2).trim()
-      });
+      const text = line.slice(2).trim();
+      // A guarda de vazio agora vale TAMBEM para bullets. Ver isEmptinessMarker.
+      if (isEmptinessMarker(text)) continue;
+      items.push({ group: currentGroup, date: currentDate, text });
     }
   }
 
@@ -215,8 +240,10 @@ function parseCloseoutEntries(lines) {
     }
 
     if ((mode === "alerts" || mode === "looseEnds") && line.startsWith("- ")) {
+      const text = line.slice(2).trim();
+      if (isEmptinessMarker(text)) continue;
       const list = mode === "alerts" ? current.alerts : current.looseEnds;
-      list.push(line.slice(2).trim());
+      list.push(text);
     }
   }
 
