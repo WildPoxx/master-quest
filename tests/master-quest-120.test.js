@@ -28,8 +28,11 @@ test("1.2.0: o Snapshot sai do quadrante e vira gesto de canto", async () => {
   // O gesto continua existindo — muda de lugar, nao de existencia. E o `data-action`
   // permanece `snapshot`, porque o ouvinte de clique e o mesmo: renomear seria trocar
   // duas pecas para nao ganhar nada.
-  assert.match(html, /class="mq-bulk mq-hub-aside"[^>]*data-action="snapshot"/,
+  assert.match(html, /class="mq-bulk mq-hub-corner"[^>]*data-action="snapshot"/,
     "o Snapshot tem de existir como botao de canto");
+  // 1.2.1: so o icone. Sem nome acessivel o gesto sumiria para teclado e leitor de tela —
+  // e discreto por decisao de layout nao pode virar invisivel por descuido.
+  assert.match(html, /aria-label="Take snapshot"/, "botao so de icone precisa de nome acessivel");
   assert.doesNotMatch(html, /class="mq-hub-card" data-action="snapshot"/,
     "o Snapshot NAO pode mais ocupar um dos quatro quadrantes");
 });
@@ -72,7 +75,7 @@ test("1.2.0: o Feed Report nao tem como escrever (DEC-004)", async () => {
 test("1.2.0: a tela mostra os tres blocos, e bloco vazio CONTINUA na tela", () => {
   const html = renderFeedReport({
     reports: [{ questTitle: "A Chave de Rastro" }],
-    state: {
+    consolidated: {
       reportCount: 1,
       questCount: 6,
       facts: [{ title: "A Chave de Rastro", text: "Nikko foi interrogado", sourcePath: "s03.md" }],
@@ -150,4 +153,33 @@ test("1.2.0: o filtro de vazio nao come a lista inteira", () => {
 
   const parsed = readContinuityReportState(relatorio, { sourcePath: "s04.md" });
   assert.equal((parsed.looseEnds ?? []).length, 2);
+});
+
+/**
+ * O defeito que a 1.2.0 publicou, e que nenhum teste desta suite pegou.
+ *
+ * `this.state = null` no construtor. A ApplicationV2 declara `state` como GETTER SEM SETTER,
+ * entao a atribuicao lanca `Cannot set property state of #<ApplicationV2> which has only a
+ * getter` — antes de a janela existir. O cartao do Hub respondia ao clique e nada abria.
+ *
+ * Os testes de marcacao nao podiam pegar isso: eles chamam `renderFeedReport`, que e funcao
+ * pura, e nunca instanciam a classe contra a ApplicationV2 de verdade. A licao e que uma
+ * suite que so testa a funcao pura NAO cobre o construtor — e a correcao geral e esta: uma
+ * guarda sobre as DOZE propriedades que o framework reserva, valendo para toda janela do
+ * modulo, e nao so para a que quebrou.
+ */
+test("1.2.0: nenhuma janela escreve por cima das propriedades reservadas da ApplicationV2", async () => {
+  // Lida do bundle do Foundry 14.365 em 2026-08-23.
+  const RESERVADAS = ["children", "classList", "element", "form", "hasFrame", "id",
+    "minimized", "parent", "rendered", "state", "title", "window"];
+
+  const janelas = ["src/ui/feed-report.js", "src/ui/master-quest-hub.js", "src/ui/quest-details.js"];
+  for (const caminho of janelas) {
+    const source = await read(caminho);
+    for (const nome of RESERVADAS) {
+      const atribuicao = new RegExp(`this\\.${nome}\\s*=[^=]`);
+      assert.ok(!atribuicao.test(source),
+        `${caminho} atribui a this.${nome}, que a ApplicationV2 declara so com getter`);
+    }
+  }
 });

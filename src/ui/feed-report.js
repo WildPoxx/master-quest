@@ -102,8 +102,17 @@ export function createFeedReportClass(ApplicationV2) {
       this.ui = ui;
       /** @type {Array<object>} Relatorios ja lidos nesta sessao da janela. */
       this.reports = [];
-      /** @type {object|null} O consolidado, ou null enquanto nada foi carregado. */
-      this.state = null;
+      /**
+       * O consolidado, ou null enquanto nada foi carregado.
+       *
+       * NAO se chama `state`, e isso custou uma versao publicada. A ApplicationV2 declara
+       * DOZE propriedades como getter sem setter — children, classList, element, form,
+       * hasFrame, id, minimized, parent, rendered, state, title, window — e atribuir a
+       * qualquer uma delas no construtor lanca `Cannot set property ... which has only a
+       * getter` ANTES de a janela existir: o cartao do Hub responde ao clique e nada abre.
+       * Ha teste guardando que nenhuma delas e escrita aqui.
+       */
+      this.consolidated = null;
       /** @type {Array<{name: string, error: string}>} Arquivos que nao puderam ser lidos. */
       this.rejected = [];
     }
@@ -115,7 +124,7 @@ export function createFeedReportClass(ApplicationV2) {
     async _renderHTML() {
       return renderFeedReport({
         reports: this.reports,
-        state: this.state,
+        consolidated: this.consolidated,
         rejected: this.rejected
       });
     }
@@ -156,7 +165,7 @@ export function createFeedReportClass(ApplicationV2) {
 
       this.reports = [...this.reports, ...parsed];
       this.rejected = rejected;
-      this.state = aggregateContinuityState({
+      this.consolidated = aggregateContinuityState({
         questStates: readAllQuests({ game: this.game }),
         continuityReports: this.reports,
         journalIndex: journalIndexOf(this.game)
@@ -182,7 +191,7 @@ export function createFeedReportClass(ApplicationV2) {
         event.preventDefault();
         this.reports = [];
         this.rejected = [];
-        this.state = null;
+        this.consolidated = null;
         await this.render({ force: false });
       });
     }
@@ -212,7 +221,7 @@ function journalIndexOf(game) {
  * @param {object} context `{reports, state, rejected}`.
  * @returns {string} HTML.
  */
-export function renderFeedReport({ reports = [], state = null, rejected = [] } = {}) {
+export function renderFeedReport({ reports = [], consolidated = null, rejected = [] } = {}) {
   const picker = `
     <div class="mq-feed-picker">
       <label class="mq-bulk" for="mq-feed-input">
@@ -235,7 +244,7 @@ export function renderFeedReport({ reports = [], state = null, rejected = [] } =
       </section>`
     : "";
 
-  if (!state) {
+  if (!consolidated) {
     return `
       <div class="mq-feed">
         <header class="mq-feed-header">
@@ -255,15 +264,15 @@ export function renderFeedReport({ reports = [], state = null, rejected = [] } =
       <header class="mq-feed-header">
         <div class="mq-hub-heading">
           <h1>Feed Report</h1>
-          <p>${esc(state.reportCount)} report(s) against ${esc(state.questCount)} quest(s) in this world.</p>
+          <p>${esc(consolidated.reportCount)} report(s) against ${esc(consolidated.questCount)} quest(s) in this world.</p>
         </div>
       </header>
       ${picker}
       ${rejectedBlock}
       <div class="mq-feed-blocks">
-        ${block("What is established", "fa-anchor", state.facts, factLine)}
-        ${block("What is still hanging", "fa-hourglass-half", state.openThreads, threadLine)}
-        ${block("What the module is unsure about", "fa-circle-question", state.uncertainties, uncertaintyLine)}
+        ${block("What is established", "fa-anchor", consolidated.facts, factLine)}
+        ${block("What is still hanging", "fa-hourglass-half", consolidated.openThreads, threadLine)}
+        ${block("What the module is unsure about", "fa-circle-question", consolidated.uncertainties, uncertaintyLine)}
       </div>
     </div>`;
 }
