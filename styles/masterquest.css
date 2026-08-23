@@ -993,21 +993,15 @@
 
 .masterquest .mq-hub-heading { min-width: 0; }
 
-.masterquest .mq-hub-aside {
-  align-items: center;
-  display: flex;
+/* 1.2.1 — o gesto de manutencao e so o icone. `align-self: center` alinha com o BLOCO do
+   titulo, nao com o topo dele: encostado no topo o botao parecia solto no canto. */
+.masterquest .mq-hub-corner {
+  align-self: center;
   flex: 0 0 auto;
-  flex-direction: column;
-  gap: 4px;
+  padding: 6px 9px;
 }
 
-.masterquest .mq-hub-aside i { font-size: 16px; }
-
-.masterquest .mq-hub-aside span {
-  font-size: var(--mq-text-xs);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
+.masterquest .mq-hub-corner i { font-size: 15px; }
 
 .masterquest .mq-hub-cards { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
 

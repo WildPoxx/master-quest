@@ -196,9 +196,19 @@ export function renderHub(context) {
   // DEC-027: estrutura e UI em ingles, sempre; so o CONTEUDO da campanha e portugues.
   // O mesmo gesto de sempre, em lugar de menos destaque: manutencao nao disputa espaco com
   // o que se usa na mesa. O `data-action` NAO mudou — o ouvinte de clique segue o mesmo.
+  // 1.2.1 — SO O ICONE. A primeira forma empilhava icone e rotulo em caixa alta, seguindo o
+  // desenho de Mario ao pe da letra; em tamanho real virou um carimbo, alto demais, que
+  // empurrava o cabecalho e nao se parecia com nenhum outro botao do modulo. Escolha dele
+  // em 2026-08-23, entre tres formas medidas no laboratorio.
+  //
+  // `aria-label` NAO e redundante com `title`: sem nome acessivel, um botao so de icone
+  // desaparece para quem navega por teclado ou leitor de tela — e o gesto ja e discreto por
+  // decisao de layout; discreto nao pode virar invisivel.
   const snapshotButton = context.isGM
-    ? `<button type="button" class="mq-bulk mq-hub-aside" data-action="snapshot" title="Downloads a read-only JSON with the current state of every quest">
-        <i class="fa-solid fa-camera" inert></i><span>Snapshot</span></button>`
+    ? `<button type="button" class="mq-bulk mq-hub-corner" data-action="snapshot"
+        title="Take snapshot: downloads a read-only JSON with the current state of every quest"
+        aria-label="Take snapshot">
+        <i class="fa-solid fa-camera" inert></i></button>`
     : "";
 
   const importCard = context.isGM && context.fqlPending > 0
