@@ -35,7 +35,8 @@ test("interface skin is a world setting with modern investigation as the safe de
     "investigacao-moderna",
     "pergaminho",
     "cosmere",
-    "sci-fi"
+    "sci-fi",
+    "mistborn-gilded-steps"
   ]);
   // O primeiro item do menu tem de ser o proprio padrao: menu em ordem arbitraria faz o
   // Mestre procurar o default entre as demais.

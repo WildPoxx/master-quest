@@ -10,6 +10,9 @@ export const INTERFACE_SKIN_SETTING = "interfaceSkin";
  * `investigacao-moderna`. As demais do catalogo NAO foram portadas; `cosmere` e exclusiva
  * desta linha e permanece, porque e o sistema que prende a linha 13.
  *
+ * Terceiro porte (2026-09-08): `mistborn-gilded-steps`, da campanha Mistborn Era 2, trazida
+ * do catalogo da main. So tokens de cor e a Cinzel ja embarcada; nenhuma fonte nova.
+ *
  * A ordem aqui e a ordem do menu em Game Settings, e ela e deliberada: o padrao primeiro.
  * Menu em ordem alfabetica faria o Mestre procurar o proprio default.
  */
@@ -17,14 +20,16 @@ export const INTERFACE_SKINS = Object.freeze({
   modernInvestigation: "investigacao-moderna",
   parchment: "pergaminho",
   cosmere: "cosmere",
-  sciFi: "sci-fi"
+  sciFi: "sci-fi",
+  mistbornGildedSteps: "mistborn-gilded-steps"
 });
 
 const INTERFACE_SKIN_CHOICES = Object.freeze({
   [INTERFACE_SKINS.modernInvestigation]: "Investigação Contemporânea",
   [INTERFACE_SKINS.parchment]: "Pergaminho Hyboriano",
   [INTERFACE_SKINS.cosmere]: "Cosmere",
-  [INTERFACE_SKINS.sciFi]: "Futurista"
+  [INTERFACE_SKINS.sciFi]: "Futurista",
+  [INTERFACE_SKINS.mistbornGildedSteps]: "Mistborn — Gilded Steps"
 });
 
 /**
