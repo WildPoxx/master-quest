@@ -1381,10 +1381,15 @@ function renderQuestHeader(model) {
     ? `<div class="mq-giver" style="background-image:url('${escUrl(model.giverImg)}')" title="${esc(model.giverName)}"></div>`
     : "";
 
-  const parentLine = model.isSubquest
-    ? `<p class="mq-subquest-link" data-action="open-quest" data-quest-id="${esc(model.parentId)}">
+  // 1.3.0: a etapa se apresenta como etapa — "Stage 2 of <arco>" —, e nao como subquest.
+  // O numero e a posicao entre as irmas que quem le consegue ver; sem posicao, so o arco.
+  const parentLine = model.isSequence && model.parentId
+    ? `<p class="mq-subquest-link mq-stage-link" data-action="open-quest" data-quest-id="${esc(model.parentId)}">
+        ${model.stagePosition ? `Stage ${esc(model.stagePosition)} of` : "Stage of"} ${esc(model.parentName)} <i class="fa-solid fa-link" inert></i></p>`
+    : model.isSubquest
+      ? `<p class="mq-subquest-link" data-action="open-quest" data-quest-id="${esc(model.parentId)}">
         Subquest of ${esc(model.parentName)} <i class="fa-solid fa-link" inert></i></p>`
-    : "";
+      : "";
 
   return `
     <header class="mq-details-header">
@@ -1421,6 +1426,8 @@ function renderDetailsTab(model) {
       </section>
       ${image}
     </div>
+
+    ${renderStageGroups(model)}
 
     <div class="mq-overview-columns">
       ${renderObjectives(model)}
@@ -1885,6 +1892,54 @@ function renderComplication(complication, model) {
       </div>
       ${trigger}
     </li>
+  `;
+}
+
+/**
+ * 1.3.0 — o arco inteiro na Overview do pai: cada etapa como cabecalho de grupo, com os
+ * objetivos dela embaixo. E a resposta a pergunta que o handoff de 2026-08-19 deixou
+ * aberta — "nenhuma tabela mostra o arco inteiro".
+ *
+ * SO LEITURA, de proposito. Concluir objetivo e escrita na quest da ETAPA; fazer isso daqui
+ * seria uma segunda porta de escrita para o mesmo dado, com seus proprios modos de falha.
+ * O nome da etapa abre a janela dela, onde a escrita ja existe.
+ *
+ * @param {object} model O modelo da Details.
+ * @returns {string} HTML, ou "" quando a quest nao tem etapas visiveis.
+ */
+export function renderStageGroups(model) {
+  const stages = model.sequences ?? [];
+  if (!stages.length) return "";
+
+  const groups = stages
+    .map((stage) => {
+      const objectives = stage.objectives.length
+        ? stage.objectives
+          .map((objective) => `<li class="${cls("mq-stage-objective", objective.hidden && "is-hidden")}">
+              <span class="mq-state" title="${esc(objective.stateLabel)}"><i class="fa-solid fa-${esc(objective.state)}" inert></i></span>
+              <p class="mq-objective-name">${esc(objective.name)}</p>
+            </li>`)
+          .join("")
+        : renderEmpty("No objectives yet.");
+
+      return `<li class="${cls("mq-stage-group", `mq-stage-${stage.status}`, stage.id === model.currentSequence?.id && "is-current", model.isGM && stage.isHidden && "is-hidden")}"
+          data-stage-id="${esc(stage.id)}">
+          <header class="mq-stage-header">
+            <span class="mq-stage-position">${esc(stage.position)}</span>
+            <h3 class="mq-stage-name" data-action="open-quest" data-quest-id="${esc(stage.id)}">${esc(stage.name)}</h3>
+            <span class="mq-status mq-status-${esc(stage.status)}">${esc(stage.statusLabel)}</span>
+            <span class="mq-quest-count" title="Objectives completed">${esc(stage.objectiveBadge)}</span>
+          </header>
+          <ul class="mq-box mq-stage-objectives">${objectives}</ul>
+        </li>`;
+    })
+    .join("");
+
+  return `
+    <section class="mq-stages">
+      <header><h2>Stages</h2></header>
+      <ol class="mq-stage-groups">${groups}</ol>
+    </section>
   `;
 }
 
@@ -2396,8 +2451,22 @@ function renderDerivedProgress(model) {
 }
 
 function renderManagementTab(model) {
-  const subquests = model.subquests.length
-    ? model.subquests
+  // 1.3.0: na Branching, as etapas vem primeiro e em ordem, com a posicao a vista; as
+  // subquests seguem como antes. Desvincular vale para as duas — e o mesmo `parent`.
+  const stageItems = (model.sequences ?? [])
+    .map(
+      (stage) => `<li class="mq-subquest-item mq-stage-item">
+            <span class="mq-stage-position" title="Stage ${esc(stage.position)}">${esc(stage.position)}</span>
+            <h3 data-action="open-quest" data-quest-id="${esc(stage.id)}">${esc(stage.name)}</h3>
+            <span class="mq-status mq-status-${esc(stage.status)}">${esc(stage.statusLabel)}</span>
+            <button type="button" class="mq-icon-button" data-action="unlink-subquest" data-quest-id="${esc(stage.id)}"
+              title="Unlink stage"><i class="fa-solid fa-link-slash" inert></i></button>
+          </li>`
+    )
+    .join("");
+
+  const subquests = model.subquests.length || stageItems
+    ? stageItems + model.subquests
         .map(
           (sub) => `<li class="mq-subquest-item">
             ${sub.isPrimary ? '<i class="mq-badge mq-primary fa-solid fa-star" inert></i>' : ""}

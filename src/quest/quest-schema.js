@@ -66,6 +66,16 @@ export const SPLASH_POSITIONS = Object.freeze(["top", "center", "bottom"]);
 export const QUEST_TYPE = Object.freeze({
   main: "main",
   subquest: "subquest",
+  // 1.3.0 — Sequencia (Mario, 2026-09-11). Subquest e historia FECHADA pendurada no pai:
+  // tirada dele, ainda faz sentido. Sequencia e ETAPA do arco do pai: tirada dele, nao
+  // faz. A pergunta que decide e essa, e so ela. A diferenca que o modulo honra e de
+  // APRESENTACAO — a sequencia nao vira linha propria no log, entra como etapa do pai —
+  // e de ORDEM, dada por `order`. A hierarquia (`parent` + `subquests`) nao muda.
+  //
+  // Mora em `type` por escolha consciente contra a direcao da DEC-055, que parte `type`
+  // em nivel e categoria. Na 1.x `type` nao migra (portao da propria DEC-055); renomear
+  // este valor depois nao move estado de quest nenhuma.
+  sequence: "sequence",
   side: "side",
   personal: "personal",
   faction: "faction",
@@ -103,6 +113,10 @@ export function normalizeQuest(input = {}) {
     location: data.location == null ? null : text(data.location) || null,
     priority: Number.isFinite(Number(data.priority)) ? Number(data.priority) : 0,
     type: data.type == null ? null : text(data.type) || null,
+    // 1.3.0: posicao da etapa na trilha do pai. So a sequencia a le; nas demais e inerte.
+    // Inteiro autorado; qualquer outra coisa vira 0, e o desempate cai na ordem de
+    // `subquests[]` do pai — que ja e dado (DEC-054: a ordem pertence a quem a escreveu).
+    order: normalizeOrder(data.order),
     parent: data.parent == null ? null : text(data.parent) || null,
     subquests: uniqueStrings(data.subquests),
     // Stable authoring id (e.g. "MQ-ATO1-01"). The JournalEntry id is assigned by Foundry
@@ -202,6 +216,19 @@ export function normalizeObjective(input = {}) {
     // ve" e spoiler do painel — a UI sinaliza essa combinacao, nunca esta.
     known: data.known === true
   };
+}
+
+/**
+ * Posicao de etapa (1.3.0). Aceita inteiro, ou texto que seja inteiro — blueprint escrito a
+ * mao traz "2" tanto quanto 2. Qualquer outra coisa e 0, que significa "sem posicao".
+ *
+ * @param {*} value Valor bruto.
+ * @returns {number} Inteiro.
+ */
+export function normalizeOrder(value) {
+  if (typeof value === "number") return Number.isInteger(value) ? value : 0;
+  if (typeof value === "string" && /^\s*-?\d+\s*$/.test(value)) return Number.parseInt(value, 10);
+  return 0;
 }
 
 /**

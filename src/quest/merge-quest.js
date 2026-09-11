@@ -57,7 +57,10 @@ export const AUTHORED_BY_DRAFT = Object.freeze({
 export const AUTHORED_BY_BLUEPRINT = Object.freeze({
   quest: Object.freeze([
     "name", "type", "description", "gmnotes", "priority",
-    "activationTriggers", "journalLinks", "designId"
+    "activationTriggers", "journalLinks", "designId",
+    // 1.3.0: a posicao da etapa e estrutura, como `type` e `priority` — quem desenhou o
+    // arco e quem sabe em que ordem ele corre.
+    "order"
   ]),
   objective: Object.freeze(["name"]),
   reward: Object.freeze(["name", "type", "img", "uuid", "data"]),
