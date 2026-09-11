@@ -14,7 +14,7 @@ test("module manifest matches the Foundry v13 beta contract", async () => {
   }
   assert.equal(manifest.id, "master-quest");
   assert.equal(manifest.title, "MasterQuest");
-  assert.equal(manifest.version, "0.30.3-v13.3");
+  assert.equal(manifest.version, "0.30.3-v13.4");
   assert.equal(manifest.compatibility.minimum, "13.351");
   assert.equal(manifest.compatibility.verified, "13.351");
   assert.equal(manifest.compatibility.maximum, "13");

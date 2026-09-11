@@ -303,9 +303,13 @@ function renderQuestRow(row, model) {
       : ""
   ].join("");
 
+  // 1.3.0: etapa que chegou a ser linha propria (o pai nao esta na lista de quem le) diz
+  // de quem e etapa — nunca "Subquest de", que era a mentira que esta versao corrige.
   const subtitle = row.isSubquest
     ? `<p class="mq-subquest">Subquest de ${esc(row.parentName)}</p>`
-    : "";
+    : row.isSequence && row.parentName
+      ? `<p class="mq-subquest">Etapa de ${esc(row.parentName)}</p>`
+      : "";
 
   const primaryToggle = model.isGM
     ? `<button type="button" class="mq-icon-button" data-action="toggle-primary" data-quest-id="${esc(row.id)}"
@@ -325,6 +329,7 @@ function renderQuestRow(row, model) {
       <div class="mq-quest-title" data-action="open-quest" data-quest-id="${esc(row.id)}">
         <h3>${esc(row.name)} ${badges}</h3>
         ${subtitle}
+        ${renderStages(row, model)}
       </div>
       <div class="mq-quest-count" title="Objectives completed">${esc(row.objectiveBadge)}</div>
       ${renderStatusActions(row.statusActions, row.id)}
@@ -332,6 +337,42 @@ function renderQuestRow(row, model) {
       ${deleteButton}
     </li>
   `;
+}
+
+/**
+ * 1.3.0 — as etapas dentro da linha do pai.
+ *
+ * Para quem joga, o arco e UMA quest: a linha mostra em que etapa a mesa esta e a trilha
+ * que ja pode ver. Para o Mestre, cada etapa conserva os botoes de status — avancar de
+ * etapa continua sendo gesto dele, feito daqui, sem abrir janela (o modulo nao deriva o
+ * status do pai nem da etapa seguinte).
+ *
+ * @param {object} row A linha do pai, de `buildQuestRow`.
+ * @param {object} model O modelo do log.
+ * @returns {string} HTML, ou "" quando nao ha etapa.
+ */
+export function renderStages(row, model) {
+  const stages = row.stages ?? [];
+  if (!stages.length) return "";
+
+  const current = row.currentStage
+    ? `<p class="mq-stage-current">${row.stageTotal
+      ? `Etapa ${esc(row.currentStage.position)} de ${esc(row.stageTotal)}`
+      : `Etapa ${esc(row.currentStage.position)}`} · ${esc(row.currentStage.name)}</p>`
+    : "";
+
+  const items = stages
+    .map((stage) => `
+      <li class="${cls("mq-stage-row", `mq-stage-${stage.status}`, stage.id === row.currentStage?.id && "is-current", model.isGM && stage.isHidden && "is-hidden")}"
+          data-stage-id="${esc(stage.id)}">
+        <span class="mq-stage-position">${esc(stage.position)}</span>
+        <span class="mq-stage-name" data-action="open-quest" data-quest-id="${esc(stage.id)}">${esc(stage.name)}</span>
+        <span class="mq-status mq-status-${esc(stage.status)}">${esc(stage.statusLabel)}</span>
+        ${renderStatusActions(stage.statusActions, stage.id)}
+      </li>`)
+    .join("");
+
+  return `${current}<ol class="mq-stage-list" aria-label="Etapas">${items}</ol>`;
 }
 
 function readDragPayload(event) {

@@ -552,6 +552,77 @@
 }
 .masterquest .mq-subquest { font-size: var(--mq-text-xs); margin: 0; color: var(--mq-text-muted); }
 
+/* 1.3.0 — SEQUENCIA. A etapa mora dentro da linha do pai (log) e dentro da Overview do pai
+   (Details). Nenhum token novo: a etapa corrente se marca pelo mesmo filete que ja marca a
+   sessao corrente (--mq-chip-outline), e a oculta pela mesma borda tracejada dos demais
+   itens ocultos — estado semantico por componente, nunca por opacidade sozinha. */
+.masterquest .mq-stage-current {
+  color: var(--mq-text-muted);
+  font-size: var(--mq-text-xs);
+  margin: 2px 0 0;
+}
+.masterquest .mq-stage-list,
+.masterquest .mq-stage-groups {
+  list-style: none;
+  margin: var(--mq-space-1) 0 0;
+  padding: 0;
+}
+.masterquest .mq-stage-row,
+.masterquest .mq-stage-header {
+  align-items: center;
+  border-left: 2px solid transparent;
+  display: flex;
+  gap: var(--mq-space-2);
+  padding: 1px 0 1px var(--mq-space-1);
+}
+.masterquest .mq-stage-row { font-size: var(--mq-text-xs); }
+.masterquest .mq-stage-row .mq-status { font-size: var(--mq-text-xs); margin: 0; }
+.masterquest .mq-stage-row.is-current,
+.masterquest .mq-stage-group.is-current > .mq-stage-header {
+  background: var(--mq-surface-0);
+  border-left-color: var(--mq-chip-outline);
+}
+.masterquest .mq-stage-row.is-hidden,
+.masterquest .mq-stage-group.is-hidden > .mq-stage-header,
+.masterquest .mq-stage-objective.is-hidden {
+  border-left: 3px dashed var(--mq-border-strong);
+}
+.masterquest .mq-stage-position {
+  border: 1px solid var(--mq-border);
+  border-radius: var(--mq-radius-pill);
+  color: var(--mq-text-muted);
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+  min-width: 1.6em;
+  text-align: center;
+}
+.masterquest .mq-stage-name { cursor: pointer; flex: 1; min-width: 0; }
+.masterquest .mq-stages { margin: var(--mq-space-3) 0; }
+.masterquest .mq-stages header h2 {
+  border: none;
+  color: var(--mq-text);
+  font-family: var(--mq-font-display);
+  font-size: var(--mq-text-lg);
+  letter-spacing: var(--mq-display-tracking);
+  margin: 0 0 6px;
+}
+.masterquest .mq-stage-group + .mq-stage-group { margin-top: var(--mq-space-2); }
+.masterquest .mq-stage-header h3 {
+  border: none;
+  font-family: var(--mq-font-display);
+  font-size: var(--mq-text-md);
+  letter-spacing: var(--mq-display-tracking);
+  margin: 0;
+}
+.masterquest .mq-stage-objectives { margin-left: calc(1.6em + var(--mq-space-2)); }
+.masterquest .mq-stage-objective {
+  align-items: center;
+  border-bottom: 1px solid var(--mq-border);
+  display: flex;
+  gap: 6px;
+  padding: 3px 2px;
+}
+
 .masterquest .mq-quest-count {
   font-variant-numeric: tabular-nums;
   flex: 0 0 auto;

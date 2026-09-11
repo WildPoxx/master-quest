@@ -10,6 +10,7 @@ import {
   QUEST_STATUS,
   QUEST_STATUS_LABEL,
   QUEST_STATUS_ORDER,
+  QUEST_TYPE,
   GM_ONLY_STATUS,
   countObjectives,
   currentSession
@@ -54,9 +55,22 @@ export function buildQuestLogViewModel(quests, {
 } = {}) {
   const index = indexById(quests);
   const visible = toArray(quests).filter((quest) => isGM || !isQuestHidden(quest));
+  const visibleIds = new Set(visible.map((quest) => quest.id));
 
+  // 1.3.0 — a etapa nao e linha propria: entra DENTRO da linha do pai. Por isso as abas
+  // contam um trabalho, e nao um trabalho mais cada fatia dele. So se recolhe a etapa cujo
+  // pai esta DE FATO numa linha desta lista; se o pai nao aparece — oculto para quem le,
+  // ausente do mundo, ou ele mesmo recolhido —, a etapa volta a ser linha comum. Conteudo
+  // nunca some da vista por causa de agrupamento (P5).
   const rows = visible
-    .map((quest) => buildQuestRow(quest, { isGM, primaryQuestId, countHidden, index }))
+    .filter((quest) => !isNestedStage(quest, { index, visibleIds }))
+    .map((quest) => buildQuestRow(quest, {
+      isGM,
+      primaryQuestId,
+      countHidden,
+      index,
+      stages: stagesOf(quest, visible).filter((stage) => isNestedStage(stage, { index, visibleIds }))
+    }))
     .sort(byPriorityThenName);
 
   const tabs = QUEST_STATUS_ORDER
@@ -93,10 +107,18 @@ export function buildQuestRow(quest, {
   isGM = false,
   primaryQuestId = null,
   countHidden = true,
-  index = new Map()
+  index = new Map(),
+  stages = []
 } = {}) {
   const objectives = countObjectives(quest, { countHidden });
   const parent = quest.parent ? index.get(quest.parent) ?? null : null;
+  const isSequence = quest.type === QUEST_TYPE.sequence;
+  const stageRows = toArray(stages).map((stage, position) => buildStageRow(stage, {
+    isGM,
+    countHidden,
+    position: position + 1
+  }));
+  const current = currentStage(stageRows);
 
   return {
     id: quest.id,
@@ -105,10 +127,21 @@ export function buildQuestRow(quest, {
     statusLabel: QUEST_STATUS_LABEL[quest.status] ?? quest.status,
     isPrimary: Boolean(primaryQuestId) && quest.id === primaryQuestId,
     isHidden: isQuestHidden(quest),
-    isSubquest: Boolean(quest.parent),
+    // 1.3.0: "ter pai" deixou de bastar para ser subquest. `isChild` guarda o sentido
+    // antigo; `isSubquest` passa a ser o filho que NAO e etapa.
+    isChild: Boolean(quest.parent),
+    isSequence,
+    isSubquest: Boolean(quest.parent) && !isSequence,
     parentId: quest.parent ?? null,
     parentName: parent?.name ?? "",
-    subquestCount: toArray(quest.subquests).length,
+    // O badge de ramificacao conta subquest de verdade. Id que nao resolve continua
+    // contando, como antes: o badge nunca soube se o filho existia.
+    subquestCount: toArray(quest.subquests)
+      .filter((id) => index.get(id)?.type !== QUEST_TYPE.sequence).length,
+    stages: stageRows,
+    // Total so para o Mestre: ao jogador, "de 4" contaria etapas que ele ainda nao pode ver.
+    stageTotal: isGM ? stageRows.length : null,
+    currentStage: current,
     img: questIcon(quest),
     giverName: quest.giverName || quest.giverData?.name || "",
     objectives,
@@ -143,8 +176,31 @@ export function buildQuestDetailsViewModel(quest, {
   const subquests = toArray(quest.subquests)
     .map((id) => index.get(id))
     .filter(Boolean)
+    .filter((sub) => sub.type !== QUEST_TYPE.sequence)
     .filter((sub) => isGM || !isQuestHidden(sub))
     .map((sub) => buildQuestRow(sub, { isGM, primaryQuestId, index }));
+
+  // 1.3.0: as etapas saem numa colecao propria, EM ORDEM, e cada uma traz os proprios
+  // objetivos ja filtrados pelo mesmo criterio de visibilidade da quest aberta. A tela do
+  // pai mostra o arco inteiro; a conclusao de cada objetivo continua na janela da etapa.
+  const readable = toArray(allQuests).filter((candidate) => isGM || !isQuestHidden(candidate));
+  const sequences = stagesOf(quest, readable).map((stage, position) => ({
+    ...buildStageRow(stage, { isGM, position: position + 1 }),
+    objectives: toArray(stage.objectives)
+      .filter((objective) => isGM || !objective.hidden)
+      .map((objective) => ({
+        id: objective.id,
+        name: objective.name,
+        hidden: objective.hidden === true,
+        state: objective.completed ? "check" : objective.failed ? "times" : "square",
+        stateLabel: objective.completed ? "Completed" : objective.failed ? "Failed" : "Open"
+      }))
+  }));
+  const currentSequence = currentStage(sequences);
+
+  const isSequence = quest.type === QUEST_TYPE.sequence;
+  const siblings = isSequence && parent ? stagesOf(parent, readable) : [];
+  const stageIndex = siblings.findIndex((sibling) => sibling.id === quest.id);
 
   const objectives = toArray(quest.objectives)
     .filter((objective) => isGM || !objective.hidden)
@@ -214,7 +270,12 @@ export function buildQuestDetailsViewModel(quest, {
     giverUuid: quest.giverData?.uuid ?? null,
     isPrimary: Boolean(primaryQuestId) && quest.id === primaryQuestId,
     isHidden: isQuestHidden(quest),
-    isSubquest: Boolean(parent),
+    isChild: Boolean(parent),
+    isSequence,
+    isSubquest: Boolean(parent) && !isSequence,
+    // Posicao desta etapa entre as irmas que QUEM LE consegue ver; null fora de etapa.
+    stagePosition: stageIndex >= 0 ? stageIndex + 1 : null,
+    stageTotal: stageIndex >= 0 && isGM ? siblings.length : null,
     parentId: parent?.id ?? null,
     parentName: parent?.name ?? "",
     objectives,
@@ -229,6 +290,8 @@ export function buildQuestDetailsViewModel(quest, {
     session: currentSession(quest),
     wrappedUp: quest.wrappedUp === true,
     subquests,
+    sequences,
+    currentSequence,
     allRewardsVisible: rewards.length > 0 && rewards.every((r) => !r.hidden),
     allRewardsGranted: rewards.length > 0 && rewards.every((r) => r.granted),
     statusActions: canEdit ? statusActionsFor(quest.status) : [],
@@ -281,6 +344,80 @@ export function isQuestHidden(quest) {
 function questIcon(quest) {
   if (quest.splashAsIcon && quest.splash) return quest.splash;
   return quest.splash || quest.giverData?.img || "";
+}
+
+/**
+ * 1.3.0 — as etapas de uma quest, na ordem do arco.
+ *
+ * Fonte: o `parent` de cada filho, e nao o `subquests[]` do pai. E a MESMA fonte que decide
+ * recolher a etapa no log (`isNestedStage`); usar fontes diferentes nas duas pontas abriria
+ * a porta para etapa recolhida que nao aparece em lugar nenhum.
+ *
+ * Ordem: `order` crescente; empate (inclusive o 0 de quem nao escreveu `order`) pela
+ * posicao em `subquests[]` do pai, que ja e dado gravado; e so entao pelo nome.
+ *
+ * @param {object} quest A quest pai.
+ * @param {object[]} quests As quests entre as quais procurar (ja filtradas por quem le).
+ * @returns {object[]} As etapas, em ordem.
+ */
+export function stagesOf(quest, quests) {
+  if (!quest?.id) return [];
+  const linkOrder = toArray(quest.subquests);
+  const position = (id) => {
+    const at = linkOrder.indexOf(id);
+    return at < 0 ? Number.MAX_SAFE_INTEGER : at;
+  };
+
+  return toArray(quests)
+    .filter((candidate) => candidate?.type === QUEST_TYPE.sequence && candidate.parent === quest.id)
+    .sort((a, b) =>
+      (a.order ?? 0) - (b.order ?? 0)
+      || position(a.id) - position(b.id)
+      || String(a.name).localeCompare(String(b.name), "pt-BR"));
+}
+
+/**
+ * A etapa entra dentro da linha do pai (e nao como linha propria) quando o pai ocupa uma
+ * linha visivel desta lista. Um nivel so: etapa de etapa volta a ser linha comum, em vez
+ * de sumir dentro de uma linha que ja esta recolhida.
+ */
+function isNestedStage(quest, { index, visibleIds }) {
+  if (quest?.type !== QUEST_TYPE.sequence || !quest.parent) return false;
+  if (!visibleIds.has(quest.parent)) return false;
+  const parent = index.get(quest.parent);
+  if (!parent) return false;
+  const parentIsNested = parent.type === QUEST_TYPE.sequence
+    && Boolean(parent.parent)
+    && visibleIds.has(parent.parent)
+    && index.has(parent.parent);
+  return !parentIsNested;
+}
+
+function buildStageRow(stage, { isGM = false, countHidden = true, position = null } = {}) {
+  const objectives = countObjectives(stage, { countHidden });
+  return {
+    id: stage.id,
+    name: stage.name,
+    order: stage.order ?? 0,
+    position,
+    status: stage.status,
+    statusLabel: QUEST_STATUS_LABEL[stage.status] ?? stage.status,
+    isHidden: isQuestHidden(stage),
+    objectiveBadge: `${objectives.done}/${objectives.total}`,
+    statusActions: isGM ? statusActionsFor(stage.status) : []
+  };
+}
+
+/**
+ * A etapa corrente: a primeira EM ANDAMENTO; na falta, a primeira DISPONIVEL. Nenhuma das
+ * duas, nenhuma corrente — o modulo nao adivinha, e nunca muda status por conta propria.
+ */
+function currentStage(stages) {
+  const list = toArray(stages);
+  const current = list.find((stage) => stage.status === QUEST_STATUS.active)
+    ?? list.find((stage) => stage.status === QUEST_STATUS.available)
+    ?? null;
+  return current ? { id: current.id, name: current.name, position: current.position } : null;
 }
 
 function byPriorityThenName(a, b) {
