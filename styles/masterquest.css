@@ -23,6 +23,15 @@
   background: var(--mq-surface-0);
   color: var(--mq-text);
   font-family: var(--mq-font-body);
+
+  /* 1.1.0 — A JANELA E O CONTAINER, e isso nao e detalhe.
+     A janela do Foundry e redimensionada DENTRO do navegador. Uma regra de empilhamento
+     escrita com `@media` mede o NAVEGADOR e por isso NUNCA dispara: as colunas ficam
+     espremidas numa janela estreita enquanto a media query, satisfeita com a largura da
+     tela, nao faz nada. Reproduzido na bancada de 2026-08-20 antes de existir codigo.
+     Com o container declarado aqui, `@container mqwin (...)` mede a janela de verdade. */
+  container-type: inline-size;
+  container-name: mqwin;
 }
 
 /* Barra de titulo da janela = chrome da skin (couro com grao, display).     */
@@ -437,7 +446,10 @@
   border-radius: var(--mq-radius-2);
   color: var(--mq-text-muted);
   cursor: pointer;
-  font-size: var(--mq-text-sm);
+  /* 1.0.1, teste de mesa: 12px era pequeno demais para a fileira que o Mestre mais usa.
+     Sobe para o tamanho do texto de corpo. A fileira ja e `flex-wrap`, entao em janela
+     estreita ela quebra em duas linhas em vez de vazar. */
+  font-size: var(--mq-text-md);
   padding: 6px 10px;
   white-space: nowrap;
   width: auto;
@@ -476,7 +488,8 @@
 .masterquest .mq-tab-count {
   background: var(--mq-surface-2);
   border-radius: var(--mq-radius-pill);
-  font-size: var(--mq-text-xs);
+  /* Acompanha a aba: um degrau abaixo do rotulo, como era antes (11 para 12). */
+  font-size: var(--mq-text-sm);
   margin-left: var(--mq-space-1);
   padding: 1px 6px;
 }
@@ -494,6 +507,17 @@
   gap: var(--mq-space-2);
   justify-content: space-between;
   margin-bottom: 6px;
+
+  /* 1.1.1 — A CABECA DA SECAO DOBRA EM VEZ DE CORTAR.
+     O defeito que Mario viu em Foundry vivo (o botao "+ Reward" aparecendo cortado)
+     nao era so de largura de janela: era tambem desta linha. A cabeca de Rewards carrega
+     QUATRO pecas — o titulo, "Reveal all", "Grant all" e "+ Reward" —, e as tres ultimas
+     tem `white-space: nowrap`. Sem `wrap`, o flex encolhe a CAIXA do botao abaixo do
+     texto que ela nao pode quebrar, e o rotulo vaza da propria borda. Alargar a janela
+     adia o encontro; nao o impede — bastaria uma skin de fonte mais larga para o corte
+     voltar. Com `wrap` a cabeca desce para uma segunda linha e o corte deixa de ser
+     possivel em qualquer largura. */
+  flex-wrap: wrap;
 }
 
 .masterquest .mq-log-header h2,
@@ -686,6 +710,9 @@
   padding: 3px 8px;
   white-space: nowrap;
   width: auto;
+  /* Par da regra da cabeca de secao: o botao nao encolhe. `nowrap` sem isto e o que
+     fazia o rotulo vazar da borda em vez de a cabeca dobrar. */
+  flex: 0 0 auto;
 }
 
 .masterquest .mq-new-quest:hover,
@@ -730,13 +757,40 @@
 .masterquest .mq-status { font-size: var(--mq-text-sm); margin: 2px 0; color: var(--mq-text-muted); }
 .masterquest .mq-subquest-link { cursor: pointer; font-size: var(--mq-text-sm); margin: 2px 0; color: var(--mq-accent); }
 
-.masterquest .mq-details-columns {
+/* 1.1.0 — A OVERVIEW tem duas faixas: em cima, prosa e imagem lado a lado; embaixo, as
+   tres colecoes que o jogador pode ver, em colunas. Dilemas, Desfechos e Complicacoes
+   desceram para a Manage, e e essa saida que abriu espaco para as tres colunas caberem. */
+/* 1.1.1, pedido de Mario: a imagem NAO acompanha a janela.
+   Ate a 1.1.0 a coluna da direita era `1fr` — proporcional —, entao alargar a janela
+   alargava a figura junto, e com `max-height` cortando a altura a proporcao 3:2 deixava
+   de valer acima de 450px de largura. Era o mesmo defeito que a 1.0.1 consertou, voltando
+   pela porta dos fundos.
+   Agora a coluna da imagem tem LARGURA FIXA de 450px — que e exatamente 300px de altura
+   em 3:2, o teto que Mario aprovou na 1.0.1. Toda a largura extra da janela vai para a
+   Description, que e prosa e agradece. */
+.masterquest .mq-overview-top {
   display: grid;
-  gap: var(--mq-space-3);
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--mq-space-4);
+  grid-template-columns: minmax(0, 1fr) 450px;
+  align-items: start;
 }
 
-.masterquest .mq-details-right { display: flex; flex-direction: column; gap: var(--mq-space-3); min-width: 0; }
+.masterquest .mq-overview-columns {
+  display: grid;
+  gap: var(--mq-space-4);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: var(--mq-space-4);
+}
+
+/* Cada coluna rola por dentro, com um teto comum. Sem isso, uma quest com muitas pistas
+   faz a coluna do meio empurrar as vizinhas para longe e a tela perde o alinhamento —
+   e o caso de mesa que originou a reordenacao por arrasto e justamente esse. */
+.masterquest .mq-overview-columns > section {
+  min-width: 0;
+  max-height: 24em;
+  overflow-y: auto;
+  padding-right: 2px;
+}
 
 .masterquest .mq-editable-html,
 .masterquest .mq-readonly-html,
@@ -762,8 +816,18 @@
   padding: 4px 2px;
 }
 
+/* 1.0 — o estado OCULTO deixa de se marcar so por luminosidade.
+   O achado, medido nas nove skins em 2026-08-18: com `opacity: 0.55`, o texto secundario
+   oculto reprova o contraste minimo em NOVE de nove — a skin padrao, em producao desde a
+   0.13.0, entre as piores (2,25:1). E nao se resolve com mais opacidade: para chegar a
+   4,5:1 seria preciso 0,92 a 0,97 nas skins claras, ou seja, "esmaecido o bastante para
+   ser legivel" e praticamente "nao esmaecido".
+   Entao o sinal muda de natureza: opacidade so como REFORCO, e a marca de verdade passa a
+   ser uma borda tracejada — nao luminosa, e legivel tambem por quem nao distingue cor.
+   O texto oculto e lido pelo Mestre AO VIVO, na mesa, muitas vezes num monitor pior que o
+   de trabalho. */
 .masterquest .mq-objective.is-hidden,
-.masterquest .mq-reward.is-hidden { opacity: 0.55; }
+.masterquest .mq-reward.is-hidden { opacity: 0.85; }
 
 .masterquest .mq-objective-name,
 .masterquest .mq-reward-name { flex: 1; margin: 0; min-width: 0; }
@@ -798,20 +862,38 @@
 .masterquest .mq-row-actions { align-items: center; display: flex; gap: 2px; }
 .masterquest .mq-handle { cursor: grab; opacity: 0.5; padding: 0 3px; }
 
-.masterquest .mq-management { display: flex; flex-direction: column; gap: 14px; }
+/* 1.1.0 — A MANAGE em duas colunas: a esquerda a maquinaria da quest (dilemas, desfechos,
+   complicacoes, ramificacao); a direita a conducao (sessoes). */
+.masterquest .mq-manage {
+  display: grid;
+  gap: var(--mq-space-5);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
+}
+
+.masterquest .mq-manage-left,
+.masterquest .mq-manage-right {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mq-space-3);
+  min-width: 0;
+}
 .masterquest .mq-field { display: flex; flex-direction: column; gap: 3px; margin: 8px 0; }
 .masterquest .mq-field span { font-size: var(--mq-text-sm); color: var(--mq-text-muted); }
 
 /* Splash art: 2:1 instead of a fixed 140px strip, which cropped wide art to a letterbox
- * sliver at usual window widths (observed in play, OBS-01). */
+ * sliver at usual window widths (observed in play, OBS-01).
+ * 1.0.1: 2:1 -> 3:2, por decisao de Mario. Duas caixas de imagem com proporcoes
+ * diferentes para a MESMA arte faziam a mesma figura aparecer cortada de dois jeitos em
+ * pontos distintos da janela. Uma proporcao so para o modulo inteiro. */
 .masterquest .mq-splash {
   background-size: cover;
   background-position: center;
   border: 1px solid var(--mq-border-strong);
   border-radius: var(--mq-radius-2);
-  aspect-ratio: 2 / 1;
+  aspect-ratio: 3 / 2;
   width: 100%;
-  max-height: 340px;
+  max-height: 300px;
 }
 
 .masterquest .mq-splash-empty {
@@ -971,6 +1053,27 @@
 }
 .masterquest .mq-hub-header p { font-size: var(--mq-text-sm); margin: 0 0 var(--mq-space-3); color: var(--mq-text-muted); }
 
+/* 1.2.0 — o cabecalho do Hub passa a ter dois lados: identidade a esquerda, gesto de
+   manutencao a direita. O Snapshot saiu do quadrante (ver master-quest-hub.js) e mora aqui. */
+.masterquest .mq-hub-header {
+  align-items: flex-start;
+  display: flex;
+  gap: var(--mq-space-3);
+  justify-content: space-between;
+}
+
+.masterquest .mq-hub-heading { min-width: 0; }
+
+/* 1.2.1 — o gesto de manutencao e so o icone. `align-self: center` alinha com o BLOCO do
+   titulo, nao com o topo dele: encostado no topo o botao parecia solto no canto. */
+.masterquest .mq-hub-corner {
+  align-self: center;
+  flex: 0 0 auto;
+  padding: 6px 9px;
+}
+
+.masterquest .mq-hub-corner i { font-size: 15px; }
+
 .masterquest .mq-hub-cards { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
 
 .masterquest .mq-hub-card {
@@ -1005,9 +1108,40 @@
 .masterquest .mq-hub-import p { font-size: var(--mq-text-sm); margin: 0 0 6px; }
 .masterquest .mq-hint { font-size: var(--mq-text-xs); margin-top: 6px; color: var(--mq-text-muted); }
 
-@media (max-width: 720px) {
-  .masterquest .mq-details-columns,
-  .masterquest .mq-hub-cards { grid-template-columns: 1fr; }
+/* 1.1.0 — empilhamento medido pela JANELA. Os dois pontos de quebra vieram da bancada de
+   2026-08-20, arrastando a regua ate a tela reclamar:
+     780px  as tres colunas da Overview viram duas
+     620px  tudo empilha: prosa e imagem, colunas e as duas metades da Manage
+   Abaixo de 620px o teto de rolagem das colunas sai — com uma coluna so, rolar por dentro
+   de cada secao seria tres barras de rolagem empilhadas. */
+@container mqwin (max-width: 780px) {
+  .masterquest .mq-overview-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@container mqwin (max-width: 620px) {
+  .masterquest .mq-overview-top,
+  .masterquest .mq-overview-columns,
+  .masterquest .mq-manage { grid-template-columns: minmax(0, 1fr); }
+  .masterquest .mq-overview-columns > section { max-height: none; overflow-y: visible; }
+}
+
+/* 1.1.1 — CORRECAO DE REGRESSAO introduzida pela 1.1.0.
+   Ao trocar `@media` por `@container`, a lista de seletores foi herdada da regra antiga
+   sem reavaliacao, e nela ia `.mq-hub-cards`. So que as janelas do modulo tem LARGURA
+   FIXA declarada em codigo:
+       Hub .............. 560px  (resizable: false)
+       Import Adventure . 620px
+       Quest Log ........ 820px
+       Quest Details .... 1650px (a partir da 1.1.1)
+   O ponto de quebra de 620px pega o Hub por baixo e o Import EM CHEIO — `max-width` e
+   inclusivo. As duas passaram a empilhar os cartoes em uma coluna, SEMPRE. Antes o
+   comportamento dependia da largura da TELA (imprevisivel); depois virou previsivelmente
+   errado, e no sentido oposto ao que Mario queria.
+   LICAO: trocar @media por @container nao e trocar a palavra, e trocar a REGUA. Todo
+   ponto de quebra tem de ser conferido contra a largura fixa de cada janela que o herda.
+   O Hub tem 560px e quer duas colunas: o ponto de quebra dele fica bem abaixo disso. */
+@container mqwin (max-width: 420px) {
+  .masterquest .mq-hub-cards { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* ---------------------------------------------------------------------------
@@ -1064,14 +1198,25 @@
 .mq-quest-image-pick:hover { background: var(--mq-surface-2); }
 
 .mq-quest-image-wrap { margin: 0 0 0.7rem; display: flex; flex-direction: column; gap: 0.35rem; }
+/* 1.0.1, teste de mesa (Mario e beta): esta caixa tinha ALTURA FIXA de 150px e nenhuma
+   proporcao declarada — a forma dela variava com a largura da janela (2,7:1 numa coluna
+   de 400px, 3,7:1 numa de 560px). Como o fundo entra em `cover`, toda arte comum (3:2,
+   4:3, 1:1) perdia as bordas de cima e de baixo, e o corte mudava de tamanho conforme o
+   Mestre redimensionava a janela.
+   3:2 e a proporcao mais frequente em arte fotografada e gerada; o teto de 300px impede
+   que em janela larga a imagem coma a coluna inteira, que e a mesma da Descricao. O corte
+   que sobrar continua ajustavel pelo campo de posicao (`splashPos`). */
 .mq-quest-image {
-  width: 100%; height: 150px; border-radius: var(--mq-radius-2);
+  width: 100%; aspect-ratio: 3 / 2; max-height: 300px;
+  border-radius: var(--mq-radius-2);
   background-size: cover; background-repeat: no-repeat;
   border: 1px solid var(--mq-border);
 }
+/* A caixa vazia herda a proporcao da cheia. Antes ela tinha 90px contra 150px, e o layout
+   PULAVA no instante em que o Mestre escolhia a arte. */
 .mq-quest-image-empty {
   display: flex; align-items: center; justify-content: center;
-  height: 90px; color: var(--mq-text-muted); font-size: 0.85em; border-style: dashed;
+  color: var(--mq-text-muted); font-size: 0.85em; border-style: dashed;
 }
 .mq-quest-image-pick { align-self: flex-start; }
 
@@ -1093,6 +1238,7 @@
 .masterquest .mq-log,
 .masterquest .mq-details,
 .masterquest .mq-hub,
+.masterquest .mq-feed,
 .masterquest .mq-import {
   box-sizing: border-box;
   display: flex;
@@ -1174,10 +1320,21 @@
 .mq-gm-panel prose-mirror.mq-panel-doc .editor-content,
 .masterquest .mq-gm-panel .mq-panel-doc { min-height: 16em; }
 
-/* A descricao pesa mais que a coluna da direita: e prosa, e as outras sao listas. */
-.masterquest .mq-details-columns { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+/* A descricao pesa mais que a imagem ao lado: e prosa, e a outra e uma figura de teto
+   fixo. Declarado junto da grade em .mq-overview-top; esta linha ficou aqui por historia. */
+
+/* 1.0.1, teste de mesa: a Descricao abria com doze linhas enquanto a coluna da direita
+   tinha seis secoes vazias — espaco desperdicado de um lado, texto espremido do outro.
+   O piso sobe para 20 linhas.
+   O TETO e a outra metade do pedido de Mario: descricao longa NAO empurra o resto da
+   janela para baixo; ela rola DENTRO da propria caixa. Sem `max-height` o `overflow` nao
+   tem contra o que medir e a barra interna nunca aparece. */
 .masterquest .mq-description prose-mirror .editor-content,
-.masterquest .mq-description > .mq-readonly-html { min-height: 12em; }
+.masterquest .mq-description > .mq-readonly-html {
+  min-height: 20em;
+  max-height: 28em;
+  overflow-y: auto;
+}
 
 /* Cabecalho: camera e botoes de status na mesma fileira, como na maquete. */
 .masterquest .mq-header-actions {
@@ -1446,7 +1603,19 @@
 .masterquest .mq-clue.is-hidden,
 .masterquest .mq-dilemma.is-hidden,
 .masterquest .mq-complication.is-hidden,
-.masterquest .mq-outcome.is-hidden { opacity: 0.55; }
+.masterquest .mq-outcome.is-hidden { opacity: 0.85; }
+
+/* A marca nao luminosa do oculto. Borda TRACEJADA, para nao se confundir com o filete
+   solido do spoiler (que e outro eixo e usa --mq-danger). Nenhum token novo. */
+.masterquest .mq-objective.is-hidden,
+.masterquest .mq-reward.is-hidden,
+.masterquest .mq-clue.is-hidden,
+.masterquest .mq-dilemma.is-hidden,
+.masterquest .mq-complication.is-hidden,
+.masterquest .mq-outcome.is-hidden {
+  border-left: 3px dashed var(--mq-border-strong);
+  padding-left: 5px;
+}
 
 .masterquest .mq-knot-row {
   display: flex;
@@ -1454,7 +1623,9 @@
   gap: 8px;
   min-width: 0;
 }
-.masterquest .mq-knot-name { flex: 1; margin: 0; min-width: 0; }
+/* 1.0.1: o piso passa de 0 para 8ch. Com piso zero, bastava um vizinho que nao cedesse
+   para o nome ser espremido ate uma letra por linha — foi o defeito da Complicacao. */
+.masterquest .mq-knot-name { flex: 1; margin: 0; min-width: 8ch; }
 .masterquest .mq-knot-name[contenteditable]:focus {
   outline: 1px solid var(--mq-accent-bright);
   border-radius: 2px;
@@ -1482,15 +1653,35 @@
   color: var(--mq-text);
 }
 
-.masterquest .mq-knot-ref,
-.masterquest .mq-complication-trigger {
-  flex: 0 0 auto;
+/* 1.0.1 — o defeito que o Quest Devs relatou em 2026-08-18: numa Complicacao com nome e
+   gatilho longos, o NOME quebrava letra a letra, uma por linha, enquanto o gatilho
+   aparecia truncado numa linha so.
+   A causa nao era a que se supos. O nome ja tinha `min-width: 0`. O problema era este
+   campo lateral com `flex: 0 0 auto`: ele se RECUSAVA a encolher e reservava os 180px
+   dele, e como o nome tem base zero, sobrava para o nome todo o aperto da fileira.
+   A mesma regra governa a tabela do Dilema e a do Desfecho — o mesmo defeito estava
+   armado nas tres secoes, e so a Complicacao tinha sido exercitada com texto de verdade.
+   `flex: 0 1 auto` + `min-width: 0` fazem o campo lateral ceder ANTES do nome. */
+.masterquest .mq-knot-ref {
+  flex: 0 1 auto;
+  min-width: 0;
   font-size: 11px;
   color: var(--mq-text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 180px;
+  max-width: 40%;
+}
+
+/* O gatilho da Complicacao nao e rotulo curto: e uma frase de mesa ("o primeiro conflito
+   com os Chacais de Golamra"). Por decisao de Mario ele desce para linha propria, na
+   mesma forma que a resolucao do Dilema (`mq-knot-text`) ja usava — recuo alinhado ao
+   nome, tipo menor, e quebra livre entre palavras. Nada de truncar: o campo diz QUANDO a
+   complicacao incide, e meia frase nao diz. */
+.masterquest .mq-complication-trigger {
+  margin: 4px 0 0 52px;
+  font-size: var(--mq-text-xs);
+  color: var(--mq-text-muted);
 }
 
 .masterquest .mq-resolve {
@@ -1753,4 +1944,214 @@
   padding: 0 6px;
   margin-left: 6px;
   vertical-align: middle;
+}
+
+/* ---------------------------------------------------------------------------
+ * 1.1.0 — A fileira de abas em DOIS BLOCOS, e o rodape da Manage
+ *
+ * Decisao de Mario, 2026-08-20: as seis abas nao sao um conjunto so. Tres operam o JOGO
+ * (Overview, Manage, GM Panel) e tres guardam o REGISTRO (GM Notes, Player Notes, Logs).
+ * A cor diz isso antes da leitura, e um filete marca a virada.
+ *
+ * As tres regras de cor abaixo NAO sao valores: sao misturas dos tokens que cada skin ja
+ * define. E deliberado. Escrever hex aqui quebraria a DEC-018 e obrigaria a inventar
+ * vinte e sete cores novas — tres por skin, nove vezes. Com `color-mix`, cada skin resolve
+ * a sua sozinha, e as nove passam na barra de contraste (medido na bancada de 20/08).
+ *
+ * Tres armadilhas que a medicao pegou, e por isso valem comentario:
+ *
+ *   1. RECUAR NAO E ESCURECER. A primeira versao recuava a aba Logs escurecendo-a, e o
+ *      texto caia para ~3,1:1 nas QUATRO skins claras. A regra que sobreviveu: o recuo e
+ *      carregado pelo FUNDO; o texto nunca enfraquece. Por isso a Logs usa --mq-text.
+ *   2. "MAIS ESCURO" NAO E UNIVERSAL. O contorno da aba ativa em --mq-chrome-bg sumia nas
+ *      CINCO skins escuras (1,11:1 na OLF). O que e universal e "mais contrastante" —
+ *      --mq-text contrasta com as superficies por definicao, nas nove.
+ *   3. ALFA NAO E COR. O filete em --mq-border-strong (que e alfa) ficava ~2,8:1 nas
+ *      claras. --mq-chip-outline e cor cheia e passa.
+ * ------------------------------------------------------------------------- */
+
+.masterquest {
+  /* 1.1.1, pedido de Mario: as tres abas do bloco de JOGO ganham cores DISTINTAS entre
+     si, e nao mais um tom unico de bloco.
+     A trinca e a proporcao NAO foram escolhidas a olho — foram MEDIDAS nas nove skins,
+     por varredura, com dois criterios ao mesmo tempo:
+       (a) contraste do texto sobre cada fundo >= 4,5:1  (a regua da DEC-018)
+       (b) distancia PERCEPTUAL entre as tres, em OKLab  (dE)
+     O criterio (b) precisou existir porque a primeira medicao usou razao de contraste
+     para julgar "estas cores parecem diferentes?" — e razao de contraste mede LUMINANCIA,
+     nao matiz. Duas cores podem ter contraste 1,0 entre si e serem obviamente distintas.
+     A medida errada quase aprovou uma trinca indistinguivel.
+     A primeira trinca tentada foi accent + metal-bronze + metal-silver, e ela FALHOU: em
+     Pergaminho o accent e o bronze sao, na pratica, o mesmo marrom, e o dE minimo ficou em
+     0,003 — invisivel. Nas outras skins douradas o mesmo se repete.
+     A trinca que venceu a varredura, a 35%:
+       --mq-accent        a cor de acao da skin
+       --mq-highlight-bg  o fundo de destaque — distinto do accent nas nove
+       --mq-metal-silver  ornamento cinza, o unico neutro do conjunto
+     Resultado medido: texto de 5,46:1 a 9,36:1 (9/9 passam) e dE de 0,022 a 0,0625 — de
+     perceptivel a claramente distinto.
+     Descartados por CARREGAREM SIGNIFICADO: --mq-danger, --mq-status-completed e
+     --mq-status-failed. Aba vermelha diria "perigo"; verde diria "cumprido". Cor
+     semantica em elemento de navegacao mente.
+     Descartada tambem a ideia de reforcar com BORDA na cor pura: medida, ela reprova nas
+     nove (1,2 a 2,0:1 contra o proprio fundo). Obvio em retrospecto — o fundo E a cor
+     misturada com a superficie, entao a cor pura fica perto dele. Nao acrescenta sinal. */
+  --mq-tab-play:     color-mix(in oklab, var(--mq-accent) 14%, var(--mq-surface-1));
+  --mq-tab-play-1:   color-mix(in oklab, var(--mq-accent) 35%, var(--mq-surface-1));
+  --mq-tab-play-2:   color-mix(in oklab, var(--mq-highlight-bg) 35%, var(--mq-surface-1));
+  --mq-tab-play-3:   color-mix(in oklab, var(--mq-metal-silver) 35%, var(--mq-surface-1));
+  --mq-tab-record:   color-mix(in oklab, var(--mq-text-muted) 12%, var(--mq-surface-1));
+  --mq-tab-recessed: color-mix(in oklab, var(--mq-chrome-bg) 12%, var(--mq-surface-0));
+}
+
+/* Um tom por aba no bloco do jogo; o bloco do registro segue com tom unico, por decisao
+   de Mario ("podemos deixar os tres botoes da direita a principio como esta"). */
+.masterquest .mq-tab[data-tab-block="play"] { background: var(--mq-tab-play); color: var(--mq-text); }
+.masterquest .mq-tab[data-tab-target="details"] { background: var(--mq-tab-play-1); }
+.masterquest .mq-tab[data-tab-target="management"] { background: var(--mq-tab-play-2); }
+.masterquest .mq-tab[data-tab-target="gmnotes"] { background: var(--mq-tab-play-3); }
+.masterquest .mq-tab[data-tab-block="record"] { background: var(--mq-tab-record); color: var(--mq-text); }
+
+/* A Logs recua um degrau a mais: e o que o Mestre consulta depois, nao durante. */
+.masterquest .mq-tab[data-tab-target="log"] {
+  background: var(--mq-tab-recessed);
+  border-color: var(--mq-border-strong);
+  color: var(--mq-text);
+}
+
+/* O filete entre os dois blocos. Nasce do modelo, nao de uma posicao fixa — com abas
+   suprimidas pela guarda isGM o ponto de virada muda de lugar.
+   NAO usar o icone de alca aqui: depois da 1.1.0 a alca significa "arraste isto" em toda
+   a interface, e aba nao se arrasta. Ornamento ambiguo ensina gesto que nao existe. */
+.masterquest .mq-tab-separator {
+  align-self: stretch;
+  background: var(--mq-chip-outline);
+  flex: 0 0 1px;
+  margin: 0 var(--mq-space-2);
+  min-height: 22px;
+  width: 1px;
+}
+
+/* Alca de arrasto: 1.1.0 leva-a as SEIS colecoes, e nao mais so a duas. */
+.masterquest .mq-clue > .mq-handle,
+.masterquest .mq-dilemma > .mq-handle,
+.masterquest .mq-complication > .mq-handle,
+.masterquest .mq-outcome > .mq-handle {
+  align-self: flex-start;
+  color: var(--mq-text-muted);
+  cursor: grab;
+  flex: 0 0 auto;
+  font-size: var(--mq-text-sm);
+  margin-top: 2px;
+}
+
+.masterquest .mq-sessions-section > header { align-items: center; display: flex; gap: var(--mq-space-2); }
+
+/* Rodape da Manage: permissoes, encerramento e snapshot na mesma fileira. */
+.masterquest .mq-manage-button {
+  align-items: center;
+  background: var(--mq-surface-2);
+  border: 1px solid var(--mq-chip-outline);
+  border-radius: var(--mq-radius-2);
+  color: var(--mq-text);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: inherit;
+  font-size: var(--mq-text-sm);
+  gap: 6px;
+  padding: 5px 12px;
+}
+
+.masterquest .mq-manage-button:hover { background: var(--mq-chip-active-bg); }
+
+/* Feed Report (1.2.0) -------------------------------------------------------
+   A tela de PREPARACAO: le relatorios de continuidade e mostra tres blocos.
+   Ela NAO escreve (DEC-004) e NAO adivinha (DEC-066) — e o layout serve as duas
+   regras: a procedencia anda colada ao item, e bloco vazio continua na tela,
+   rotulado, porque bloco ausente parece "nao apurado" e bloco vazio diz
+   "apurado, e nao ha nada".                                                    */
+
+.masterquest .mq-feed-header {
+  align-items: flex-start;
+  display: flex;
+  gap: var(--mq-space-3);
+  justify-content: space-between;
+}
+
+.masterquest .mq-feed-picker {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mq-space-2);
+  margin: var(--mq-space-3) 0;
+}
+
+/* O input nativo de arquivo nao aceita estilo de skin; a etiqueta e que veste o
+   gesto. O input segue no DOM, focavel pelo teclado — esconder com `display:none`
+   o tiraria da ordem de foco e quebraria o passeio so de Tab. */
+.masterquest .mq-feed-input {
+  height: 1px;
+  opacity: 0;
+  position: absolute;
+  width: 1px;
+}
+
+.masterquest .mq-feed-picker label { cursor: pointer; }
+.masterquest .mq-feed-input:focus-visible + label,
+.masterquest .mq-feed-picker label:focus-within { outline: 2px solid var(--mq-focus); }
+
+.masterquest .mq-feed-blocks {
+  display: grid;
+  gap: var(--mq-space-4);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.masterquest .mq-feed-block > header {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mq-space-2);
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.masterquest .mq-feed-block h2 {
+  border: none;
+  color: var(--mq-text);
+  font-family: var(--mq-font-display);
+  font-size: var(--mq-text-lg);
+  letter-spacing: var(--mq-display-tracking);
+  margin: 0;
+}
+
+.masterquest .mq-feed-count {
+  background: var(--mq-surface-2);
+  border: 1px solid var(--mq-border);
+  border-radius: var(--mq-radius-2);
+  font-size: var(--mq-text-sm);
+  padding: 1px 6px;
+}
+
+.masterquest .mq-feed-block li { padding: 6px 4px; }
+
+/* A procedencia nunca compete com o fato: mesma linha, peso menor. Sem ela o item
+   vira afirmacao sem fonte, que e exatamente o que este mecanismo existe para evitar. */
+.masterquest .mq-feed-source,
+.masterquest .mq-feed-versions {
+  color: var(--mq-text-muted);
+  display: block;
+  font-size: var(--mq-text-xs);
+}
+
+.masterquest .mq-feed-rejected h2 {
+  color: var(--mq-status-failed);
+  font-size: var(--mq-text-md);
+}
+
+@container mqwin (max-width: 780px) {
+  .masterquest .mq-feed-blocks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@container mqwin (max-width: 620px) {
+  .masterquest .mq-feed-blocks { grid-template-columns: minmax(0, 1fr); }
 }

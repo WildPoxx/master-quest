@@ -19,16 +19,21 @@ const QUEST = {
   rewards: []
 };
 
-test("GM Panel is the second tab, right after Details", () => {
+test("o GM Panel fecha o bloco do JOGO, e o GM Notes abre o do REGISTRO", () => {
   const model = buildQuestDetailsViewModel(QUEST, { isGM: true, canEdit: true });
 
+  // 1.1.0, decisao de Mario: a fileira passa a ter dois blocos. Ate a 1.0.1 o GM Panel era
+  // a SEGUNDA aba, colado em Details, porque os dois eram o par de conducao (DIR-05). A
+  // ordem nova cumpre o mesmo proposito por outro meio — o bloco do JOGO fica inteiro
+  // junto, e o GM Panel segue dentro dele, agora em terceiro.
   assert.deepEqual(
     model.tabs.map((tab) => tab.id),
-    // 0.22.0 (DEC-032): a sexta aba, Log, GM-only, entre Player Notes e Manage.
-    ["details", "gmnotes", "gmcomments", "playernotes", "log", "management"]
+    ["details", "management", "gmnotes", "gmcomments", "playernotes", "log"]
   );
-  assert.equal(model.tabs[1].label, "GM Panel");
-  assert.equal(model.tabs[2].label, "GM Notes");
+  assert.equal(model.tabs[2].label, "GM Panel", "ultima do bloco do jogo");
+  assert.equal(model.tabs[3].label, "GM Notes", "primeira do bloco do registro");
+  assert.equal(model.tabs[2].block, "play");
+  assert.equal(model.tabs[3].block, "record");
 });
 
 test("players never get the GM Panel tab", () => {
@@ -121,11 +126,16 @@ test("um ciclo na arvore de subquests nao trava o snapshot", () => {
 });
 
 test("os botoes de snapshot existem para o Mestre e nao para o jogador", () => {
-  const gm = renderQuestDetails({
-    ...buildQuestDetailsViewModel(QUEST, { isGM: true, canEdit: true }),
+  // 1.1.0: sao DOIS botoes de snapshot, como sempre foram — a camera do cabecalho e o
+  // botao do rodape. O rodape mudou de aba: era da Details, agora e da Manage. Por isso a
+  // contagem se faz somando as duas telas, e nao mais numa so.
+  const asGM = (activeTab) => renderQuestDetails({
+    ...buildQuestDetailsViewModel(QUEST, { isGM: true, canEdit: true, activeTab }),
     enriched: {}
   });
-  assert.equal((gm.match(/data-action='snapshot-quest'|data-action="snapshot-quest"/g) ?? []).length, 2);
+  const gm = asGM("details") + asGM("management");
+  assert.equal((gm.match(/data-action='snapshot-quest'|data-action="snapshot-quest"/g) ?? []).length, 3,
+    "a camera aparece nas duas telas (cabecalho comum) e o botao do rodape so na Manage");
 
   const player = renderQuestDetails({
     ...buildQuestDetailsViewModel(QUEST, { isGM: false, canEdit: false }),

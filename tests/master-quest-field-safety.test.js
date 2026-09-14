@@ -98,11 +98,18 @@ test("as superficies simples continuam marcadas com data-field", () => {
   assert.match(html, /<input[^>]*data-field="name"/, "titulo editavel");
   assert.match(html, /<prose-mirror[^>]*data-mq-field="description"/, "descricao pelo editor nativo");
 
+  // 1.1.0: o campo de texto do caminho da imagem saiu da Manage — era a MESMA arte
+  // editavel em dois lugares, o defeito apontado no diagnostico de 19/08. A arte continua
+  // trocavel, pelo seletor de arquivos do proprio Foundry, na Overview; e nele que se
+  // digita caminho hoje. O contrato que este teste guarda continua valendo: toda superficie
+  // que ESCREVE esta marcada e e alcancavel.
+  assert.match(html, /data-action="pick-image"[^>]*data-target-field="splash"/, "a arte se troca na Overview");
+
   const manage = buildQuestDetailsViewModel(QUEST, { isGM: true, canEdit: true, activeTab: "management" });
-  assert.match(
+  assert.doesNotMatch(
     renderQuestDetails({ ...manage, enriched: ENRICHED }),
     /<input[^>]*data-field="splash"/,
-    "caminho da imagem editavel"
+    "a segunda superficie de edicao da mesma arte foi retirada de proposito"
   );
 });
 
