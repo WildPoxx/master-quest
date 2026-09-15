@@ -20,7 +20,8 @@ export const INTERFACE_SKINS = Object.freeze({
   sciFi: "sci-fi",
   supers: "supers",
   modernInvestigation: "investigacao-moderna",
-  olf: "olf"
+  olf: "olf",
+  mistbornGildedSteps: "mistborn-gilded-steps"
 });
 
 const INTERFACE_SKIN_CHOICES = Object.freeze({
@@ -32,7 +33,8 @@ const INTERFACE_SKIN_CHOICES = Object.freeze({
   [INTERFACE_SKINS.sciFi]: "Futurista",
   [INTERFACE_SKINS.supers]: "Supers",
   [INTERFACE_SKINS.modernInvestigation]: "Investigação Contemporânea",
-  [INTERFACE_SKINS.olf]: "OLF"
+  [INTERFACE_SKINS.olf]: "OLF",
+  [INTERFACE_SKINS.mistbornGildedSteps]: "Mistborn — Gilded Steps"
 });
 
 /**

@@ -408,3 +408,59 @@
     url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='56'%20height='56'%20viewBox='0%200%2056%2056'%3E%3Cg%20stroke='%23E9CE86'%20stroke-opacity='0.13'%20stroke-width='0.6'%3E%3Cpath%20d='M0%2012%20L56%206%20M0%2034%20L56%2028%20M0%2052%20L56%2046'/%3E%3C/g%3E%3Cg%20fill='%23E9CE86'%20fill-opacity='0.10'%3E%3Ccircle%20cx='11'%20cy='23'%20r='0.9'/%3E%3Ccircle%20cx='38'%20cy='41'%20r='0.8'/%3E%3Ccircle%20cx='48'%20cy='16'%20r='0.7'/%3E%3C/g%3E%3C/svg%3E"),
     linear-gradient(160deg, rgba(211,174,90,0.07), transparent 46%);
 }
+
+/* ---------------------------------------------------------------------------
+ * Mistborn — Gilded Steps (2026-09-08)
+ *
+ * Decima skin do catalogo. Vem da campanha Mistborn Era 2 e usa o MESMO
+ * contrato de cor do tema homonimo para o Cosmere RPG: a familia de ferrugem
+ * declarada em mistborn-design-tokens.css v0.5. Uma skin so troca VALORES, e
+ * esta nao e excecao.
+ *
+ * Contraste medido (DEC-018, regra 3), pares funcionais:
+ *   text/surface-0 13.84   muted/surface-1 7.07   on-chrome/chrome 14.65
+ *   on-accent/accent 6.03  on-danger/danger 5.63
+ *
+ * Grafismo em --mq-grain gerado por procedimento, sem arquivo de imagem e sem
+ * asset de terceiro: uma roda dentada e uma voluta de bruma, o par que carrega
+ * o cenario. Fonte: Cinzel, ja embarcada sob SIL OFL.
+ * ------------------------------------------------------------------------- */
+
+[data-mq-skin="mistborn-gilded-steps"].masterquest,
+[data-mq-skin="mistborn-gilded-steps"].mq-tokens{
+  --mq-surface-0: #231409;
+  --mq-surface-1: #301C0F;
+  --mq-surface-2: #3B2312;
+  --mq-chrome-bg: #1A0E08;
+  --mq-on-chrome: #E8E2D5;
+  --mq-text: #E8E2D5;
+  --mq-text-muted: #BDA893;
+  --mq-accent: #B88940;
+  --mq-accent-bright: #DFBA69;
+  --mq-on-accent: #1A0E08;
+  --mq-danger: #D4736C;
+  --mq-on-danger: #2B0A07;
+  --mq-focus: #6FB3A9;
+  --mq-highlight-bg: #472A15;
+  --mq-status-available: #6FB3A9;
+  --mq-status-active: #DFBA69;
+  --mq-status-completed: #6CAB90;
+  --mq-status-failed: #D4736C;
+  --mq-status-inactive: #BDA893;
+  --mq-metal-bronze: #C08A4E;
+  --mq-metal-silver: #C2CED0;
+  --mq-metal-gold: #DFBA69;
+  --mq-chip-outline: #94684A;
+  --mq-chip-active-bg: rgba(223,186,105,0.20);
+  --mq-capture-bg: #3B2312;
+  --mq-capture-ink: #E8E2D5;
+  --mq-capture-ink-edge: #DFBA69;
+  --mq-border: rgba(232,226,213,.22);
+  --mq-border-strong: rgba(232,226,213,.45);
+  --mq-shadow-1: 0 1px 4px rgba(0,0,0,.55);
+  --mq-shadow-2: 0 7px 22px rgba(0,0,0,.7);
+  --mq-font-display: "Cinzel", "Modesto Condensed", Georgia, serif;
+  --mq-grain:
+    url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='44' height='44' viewBox='0 0 44 44'><g fill='%23dfba69' fill-opacity='0.13'><path fill-rule='evenodd' d='M16.8 10.9L18.5 11.5L18.1 13.4L16.3 13.3A5.8 5.8 0 0 1 15.5 14.7L15.5 14.7L16.4 16.2L14.9 17.4L13.6 16.2A5.8 5.8 0 0 1 12.1 16.7L12.1 16.7L11.8 18.5L9.8 18.4L9.7 16.6A5.8 5.8 0 0 1 8.1 16.1L8.1 16.1L6.8 17.2L5.3 15.9L6.3 14.5A5.8 5.8 0 0 1 5.6 13.0L5.6 13.0L3.8 13.1L3.5 11.1L5.2 10.7A5.8 5.8 0 0 1 5.5 9.1L5.5 9.1L4.1 8.0L5.2 6.3L6.8 7.0A5.8 5.8 0 0 1 8.1 6.0L8.1 6.0L7.7 4.3L9.6 3.6L10.3 5.2A5.8 5.8 0 0 1 12.0 5.3L12.0 5.3L12.8 3.7L14.6 4.4L14.2 6.2A5.8 5.8 0 0 1 15.4 7.2L15.4 7.2L17.1 6.6L18.0 8.3L16.6 9.3A5.8 5.8 0 0 1 16.8 10.9ZM13.2 11.0A2.2 2.2 0 1 0 8.8 11.0A2.2 2.2 0 1 0 13.2 11.0Z'/><g transform='translate(31 30) scale(0.34)'><path d='M13 21L7 22L2 21L-2 20L-6 18L-9 15L-11 12L-13 8L-13 5L-13 2L-12 -1L-11 -3L-9 -5L-7 -7L-5 -8L-3 -8L-1 -8L0 -7L2 -7L3 -6L4 -5L5 -3L5 -2L5 -1L5 0L4 1L4 2L3 2L2 3L1 3L1 3L0 3L-0 3L-1 2L-1 2L-2 1L-2 1L-2 1L-4 0L-4 1L-4 2L-3 3L-3 4L-2 5L-1 5L0 5L2 6L3 5L4 5L6 4L7 3L8 1L9 -0L9 -2L9 -5L8 -7L7 -9L5 -11L2 -12L-0 -13L-3 -14L-7 -13L-10 -12L-13 -10L-16 -8L-19 -4L-20 0L-21 5L-21 10L-19 15L-16 20L-12 25L-7 29L-1 31L7 33L15 32Z'/></g></g></svg>"),
+    repeating-linear-gradient(52deg, rgba(223,186,105,0.045) 0 2px, transparent 2px 11px);
+}

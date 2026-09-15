@@ -30,7 +30,7 @@ test("token sheet defines the parchment skin and embeds Cinzel", async () => {
 
 test("every catalog skin defines the complete shared semantic token set", async () => {
   const css = await readFile(resolve("styles/mq-tokens.css"), "utf8");
-  const skins = ["cosmic", "sci-fi", "investigacao-moderna", "fantasia-medieval"];
+  const skins = ["cosmic", "sci-fi", "investigacao-moderna", "fantasia-medieval", "mistborn-gilded-steps"];
   const tokens = [
     "surface-0", "surface-1", "surface-2", "chrome-bg", "on-chrome", "text", "text-muted",
     "accent", "accent-bright", "on-accent", "danger", "on-danger", "focus", "highlight-bg",

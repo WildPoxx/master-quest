@@ -27,7 +27,7 @@ function skinColor(block, token) {
 
 test("every non-default catalog skin keeps functional text at WCAG AA contrast", async () => {
   const css = await readFile(resolve("styles/mq-tokens.css"), "utf8");
-  for (const skin of ["cosmic", "sci-fi", "investigacao-moderna", "fantasia-medieval"]) {
+  for (const skin of ["cosmic", "sci-fi", "investigacao-moderna", "fantasia-medieval", "mistborn-gilded-steps"]) {
     const block = skinBlock(css, skin);
     const colors = {
       text: skinColor(block, "text"), surface0: skinColor(block, "surface-0"),

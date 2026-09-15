@@ -22,6 +22,8 @@ import {
 const tokens = async () => readFile(resolve("styles/mq-tokens.css"), "utf8");
 const components = async () => readFile(resolve("styles/masterquest.css"), "utf8");
 
+// 1.3.0 (Mario, 2026-09-14): a decima skin, `mistborn-gilded-steps`, portada da linha V13
+// para equiparar as duas. O nome da constante fica: e a lista do catalogo, nao a contagem.
 const NOVE = [
   "pergaminho",
   "fantasia-medieval",
@@ -31,12 +33,13 @@ const NOVE = [
   "sci-fi",
   "supers",
   "investigacao-moderna",
-  "olf"
+  "olf",
+  "mistborn-gilded-steps"
 ];
 
 /* --- 1. o catalogo existe dos dois lados ---------------------------------------------- */
 
-test("as nove skins do codigo sao exatamente as nove declaradas no CSS", async () => {
+test("as skins do codigo sao exatamente as declaradas no CSS", async () => {
   // O erro que este teste evita: acrescentar a skin na lista do menu e esquecer os tokens,
   // ou o contrario. O Mestre escolheria um nome e a janela nao mudaria.
   const css = await tokens();

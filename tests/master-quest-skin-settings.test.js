@@ -43,7 +43,8 @@ test("interface skin is a world setting with parchment as the safe default", () 
     "sci-fi",
     "supers",
     "investigacao-moderna",
-    "olf"
+    "olf",
+    "mistborn-gilded-steps"
   ]);
   assert.equal(getInterfaceSkin({ game }), INTERFACE_SKINS.cosmic);
   assert.equal(normalizeInterfaceSkin("removed-skin"), INTERFACE_SKINS.parchment);
