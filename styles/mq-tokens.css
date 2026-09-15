@@ -86,6 +86,14 @@
 
   /* Textura (grao restrito a chrome e cabecalhos; skin pode por "none")    */
   --mq-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+  /* 1.3.1 — ONDE o grafismo da skin e pintado, e em que escala.
+     Por padrao so a barra de titulo recebe --mq-grain, no tamanho natural do
+     ladrilho: --mq-veil vale `none` e as duas linhas de tamanho/posicao sao os
+     proprios padroes do CSS. Uma skin que queira o grafismo atras da janela
+     inteira declara --mq-veil; skin que nao declara nada nao muda em nada. */
+  --mq-grain-size: auto;
+  --mq-grain-position: 0 0;
+  --mq-veil: none;
 
   /* Tipografia */
   --mq-font-display: "Cinzel", "Modesto Condensed", serif;
@@ -113,60 +121,57 @@
  * recursos visuais de sistemas de terceiros. Contraste: texto normal >= 4.5:1 nas
  * superficies; acentos e ornamentos >= 3:1. */
 [data-mq-skin="cosmere"].masterquest,
-[data-mq-skin="cosmere"].mq-tokens {
-  /* Superficies */
-  --mq-surface-0: #07142B;
-  --mq-surface-1: #0D2142;
-  --mq-surface-2: #17355F;
-
-  /* Chrome */
-  --mq-chrome-bg: #040B1B;
-  --mq-on-chrome: #F7FBFF;
-
-  /* Texto */
-  --mq-text: #EAF3FF;
-  --mq-text-muted: #B9CBE5;
-
-  /* Acentos */
-  --mq-accent: #63B9FF;
-  --mq-accent-bright: #C5E5FF;
-  --mq-on-accent: #061426;
-  --mq-danger: #FF8995;
-  --mq-on-danger: #25070C;
-  --mq-focus: #91DBFF;
-  --mq-highlight-bg: #1D5B9A;
-
-  /* Status */
-  --mq-status-available: #7BDBFF;
-  --mq-status-active: #63B9FF;
-  --mq-status-completed: #8CE0B2;
-  --mq-status-failed: #FF8995;
-  --mq-status-inactive: #B9CBE5;
-
-  /* Metais */
-  --mq-metal-bronze: #E0A66B;
-  --mq-metal-silver: #D7E2F3;
-  --mq-metal-gold: #F3D77A;
-
-  /* Controles */
-  --mq-chip-outline: #8DCBFF;
-  --mq-chip-active-bg: rgba(99, 185, 255, 0.24);
-  --mq-capture-bg: #19457C;
-  --mq-capture-ink: #EAF3FF;
-  --mq-capture-ink-edge: #C5E5FF;
-
-  /* Contornos e profundidade */
-  --mq-border: rgba(197, 229, 255, 0.28);
-  --mq-border-strong: rgba(197, 229, 255, 0.55);
-  --mq-shadow-1: 0 1px 4px rgba(0, 0, 0, 0.46);
-  --mq-shadow-2: 0 7px 22px rgba(0, 0, 0, 0.62);
-
-  /* Pontos de luz discretos, sem imagem externa ou animacao. */
+[data-mq-skin="cosmere"].mq-tokens{
+  --mq-surface-0: #05060A;
+  --mq-surface-1: #0C0E15;
+  --mq-surface-2: #161A25;
+  --mq-chrome-bg: #000103;
+  --mq-on-chrome: #FFF6E4;
+  --mq-text: #F4F6FF;
+  --mq-text-muted: #C0C6D8;
+  --mq-accent: #FFB23A;
+  --mq-accent-bright: #FFDC8A;
+  --mq-on-accent: #1E1000;
+  --mq-danger: #FF7A88;
+  --mq-on-danger: #23050A;
+  --mq-focus: #FFCF6B;
+  --mq-highlight-bg: #4A3410;
+  --mq-status-available: #FFDC8A;
+  --mq-status-active: #FFB23A;
+  --mq-status-completed: #6EE7A8;
+  --mq-status-failed: #FF7A88;
+  --mq-status-inactive: #C0C6D8;
+  --mq-metal-bronze: #D9A066;
+  --mq-metal-silver: #E6EAF5;
+  --mq-metal-gold: #FFD062;
+  --mq-chip-outline: #FFC154;
+  --mq-chip-active-bg: rgba(255,178,58,.20);
+  --mq-capture-bg: #2A1C08;
+  --mq-capture-ink: #FFF3DC;
+  --mq-capture-ink-edge: #FFD062;
+  --mq-border: rgba(255,193,84,.24);
+  --mq-border-strong: rgba(255,193,84,.48);
+  --mq-shadow-1: 0 1px 4px rgba(0,0,0,.6);
+  --mq-shadow-2: 0 7px 22px rgba(0,0,0,.75);
+  --mq-font-display: "Cinzel", "Modesto Condensed", Georgia, serif;
+  /* O campo de estrelas: tres ladrilhos de estrelinhas de quatro pontas em
+     escalas e deslocamentos diferentes, mais pontos brancos e ambar de varios
+     tamanhos. Tudo procedural — nenhum arquivo de imagem (DEC-012). */
   --mq-grain:
-    radial-gradient(circle at 12% 24%, rgba(239, 248, 255, 0.66) 0 1px, transparent 1.6px),
-    radial-gradient(circle at 41% 67%, rgba(126, 196, 255, 0.42) 0 1px, transparent 1.7px),
-    radial-gradient(circle at 78% 31%, rgba(239, 248, 255, 0.52) 0 1px, transparent 1.5px),
-    radial-gradient(circle at 91% 72%, rgba(126, 196, 255, 0.35) 0 1px, transparent 1.5px);
+    url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='190' height='190' viewBox='0 0 190 190'><g transform='translate(18 24) scale(0.42)'><path fill='%23FFFFFF' fill-opacity='0.9' d='M12 0 C12.5 8.4 15.6 11.5 24 12 C15.6 12.5 12.5 15.6 12 24 C11.5 15.6 8.4 12.5 0 12 C8.4 11.5 11.5 8.4 12 0 Z'/></g><g transform='translate(120 70) scale(0.3)'><path fill='%23FFE6B0' fill-opacity='0.75' d='M12 0 C12.5 8.4 15.6 11.5 24 12 C15.6 12.5 12.5 15.6 12 24 C11.5 15.6 8.4 12.5 0 12 C8.4 11.5 11.5 8.4 12 0 Z'/></g><g transform='translate(64 146) scale(0.24)'><path fill='%23FFFFFF' fill-opacity='0.6' d='M12 0 C12.5 8.4 15.6 11.5 24 12 C15.6 12.5 12.5 15.6 12 24 C11.5 15.6 8.4 12.5 0 12 C8.4 11.5 11.5 8.4 12 0 Z'/></g></svg>"),
+    url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='130' height='130' viewBox='0 0 130 130'><g transform='translate(86 22) scale(0.26)'><path fill='%23FFFFFF' fill-opacity='0.7' d='M12 0 C12.5 8.4 15.6 11.5 24 12 C15.6 12.5 12.5 15.6 12 24 C11.5 15.6 8.4 12.5 0 12 C8.4 11.5 11.5 8.4 12 0 Z'/></g><g transform='translate(30 96) scale(0.2)'><path fill='%23FFD9A0' fill-opacity='0.55' d='M12 0 C12.5 8.4 15.6 11.5 24 12 C15.6 12.5 12.5 15.6 12 24 C11.5 15.6 8.4 12.5 0 12 C8.4 11.5 11.5 8.4 12 0 Z'/></g></svg>"),
+    url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='70' height='70' viewBox='0 0 70 70'><g transform='translate(44 40) scale(0.16)'><path fill='%23FFFFFF' fill-opacity='0.5' d='M12 0 C12.5 8.4 15.6 11.5 24 12 C15.6 12.5 12.5 15.6 12 24 C11.5 15.6 8.4 12.5 0 12 C8.4 11.5 11.5 8.4 12 0 Z'/></g></svg>"),
+    radial-gradient(circle at 9% 18%, rgba(255,255,255,.95) 0 1.3px, transparent 1.9px),
+    radial-gradient(circle at 23% 61%, rgba(255,255,255,.5) 0 .7px, transparent 1.2px),
+    radial-gradient(circle at 37% 12%, rgba(255,236,190,.75) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 52% 44%, rgba(255,255,255,.38) 0 .6px, transparent 1.1px),
+    radial-gradient(circle at 64% 78%, rgba(255,255,255,.7) 0 1.1px, transparent 1.7px),
+    radial-gradient(circle at 78% 29%, rgba(255,255,255,.45) 0 .7px, transparent 1.2px),
+    radial-gradient(circle at 88% 66%, rgba(255,224,160,.65) 0 .9px, transparent 1.5px),
+    radial-gradient(circle at 96% 8%, rgba(255,255,255,.55) 0 .8px, transparent 1.3px);
+  --mq-grain-size: 190px 190px, 130px 130px, 70px 70px, 320px 240px, 320px 240px, 320px 240px, 320px 240px, 320px 240px, 320px 240px, 320px 240px, 320px 240px;
+  --mq-grain-position: 0 0, 47px 31px, 23px 58px, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0;
+  --mq-veil: var(--mq-grain);
 }
 
 /* ---------------------------------------------------------------------------
