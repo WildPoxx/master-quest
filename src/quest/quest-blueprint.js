@@ -230,6 +230,9 @@ export function mergeBlueprintIntoQuestWithOrphans(current, spec) {
     type: spec.type ?? null,
     status: spec.status ?? QUEST_STATUS.inactive,
     priority: spec.priority ?? 0,
+    // 1.3.0: posicao da etapa. Sem esta linha o `order` escrito no blueprint morria aqui,
+    // antes de chegar ao merge — `linkHierarchy` liga pai e filho, mas nao sabe de ordem.
+    order: spec.order,
     description: spec.description ?? "",
     gmnotes: spec.gmnotes ?? "",
     objectives: toArray(spec.objectives).map((objective) => ({
@@ -237,7 +240,7 @@ export function mergeBlueprintIntoQuestWithOrphans(current, spec) {
       name: objective?.name ?? "",
       hidden: objective?.hidden
     })),
-    rewards: toArray(spec.rewards),
+    rewards: withStableRewardIds(spec, current),
     activationTriggers: toArray(spec.activationTriggers),
     journalLinks: toArray(spec.journalLinks),
     source: "blueprint"
@@ -317,6 +320,11 @@ export function validateBlueprint(blueprint) {
     if (quest?.parent === designId) {
       issues.push({ severity: "error", code: "self-parent", message: `Quest ${designId} é pai de si mesma.`, designId });
     }
+    // 1.3.0: etapa sem pai nao e etapa de nada. O modulo a mostra como quest comum, que e
+    // o comportamento seguro — mas o autor provavelmente esqueceu o `parent`.
+    if (quest?.type === "sequence" && !quest?.parent) {
+      issues.push({ severity: "warning", code: "sequence-without-parent", message: `Sequência ${designId} sem parent: aparecerá como quest comum.`, designId });
+    }
     if (!toArray(quest?.objectives).length && quest?.type !== "side") {
       issues.push({ severity: "warning", code: "no-objectives", message: `Quest ${designId} não tem objetivos.`, designId });
     }
@@ -380,6 +388,52 @@ async function ensureFolder({ game, Folder, folderName }) {
   if (existing) return existing;
   if (typeof Folder?.create !== "function") return null;
   return Folder.create({ name: folderName, type: JOURNAL_ENTRY_TYPE, sorting: "m" });
+}
+
+/**
+ * 1.3.0 — recompensa ganha id estavel, como o objetivo ja tinha.
+ *
+ * O defeito: objetivo recebia `slugId`, recompensa ia crua para `normalizeReward`, que sem
+ * `id` sorteia um. Como `mergeQuest` casa por id, a recompensa nunca se reencontrava — e
+ * cada reimportacao a duplicava (medido na Quest 0 de Mistborn: 4 -> 8).
+ *
+ * A ordem de preferencia existe para nao trocar um defeito por outro:
+ *   1. id escrito no blueprint — quem o escreveu manda (e o contorno da Quest 0 continua
+ *      valido, inofensivo);
+ *   2. id da recompensa JA GRAVADA com o mesmo nome — sem isto, o primeiro reimport depois
+ *      da correcao duplicaria UMA vez tudo o que entrou antes dela, com id sorteado;
+ *   3. `slugId` derivado do designId e do nome.
+ * Nomes repetidos na mesma quest: o segundo em diante cai no passo 3 com sufixo, para
+ * que dois itens nunca disputem o mesmo id.
+ *
+ * @param {object} spec A quest do blueprint.
+ * @param {object|null} current A quest gravada, se houver.
+ * @returns {object[]} As recompensas autoradas, cada uma com id.
+ */
+function withStableRewardIds(spec, current) {
+  const recorded = new Map();
+  for (const reward of toArray(current?.rewards)) {
+    const key = nameKey(reward?.name);
+    if (reward?.id && key && !recorded.has(key)) recorded.set(key, reward.id);
+  }
+
+  const used = new Set();
+  return toArray(spec.rewards).map((reward) => {
+    if (!reward || typeof reward !== "object") return reward;
+    const key = nameKey(reward.name);
+    let id = reward.id ?? (key && !used.has(recorded.get(key)) ? recorded.get(key) : null);
+    if (!id) {
+      const base = slugId(`${spec.designId}-rw`, reward.name);
+      id = base;
+      for (let n = 2; used.has(id); n += 1) id = `${base}-${n}`;
+    }
+    used.add(id);
+    return { ...reward, id };
+  });
+}
+
+function nameKey(name) {
+  return String(name ?? "").trim().toLocaleLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
 /** Stable objective id derived from the quest and the objective text, so re-import matches. */
