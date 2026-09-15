@@ -21,6 +21,9 @@
   overflow: hidden;
   padding: 0;
   background: var(--mq-surface-0);
+  background-image: var(--mq-veil);
+  background-size: var(--mq-grain-size);
+  background-position: var(--mq-grain-position);
   color: var(--mq-text);
   font-family: var(--mq-font-body);
 
@@ -38,6 +41,8 @@
 .masterquest .window-header {
   background: var(--mq-chrome-bg);
   background-image: var(--mq-grain);
+  background-size: var(--mq-grain-size);
+  background-position: var(--mq-grain-position);
   border-bottom: 2px solid var(--mq-accent-bright);
   color: var(--mq-on-chrome);
 }
