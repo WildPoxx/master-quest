@@ -186,6 +186,11 @@ export function buildQuestDetailsViewModel(quest, {
   const readable = toArray(allQuests).filter((candidate) => isGM || !isQuestHidden(candidate));
   const sequences = stagesOf(quest, readable).map((stage, position) => ({
     ...buildStageRow(stage, { isGM, position: position + 1 }),
+    // 1.3.1 — a lista de etapas do GM Panel mostra o painel de cada etapa sem sair da
+    // janela do arco. O texto vem do documento da etapa e e LEITURA: nada nesta tela
+    // escreve de volta (DEC-028: o painel e do blueprint; DEC-031: derivado nao se grava).
+    // Vazio para quem nao e Mestre, porque o campo inteiro e do Mestre.
+    gmnotes: isGM ? String(stage.gmnotes ?? "") : "",
     objectives: toArray(stage.objectives)
       .filter((objective) => isGM || !objective.hidden)
       .map((objective) => ({
