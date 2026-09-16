@@ -18,7 +18,7 @@ test("interface skin is a world setting with modern investigation as the safe de
   const game = {
     settings: {
       register: (...args) => registrations.push(args),
-      get: () => "cosmere"
+      get: () => "cosmic"
     }
   };
 
@@ -34,33 +34,38 @@ test("interface skin is a world setting with modern investigation as the safe de
   assert.deepEqual(Object.keys(config.choices), [
     "investigacao-moderna",
     "pergaminho",
-    "cosmere",
+    "fantasia-medieval",
+    "horror",
+    "steampunk",
+    "cosmic",
     "sci-fi",
+    "supers",
+    "olf",
     "mistborn-gilded-steps"
   ]);
   // O primeiro item do menu tem de ser o proprio padrao: menu em ordem arbitraria faz o
   // Mestre procurar o default entre as demais.
   assert.equal(Object.keys(config.choices)[0], config.default);
-  assert.equal(getInterfaceSkin({ game }), INTERFACE_SKINS.cosmere);
+  assert.equal(getInterfaceSkin({ game }), INTERFACE_SKINS.cosmic);
   assert.equal(normalizeInterfaceSkin("removed-skin"), INTERFACE_SKINS.modernInvestigation);
   // O recuo acompanha o default declarado. Se divergirem, a skin anunciada como padrao e a
   // efetivamente aplicada num valor invalido passam a ser coisas diferentes.
   assert.equal(normalizeInterfaceSkin("removed-skin"), config.default);
   assert.equal(normalizeInterfaceSkin("sci-fi"), INTERFACE_SKINS.sciFi);
-  assert.equal(normalizeInterfaceSkin("cosmere"), INTERFACE_SKINS.cosmere);
+  assert.equal(normalizeInterfaceSkin("cosmic"), INTERFACE_SKINS.cosmic);
 });
 
 test("skin is attached only to MasterQuest roots and live settings updates refresh open windows", () => {
   const root = { dataset: {}, matches: (selector) => selector === ".masterquest" };
   const content = { closest: (selector) => (selector === ".masterquest" ? root : null) };
-  const game = { settings: { get: () => INTERFACE_SKINS.cosmere } };
+  const game = { settings: { get: () => INTERFACE_SKINS.cosmic } };
 
-  assert.equal(applyInterfaceSkin(content, { game }), INTERFACE_SKINS.cosmere);
-  assert.equal(root.dataset.mqSkin, INTERFACE_SKINS.cosmere);
+  assert.equal(applyInterfaceSkin(content, { game }), INTERFACE_SKINS.cosmic);
+  assert.equal(root.dataset.mqSkin, INTERFACE_SKINS.cosmic);
 
   root.dataset = {};
   refreshOpenMasterQuestSkins({ game, document: { querySelectorAll: () => [root] } });
-  assert.equal(root.dataset.mqSkin, INTERFACE_SKINS.cosmere);
+  assert.equal(root.dataset.mqSkin, INTERFACE_SKINS.cosmic);
 });
 
 test("every MasterQuest ApplicationV2 surface applies the selected skin at its own root", async () => {

@@ -33,6 +33,7 @@ import { planBlueprintImport, applyBlueprintImport, loadBundledBlueprint, valida
 import { detectPayloadKind, planFileImport, applyFileImport } from "./quest/quest-import-file.js";
 import { listPromotableFolders, planJournalPromotion, promoteJournalFolder } from "./quest/quest-import-journal.js";
 import { openImportAdventure } from "./ui/import-adventure.js";
+import { openFeedReport } from "./ui/feed-report.js";
 import { openMasterQuestLog } from "./ui/quest-log.js";
 import { openMasterQuestDetails } from "./ui/quest-details.js";
 import { importFromFql, previewFqlImport } from "./quest/quest-import-fql.js";
@@ -266,6 +267,18 @@ export function createOlfFqlApi(context = {}) {
       return downloadQuestSnapshot({ ...options, game: options.game ?? getGame() });
     },
 
+    // DEC-063 aplicada por analogia: gerador e leitor de relatorio entram na API. Funcao
+    // que nao esta na API e funcao cuja assinatura cada chamador redescobre — foi assim que
+    // `buildWrapupReport` passou versoes sendo chamada errado.
+    async openFeedReport(options = {}) {
+      return openFeedReport({
+        ...options,
+        api,
+        game: options.game ?? getGame(),
+        ui: options.ui ?? context.ui ?? globalThis.ui
+      });
+    },
+
     async openMasterQuestHub(options = {}) {
       return openMasterQuestHub({
         ...options,
@@ -365,6 +378,7 @@ export function createOlfFqlApi(context = {}) {
     applyBlueprintImport: api.applyBlueprintImport,
     importAdventure: api.importAdventure,
     openImport: api.openImportAdventure,
+    openFeedReport: api.openFeedReport,
     detectPayloadKind: api.detectPayloadKind,
     planFileImport: api.planFileImport,
     applyFileImport: api.applyFileImport,

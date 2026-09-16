@@ -16,7 +16,7 @@ import {
   stagesOf
 } from "../src/quest/quest-view-model.js";
 import { renderQuestLog } from "../src/ui/quest-log.js";
-import { renderQuestDetails } from "../src/ui/quest-details.js";
+import { renderQuestDetails, renderStagePanels } from "../src/ui/quest-details.js";
 
 /* =====================================================================================
  * 1.3.0 — SEQUENCIA, a terceira relacao de quest (Mario, 2026-09-11)
@@ -367,4 +367,87 @@ test("1.3.0: id escrito no blueprint manda, e nomes repetidos nao disputam id", 
     rewards: [{ id: "meu-id", name: "A" }, { id: "t-p-rw-pista", name: "Pista" }, { name: "Pista" }]
   }).quest;
   assert.equal(again.rewards.length, 3);
+});
+
+/* =====================================================================================
+ * 1.3.1 — AS ETAPAS DENTRO DO GM PANEL (Mario, 2026-09-16)
+ *
+ * O pedido, nas palavras dele: ter no painel do Mestre "uma subdivisao nas partes da quest,
+ * indicando sequencias", clicavel. Forma escolhida: lista que abre e fecha, uma por vez.
+ *
+ * O que estes testes guardam nao e o visual — e a linha que nao pode ser cruzada: a tela
+ * LE o painel de cada etapa e nunca o grava no painel do pai. Painel gravado envelheceria
+ * a cada edicao da etapa, e a reimportacao do blueprint (DEC-028) passaria por cima dele.
+ * ===================================================================================== */
+
+function arcoComPaineis() {
+  const mundo = questZero({
+    q2: { gmnotes: "<h2>Portao Nove</h2><p>O vigia sai as 23h. Se insistirem, Tobbin aparece.</p>" },
+    q3: { gmnotes: "<p>O corpo tem a fivela da Casa do Porto no bolso.</p>" }
+  });
+  mundo[0].gmnotes = "<h2>O arco</h2><p>Vayle morre no fim da etapa 1, aconteca o que acontecer.</p>";
+  return mundo;
+}
+
+const vmDoArco = (isGM = true, canEdit = true) => {
+  const mundo = arcoComPaineis();
+  const model = buildQuestDetailsViewModel(mundo[0], { isGM, canEdit, allQuests: mundo });
+  // O enriquecimento e passo do Foundry; fora dele, o HTML cru serve de equivalente.
+  for (const stage of model.sequences) stage.enrichedGmnotes = stage.gmnotes;
+  return model;
+};
+
+test("1.3.1: o painel de cada etapa chega ao view model, e so para o Mestre", () => {
+  const mestre = vmDoArco(true);
+  const jogador = buildQuestDetailsViewModel(arcoComPaineis()[0], {
+    isGM: false, canEdit: false, allQuests: arcoComPaineis()
+  });
+
+  assert.match(mestre.sequences[0].gmnotes, /Portao Nove/);
+  assert.equal(mestre.sequences[2].gmnotes, "", "etapa sem painel vem vazia, nao indefinida");
+  for (const stage of jogador.sequences) {
+    assert.equal(stage.gmnotes, "", "o painel e do Mestre; o jogador nao recebe nem o texto");
+  }
+});
+
+test("1.3.1: a lista nasce FECHADA, e abrir e um gesto do Mestre", () => {
+  const html = renderStagePanels(vmDoArco(true));
+
+  assert.match(html, /mq-stage-panel-list/);
+  assert.equal((html.match(/aria-expanded="false"/g) ?? []).length, 3, "tres etapas, tres cabecalhos fechados");
+  assert.equal((html.match(/mq-stage-panel-body" hidden/g) ?? []).length, 3, "corpo fechado some tambem para leitor de tela");
+  assert.doesNotMatch(html, /aria-expanded="true"/);
+});
+
+test("1.3.1: o corpo traz objetivos, o painel da etapa e a porta para a ficha dela", () => {
+  const html = renderStagePanels(vmDoArco(true));
+
+  assert.match(html, /O Roubo no Portão Nove/);
+  assert.match(html, /Portao Nove<\/h2>/, "o painel da etapa aparece dentro do corpo");
+  assert.match(html, /data-action="open-quest" data-quest-id="Q2"/);
+  assert.match(html, /This stage has no GM Panel yet\./, "etapa sem painel diz que nao tem, e nao finge");
+});
+
+test("1.3.1: jogador nao ve a lista, e arco sem etapa nao desenha secao vazia", () => {
+  assert.equal(renderStagePanels(vmDoArco(false, false)), "");
+  assert.equal(renderStagePanels({ isGM: true, sequences: [] }), "");
+  assert.equal(renderStagePanels({ isGM: true }), "");
+});
+
+test("1.3.1: o painel da etapa NAO entra no campo que se grava (DEC-028, DEC-031)", () => {
+  const model = vmDoArco(true, true);
+  model.enriched = { description: "", playernotes: "", gmnotes: model.gmnotes, gmcomments: "" };
+  // So a aba ATIVA se desenha; a linha que este teste guarda mora na aba do painel.
+  model.activeTab = "gmnotes";
+  const html = renderQuestDetails(model);
+
+  // O campo editavel do arco e o `value` do prose-mirror. O texto da etapa nao pode estar
+  // la dentro: se estiver, a proxima gravacao do painel do pai leva junto o texto do filho.
+  const campos = [...html.matchAll(/<prose-mirror[^>]*value="([^"]*)"/g)].map((m) => m[1]);
+  assert.ok(campos.length > 0, "o arco tem campo editavel");
+  for (const valor of campos) {
+    assert.doesNotMatch(valor, /Portao Nove/, "o painel da etapa vazou para o campo gravavel do pai");
+  }
+  // E, ainda assim, a lista esta na tela.
+  assert.match(html, /mq-stage-panel-list/);
 });

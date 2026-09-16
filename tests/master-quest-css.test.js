@@ -28,12 +28,12 @@ test("token sheet defines the parchment skin and embeds Cinzel", async () => {
   assert.doesNotMatch(css, /:root/, "tokens nunca em :root para nao vazar para o Foundry");
 });
 
-test("token sheet defines the Cosmere skin through the same semantic roles", async () => {
+test("token sheet defines the cosmic skin through the same semantic roles", async () => {
   const css = await readFile(resolve("styles/mq-tokens.css"), "utf8");
 
-  assert.match(css, /\[data-mq-skin="cosmere"\]\.masterquest/);
+  assert.match(css, /\[data-mq-skin="cosmic"\]\.masterquest/);
   for (const token of ["surface-0", "surface-1", "chrome-bg", "text", "accent", "border", "grain"]) {
-    assert.match(css, new RegExp(`--mq-${token}:`), `Cosmere must define --mq-${token}`);
+    assert.match(css, new RegExp(`--mq-${token}:`), `cosmic must define --mq-${token}`);
   }
 });
 
@@ -67,7 +67,8 @@ test("ported skins need no font file beyond the embedded Cinzel", async () => {
 
 test("every catalog skin defines the complete shared semantic token set", async () => {
   const css = await readFile(resolve("styles/mq-tokens.css"), "utf8");
-  const skins = ["pergaminho", "cosmere", "sci-fi", "investigacao-moderna", "mistborn-gilded-steps"];
+  const skins = ["pergaminho", "cosmic", "sci-fi", "investigacao-moderna", "fantasia-medieval",
+    "horror", "steampunk", "supers", "olf", "mistborn-gilded-steps"];
   const tokens = [
     "surface-0", "surface-1", "surface-2", "chrome-bg", "on-chrome", "text", "text-muted",
     "accent", "accent-bright", "on-accent", "danger", "on-danger", "focus", "highlight-bg",

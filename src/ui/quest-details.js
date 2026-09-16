@@ -182,6 +182,16 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
         gmcomments: isGM ? await enrichQuestHtml(model.gmcomments, { secrets: true }) : ""
       };
 
+      // 1.3.1: o mesmo passo, para o painel de cada etapa do arco. So o Mestre le, e so
+      // se houver etapa; `enrichedGmnotes` mora no view model do render e nunca no dado.
+      if (isGM) {
+        for (const stage of model.sequences ?? []) {
+          stage.enrichedGmnotes = stage.gmnotes
+            ? await enrichQuestHtml(stage.gmnotes, { secrets: true })
+            : "";
+        }
+      }
+
       // 0.29: a morada do caderno depende da arvore de pastas do mundo, que so existe
       // aqui — os renderizadores abaixo sao puros e nao consultam o Foundry. Calculado uma
       // vez por render e entregue pronto ao desenho, como o enriquecimento acima.
@@ -288,6 +298,26 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
       this.activateLogHandlers(root);
       this.activateSessionHandlers(root);
       this.activateWrapupHandlers(root);
+
+      // 1.3.1 — sanfona das etapas no GM Panel: abrir uma FECHA as demais, a pedido de
+      // Mario (2026-09-16). Nao e economia de pixel: o painel de etapa e texto de mesa, e
+      // dois textos de mesa abertos ao mesmo tempo disputam a leitura do Mestre no pior
+      // momento possivel. `hidden` em vez de classe porque o corpo fechado tem de sumir
+      // tambem para leitor de tela, e nao so para o olho.
+      root.querySelectorAll("[data-action='stage-panel']").forEach((node) => {
+        node.addEventListener("click", (event) => {
+          event.preventDefault();
+          const corpo = node.parentElement?.querySelector(".mq-stage-panel-body");
+          const abrindo = node.getAttribute("aria-expanded") !== "true";
+          root.querySelectorAll("[data-action='stage-panel']").forEach((outro) => {
+            outro.setAttribute("aria-expanded", "false");
+            outro.parentElement?.querySelector(".mq-stage-panel-body")?.setAttribute("hidden", "");
+          });
+          if (!abrindo || !corpo) return;
+          node.setAttribute("aria-expanded", "true");
+          corpo.removeAttribute("hidden");
+        });
+      });
 
       root.querySelectorAll("[data-action='toc-jump']").forEach((node) => {
         node.addEventListener("click", (event) => {
@@ -1907,6 +1937,73 @@ function renderComplication(complication, model) {
  * @param {object} model O modelo da Details.
  * @returns {string} HTML, ou "" quando a quest nao tem etapas visiveis.
  */
+/**
+ * As etapas do arco DENTRO do GM Panel, em lista que abre e fecha (Mario, 2026-09-16).
+ *
+ * A Overview ja tinha `renderStageGroups`: a lista aberta, com os objetivos de cada etapa,
+ * para quem quer ver o arco inteiro. Esta aqui e outra coisa e serve a outro momento — o
+ * Mestre em mesa, dentro do painel do arco, querendo o painel de UMA etapa sem trocar de
+ * janela. Por isso fechada por padrao, uma aberta por vez, e com o texto do painel da etapa
+ * junto dos objetivos.
+ *
+ * NADA aqui escreve. O texto e lido do documento da etapa a cada abertura, como manda a
+ * DEC-031; gravar um resumo do arco no painel do pai faria o painel envelhecer sozinho e
+ * a reimportacao do blueprint (DEC-028) passaria por cima dele sem aviso.
+ *
+ * So o Mestre chega aqui: a aba inteira e do Mestre.
+ */
+export function renderStagePanels(model) {
+  const stages = model.sequences ?? [];
+  if (!model.isGM || !stages.length) return "";
+
+  const itens = stages
+    .map((stage) => {
+      const objetivos = stage.objectives.length
+        ? `<ul class="mq-box mq-stage-objectives">${stage.objectives
+            .map((objective) => `<li class="${cls("mq-stage-objective", objective.hidden && "is-hidden")}">
+                <span class="mq-state" title="${esc(objective.stateLabel)}"><i class="fa-solid fa-${esc(objective.state)}" inert></i></span>
+                <p class="mq-objective-name">${esc(objective.name)}</p>
+              </li>`)
+            .join("")}</ul>`
+        // O vazio vai DENTRO da lista: `renderEmpty` devolve um <li>, e <li> solto dentro de
+        // <div> e reposicionado pelo parser do navegador — foi assim que o corpo fechado da
+        // etapa vazou para fora do item, visivel, na bancada de 2026-09-16.
+        : `<ul class="mq-box mq-stage-objectives">${renderEmpty("No objectives yet.")}</ul>`;
+
+      const painel = stage.enrichedGmnotes
+        // Sem `mq-notes-read`: aquela classe reserva 120px de caixa de edicao, e aqui e
+        // leitura. A tipografia de fasciculo (`mq-panel-doc`) fica; a altura minima nao.
+        ? `<div class="mq-readonly-html mq-panel-doc mq-stage-panel-doc">${stage.enrichedGmnotes}</div>`
+        : `<p class="mq-empty">This stage has no GM Panel yet.</p>`;
+
+      return `<li class="${cls("mq-stage-panel", `mq-stage-${stage.status}`, stage.id === model.currentSequence?.id && "is-current", stage.isHidden && "is-hidden")}"
+          data-stage-id="${esc(stage.id)}">
+          <button type="button" class="mq-stage-panel-head" data-action="stage-panel" aria-expanded="false">
+            <span class="mq-stage-position">${esc(stage.position)}</span>
+            <span class="mq-stage-name">${esc(stage.name)}</span>
+            <span class="mq-status mq-status-${esc(stage.status)}">${esc(stage.statusLabel)}</span>
+            <span class="mq-quest-count" title="Objectives completed">${esc(stage.objectiveBadge)}</span>
+            <i class="fa-solid fa-chevron-down mq-stage-panel-chevron" inert></i>
+          </button>
+          <div class="mq-stage-panel-body" hidden>
+            ${objetivos}
+            ${painel}
+            <p class="mq-subquest-link mq-stage-link" data-action="open-quest" data-quest-id="${esc(stage.id)}">
+              Open this stage in its own sheet
+            </p>
+          </div>
+        </li>`;
+    })
+    .join("");
+
+  return `
+    <section class="mq-stage-panels" aria-label="Stages">
+      <header><h3>Stages</h3></header>
+      <ol class="mq-stage-panel-list">${itens}</ol>
+    </section>
+  `;
+}
+
 export function renderStageGroups(model) {
   const stages = model.sequences ?? [];
   if (!stages.length) return "";
@@ -2138,6 +2235,7 @@ function renderNotesTab(model, field, label) {
           .join("")}</nav>`
       : "";
 
+  const stagePanels = isPanel ? renderStagePanels(model) : "";
   const derived = field === "playernotes" ? renderDerivedProgress(model) : "";
   const journal = field === "playernotes" ? renderPlayerNotesJournalBar(model) : "";
   const index = field === "playernotes" ? renderSessionNotesIndex(model) : "";
@@ -2179,6 +2277,7 @@ function renderNotesTab(model, field, label) {
         <h2>${esc(label)}</h2>
       </header>
       ${toc}
+      ${stagePanels}
       ${derived}
       ${journal}
       ${index}
