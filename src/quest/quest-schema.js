@@ -117,6 +117,13 @@ export function normalizeQuest(input = {}) {
     // Inteiro autorado; qualquer outra coisa vira 0, e o desempate cai na ordem de
     // `subquests[]` do pai — que ja e dado (DEC-054: a ordem pertence a quem a escreveu).
     order: normalizeOrder(data.order),
+    // 1.5.0 — O FLUXO: o roteiro sugerido da quest, taxonomia de MGS de 2026-09-17.
+    // Lista ordenada e rearranjavel de SEQUENCIAS (encaixes com funcao dramatica), cada
+    // uma com peso — axis/expected/open — e uma ou mais CENAS, guardadas como texto que
+    // pode conter @UUID[...] para a pagina do fasciculo. O fluxo e direcao: nao tem
+    // estado, nao aparece ao jogador, e o modulo nunca deduz "onde a mesa esta" a partir
+    // dele. Cena tem motor, nao objetivo; objetivo e palavra do card.
+    flow: toArray(data.flow).map(normalizeFlowStep).filter((step) => step.name !== ""),
     parent: data.parent == null ? null : text(data.parent) || null,
     subquests: uniqueStrings(data.subquests),
     // Stable authoring id (e.g. "MQ-ATO1-01"). The JournalEntry id is assigned by Foundry
@@ -225,6 +232,33 @@ export function normalizeObjective(input = {}) {
  * @param {*} value Valor bruto.
  * @returns {number} Inteiro.
  */
+/** Pesos de sequencia do fluxo: eixo (o Mestre decidiu; acontece), esperada (planejada,
+ * mas pode cair) e aberta (menu de cenas; os jogadores escolhem). O que separa os pesos
+ * nao e o tipo da cena, e sim QUEM decide o que preenche o encaixe. Nenhum peso bloqueia
+ * nada: o modulo sinaliza, nunca trava — a obrigacao vale ate a segunda pagina. */
+export const FLOW_WEIGHTS = Object.freeze(["axis", "expected", "open"]);
+
+/**
+ * Uma sequencia do fluxo. `scenes` sao linhas de texto — em geral um link
+ * `@UUID[...]{...}` por linha, enriquecido na leitura; o modulo guarda o ponteiro,
+ * nunca o texto da cena (o fasciculo descreve, o modulo rastreia).
+ *
+ * @param {object} entry Raw flow step data.
+ * @returns {object} The normalized flow step.
+ */
+export function normalizeFlowStep(entry = {}) {
+  const data = entry ?? {};
+  return {
+    id: text(data.id) || makeId(),
+    name: text(data.name),
+    weight: FLOW_WEIGHTS.includes(data.weight) ? data.weight : "expected",
+    // A regra de escolha da sequencia aberta, nas palavras do Mestre — por exemplo:
+    // "Permitir aos jogadores escolherem; na falta, segue sugestoes".
+    choice: text(data.choice),
+    scenes: toArray(data.scenes).map((scene) => text(scene)).filter((scene) => scene !== "")
+  };
+}
+
 export function normalizeOrder(value) {
   if (typeof value === "number") return Number.isInteger(value) ? value : 0;
   if (typeof value === "string" && /^\s*-?\d+\s*$/.test(value)) return Number.parseInt(value, 10);

@@ -233,6 +233,7 @@ export function mergeBlueprintIntoQuestWithOrphans(current, spec) {
     // 1.3.0: posicao da etapa. Sem esta linha o `order` escrito no blueprint morria aqui,
     // antes de chegar ao merge — `linkHierarchy` liga pai e filho, mas nao sabe de ordem.
     order: spec.order,
+    flow: spec.flow,
     description: spec.description ?? "",
     gmnotes: spec.gmnotes ?? "",
     objectives: toArray(spec.objectives).map((objective) => ({

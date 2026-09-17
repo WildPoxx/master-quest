@@ -2258,3 +2258,160 @@
   max-height: 44vh;
   overflow-y: auto;
 }
+
+/* O Fluxo: o roteiro sugerido da quest (1.5.0) ----------------------------- */
+
+.mq-flow-script,
+.mq-flow-editor {
+  margin: var(--mq-space-4) 0;
+}
+
+.mq-flow-script > header h3 {
+  font-family: var(--mq-font-display);
+  font-size: var(--mq-text-md);
+  letter-spacing: var(--mq-display-tracking);
+  margin: 0 0 var(--mq-space-2);
+}
+
+.mq-flow-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--mq-space-1);
+}
+
+.mq-flow-seq {
+  border: 1px solid var(--mq-border);
+  border-radius: var(--mq-radius-2);
+  background: var(--mq-surface-1);
+  overflow: hidden;
+}
+
+/* O eixo aparece em relevo; a aberta, mais leve. Peso e sinal, nunca trava. */
+.mq-flow-seq.mq-flow-axis {
+  border-color: var(--mq-border-strong);
+}
+
+.mq-flow-seq.mq-flow-axis .mq-flow-name {
+  color: var(--mq-accent-bright);
+}
+
+.mq-flow-seq.mq-flow-open .mq-flow-name {
+  color: var(--mq-text-muted);
+}
+
+.mq-flow-head {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--mq-space-2);
+  padding: var(--mq-space-2) var(--mq-space-3);
+  background: none;
+  border: 0;
+  color: var(--mq-text);
+  font-family: var(--mq-font-body);
+  font-size: var(--mq-text-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.mq-flow-head:hover {
+  background: var(--mq-surface-2);
+}
+
+.mq-flow-head:focus-visible {
+  outline: 2px solid var(--mq-focus);
+  outline-offset: -2px;
+}
+
+.mq-flow-head .mq-flow-name,
+.mq-flow-row .mq-flow-name {
+  font-family: var(--mq-font-display);
+  letter-spacing: var(--mq-display-tracking);
+  margin: 0;
+}
+
+.mq-flow-head[aria-expanded="true"] .mq-stage-panel-chevron {
+  transform: rotate(180deg);
+}
+
+.mq-flow-weight {
+  font-size: var(--mq-text-xs);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mq-text-muted);
+  border: 1px solid var(--mq-border);
+  border-radius: var(--mq-radius-pill);
+  padding: 1px var(--mq-space-2);
+  background: none;
+}
+
+.mq-flow-weight-axis {
+  color: var(--mq-on-accent);
+  background: var(--mq-accent);
+  border-color: var(--mq-accent);
+}
+
+.mq-flow-weight-open {
+  border-style: dotted;
+}
+
+.mq-flow-body {
+  border-top: 1px solid var(--mq-border);
+  padding: var(--mq-space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--mq-space-2);
+}
+
+.mq-flow-body[hidden] {
+  display: none;
+}
+
+.mq-flow-choice {
+  font-style: italic;
+  color: var(--mq-text-muted);
+  margin: 0;
+}
+
+.mq-flow-scenes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--mq-space-1);
+}
+
+.mq-flow-scene {
+  padding: var(--mq-space-1) var(--mq-space-2);
+  border-left: 2px solid var(--mq-border-strong);
+}
+
+/* Editor (Manage): a linha da sequencia e os dois campos de texto. */
+.mq-flow-editor .mq-flow-seq {
+  padding: var(--mq-space-2) var(--mq-space-3);
+}
+
+.mq-flow-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--mq-space-2);
+}
+
+.mq-flow-scenes-edit {
+  font-family: var(--mq-font-mono);
+  font-size: var(--mq-text-xs);
+  white-space: pre-wrap;
+  margin: var(--mq-space-1) 0 0;
+}
+
+.mq-flow-choice.is-pending,
+.mq-flow-scenes-edit.is-pending {
+  color: var(--mq-text-muted);
+  font-style: italic;
+}

@@ -23,7 +23,7 @@ import { buildQuestDetailsViewModel } from "../quest/quest-view-model.js";
 import { diffQuestForLog, logToMarkdown, sessionHeading, sessionOpenedEntry } from "../quest/quest-log-diff.js";
 import { appendUnderSection, sectionHeading } from "../notes/session-sections.js";
 import { sessionsToSeal, toggleWrapUp } from "../quest/quest-wrapup.js";
-import { SEVERITIES, currentSession, makeId, normalizeClue, normalizeComplication, normalizeDilemma, normalizeLogEntry, normalizeObjective, normalizeOutcome, normalizeReward, normalizeSession, reorderById } from "../quest/quest-schema.js";
+import { FLOW_WEIGHTS, SEVERITIES, currentSession, makeId, normalizeClue, normalizeComplication, normalizeDilemma, normalizeFlowStep, normalizeLogEntry, normalizeObjective, normalizeOutcome, normalizeReward, normalizeSession, reorderById } from "../quest/quest-schema.js";
 import { readAllQuests } from "../quest/quest-store.js";
 // DEC-038 (0.25): as notas do jogador moram no Journal; a aba as espelha e aponta.
 import {
@@ -182,6 +182,17 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
         gmcomments: isGM ? await enrichQuestHtml(model.gmcomments, { secrets: true }) : ""
       };
 
+      // 1.5.0: as cenas do fluxo sao linhas com @UUID e viram link na leitura. So o
+      // Mestre le o fluxo, e o enriquecido mora no view model do render, nunca no dado.
+      if (isGM) {
+        for (const step of model.flow ?? []) {
+          step.enrichedScenes = [];
+          for (const scene of step.scenes) {
+            step.enrichedScenes.push(await enrichQuestHtml(scene, { secrets: true }));
+          }
+        }
+      }
+
       // 1.3.1: o mesmo passo, para o painel de cada etapa do arco. So o Mestre le, e so
       // se houver etapa; `enrichedGmnotes` mora no view model do render e nunca no dado.
       if (isGM) {
@@ -304,6 +315,23 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
       // dois textos de mesa abertos ao mesmo tempo disputam a leitura do Mestre no pior
       // momento possivel. `hidden` em vez de classe porque o corpo fechado tem de sumir
       // tambem para leitor de tela, e nao so para o olho.
+      // 1.5.0 — sanfona do Script: mesma regra das etapas, grupo proprio. Abrir uma
+      // sequencia fecha as outras sequencias, e nao mexe nas etapas.
+      root.querySelectorAll("[data-action='flow-panel']").forEach((node) => {
+        node.addEventListener("click", (event) => {
+          event.preventDefault();
+          const corpo = node.parentElement?.querySelector(".mq-flow-body");
+          const abrindo = node.getAttribute("aria-expanded") !== "true";
+          root.querySelectorAll("[data-action='flow-panel']").forEach((outro) => {
+            outro.setAttribute("aria-expanded", "false");
+            outro.parentElement?.querySelector(".mq-flow-body")?.setAttribute("hidden", "");
+          });
+          if (!abrindo || !corpo) return;
+          node.setAttribute("aria-expanded", "true");
+          corpo.removeAttribute("hidden");
+        });
+      });
+
       root.querySelectorAll("[data-action='stage-panel']").forEach((node) => {
         node.addEventListener("click", (event) => {
           event.preventDefault();
@@ -1100,6 +1128,15 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
       });
 
       // ------- DEC-035: dilemmas, complications, clues, outcomes -------
+      // ------- 1.5.0: o Fluxo (taxonomia MGS 0.5) -------
+      root.querySelector("[data-action='add-flow-seq']")?.addEventListener("click", async (event) => {
+        event.preventDefault();
+        await this.commit((draft) => ({
+          ...draft,
+          flow: [...(draft.flow ?? []), normalizeFlowStep({ id: makeId(), name: "New sequence" })]
+        }));
+      });
+
       root.querySelector("[data-action='add-dilemma']")?.addEventListener("click", async (event) => {
         event.preventDefault();
         await this.commit((draft) => ({
@@ -1147,6 +1184,11 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
         ["toggle-outcome-hidden", "outcomes", (item) => ({ ...item, hidden: !item.hidden })],
         ["toggle-outcome-known", "outcomes", (item) => ({ ...item, known: !item.known })],
         ["toggle-outcome-occurred", "outcomes", (item) => ({ ...item, occurred: !item.occurred })],
+        // 1.5.0: o peso circula eixo -> esperada -> aberta. Nenhum peso trava nada.
+        ["cycle-flow-weight", "flow", (item) => ({
+          ...item,
+          weight: FLOW_WEIGHTS[(FLOW_WEIGHTS.indexOf(item.weight) + 1) % FLOW_WEIGHTS.length]
+        })],
         ["cycle-complication-severity", "complications", (item) => ({
           ...item,
           severity: SEVERITIES[(SEVERITIES.indexOf(item.severity) + 1) % SEVERITIES.length]
@@ -1173,7 +1215,8 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
         ["delete-dilemma", "dilemmas"],
         ["delete-complication", "complications"],
         ["delete-clue", "clues"],
-        ["delete-outcome", "outcomes"]
+        ["delete-outcome", "outcomes"],
+        ["delete-flow-seq", "flow"]
       ]) {
         root.querySelectorAll(`[data-action='${action}']`).forEach((node) => {
           node.addEventListener("click", async (event) => {
@@ -1193,11 +1236,13 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
         ["[data-complication-name]", "complications", "name"],
         ["[data-clue-name]", "clues", "name"],
         ["[data-outcome-name]", "outcomes", "name"],
-        ["[data-outcome-record]", "outcomes", "record"]
+        ["[data-outcome-record]", "outcomes", "record"],
+        ["[data-flow-name]", "flow", "name"],
+        ["[data-flow-choice]", "flow", "choice"]
       ]) {
         root.querySelectorAll(selector).forEach((node) => {
           node.addEventListener("blur", async () => {
-            const id = node.dataset.dilemmaName ?? node.dataset.dilemmaResolution ?? node.dataset.complicationName ?? node.dataset.clueName ?? node.dataset.outcomeName ?? node.dataset.outcomeRecord;
+            const id = node.dataset.dilemmaName ?? node.dataset.dilemmaResolution ?? node.dataset.complicationName ?? node.dataset.clueName ?? node.dataset.outcomeName ?? node.dataset.outcomeRecord ?? node.dataset.flowName ?? node.dataset.flowChoice;
             const value = node.textContent.trim();
             await this.commit((draft) => ({
               ...draft,
@@ -1206,6 +1251,19 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
           });
         });
       }
+
+      // 1.5.0: as cenas da sequencia — uma linha por cena, em geral um @UUID por linha.
+      // innerText preserva as quebras do contenteditable; linhas vazias caem fora.
+      root.querySelectorAll("[data-flow-scenes]").forEach((node) => {
+        node.addEventListener("blur", async () => {
+          const id = node.dataset.flowScenes;
+          const scenes = node.innerText.split(/\n+/).map((line) => line.trim()).filter(Boolean);
+          await this.commit((draft) => ({
+            ...draft,
+            flow: (draft.flow ?? []).map((item) => (item.id === id ? { ...item, scenes } : item))
+          }));
+        });
+      });
 
       for (const [action, patch] of [
         ["show-all-rewards", (reward) => ({ ...reward, hidden: false })],
@@ -1295,7 +1353,8 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
         [".mq-clue", "clues"],
         [".mq-dilemma", "dilemmas"],
         [".mq-complication", "complications"],
-        [".mq-outcome", "outcomes"]
+        [".mq-outcome", "outcomes"],
+        [".mq-flow-seq", "flow"]
       ]) {
         root.querySelectorAll(selector).forEach((item) => {
           item.addEventListener("dragstart", (event) => {
@@ -1952,6 +2011,105 @@ function renderComplication(complication, model) {
  *
  * So o Mestre chega aqui: a aba inteira e do Mestre.
  */
+/**
+ * O Script — o fluxo da quest lido no GM Panel (1.5.0, taxonomia MGS 0.5).
+ *
+ * Uma sequencia por linha, fechada por padrao, uma aberta por vez. O eixo aparece em
+ * relevo; a aberta traz a regra de escolha em italico. O corpo lista as cenas — linhas
+ * enriquecidas, em geral um link para a pagina do fasciculo.
+ *
+ * O que esta tela NUNCA faz: deduzir onde a mesa esta, travar sequencia, mudar estado de
+ * quest, aparecer ao jogador. Ordem e sugestao (a mesa pula, volta, inverte), e o texto
+ * da cena continua morando na pagina — o fasciculo descreve, o modulo rastreia.
+ */
+export function renderFlowScript(model) {
+  const flow = model.flow ?? [];
+  if (!model.isGM || !flow.length) return "";
+
+  const itens = flow
+    .map((step) => {
+      const cenas = (step.enrichedScenes ?? step.scenes).length
+        ? `<ul class="mq-flow-scenes">${(step.enrichedScenes ?? step.scenes)
+            .map((scene) => `<li class="mq-flow-scene">${scene}</li>`)
+            .join("")}</ul>`
+        : `<p class="mq-empty">No scenes linked yet.</p>`;
+
+      const escolha = step.weight === "open" && step.choice
+        ? `<p class="mq-flow-choice">${esc(step.choice)}</p>`
+        : "";
+
+      return `<li class="${cls("mq-flow-seq", `mq-flow-${step.weight}`)}" data-entry-id="${esc(step.id)}">
+          <button type="button" class="mq-flow-head" data-action="flow-panel" aria-expanded="false">
+            <span class="mq-flow-weight" title="${step.weight === "axis" ? "Axis: the GM means this to happen; order among axes matters" : step.weight === "open" ? "Open: a menu — the players choose" : "Expected: planned, but it can fall"}">${esc(step.weightLabel)}</span>
+            <span class="mq-flow-name">${esc(step.name)}</span>
+            <i class="fa-solid fa-chevron-down mq-stage-panel-chevron" inert></i>
+          </button>
+          <div class="mq-flow-body" hidden>
+            ${escolha}
+            ${cenas}
+          </div>
+        </li>`;
+    })
+    .join("");
+
+  return `
+    <section class="mq-flow-script" aria-label="Script">
+      <header><h3>Script</h3></header>
+      <ol class="mq-flow-list">${itens}</ol>
+    </section>
+  `;
+}
+
+/**
+ * O editor do fluxo na Manage (1.5.0). Mesmos gestos dos Desfechos: acrescentar,
+ * renomear no lugar, ciclar o peso, arrastar para reordenar, apagar. As cenas se editam
+ * como texto, uma por linha — um @UUID por linha e o caminho normal, e o link nasce na
+ * leitura, nao aqui.
+ */
+export function renderFlowEditor(model) {
+  if (!model.isGM) return "";
+
+  const itens = (model.flow ?? []).length
+    ? model.flow
+        .map((step) => {
+          const scenes = step.scenes.join("\n");
+          return `<li class="${cls("mq-flow-seq", `mq-flow-${step.weight}`)}" data-entry-id="${esc(step.id)}" ${model.canEdit ? 'draggable="true"' : ""}>
+          ${model.canEdit ? '<i class="mq-handle fa-solid fa-grip-vertical" title="Drag to reorder" inert></i>' : ""}
+          <div class="mq-flow-row">
+            ${model.canEdit
+              ? `<button type="button" class="mq-pill mq-flow-weight mq-flow-weight-${esc(step.weight)}" data-action="cycle-flow-weight" data-item-id="${esc(step.id)}"
+                  title="Axis: it happens · Expected: planned, can fall · Open: the players choose">${esc(step.weightLabel)}</button>`
+              : `<span class="mq-pill mq-flow-weight mq-flow-weight-${esc(step.weight)}">${esc(step.weightLabel)}</span>`}
+            <p class="mq-flow-name" ${model.canEdit ? `contenteditable="true" data-flow-name="${esc(step.id)}"` : ""}>${esc(step.name)}</p>
+            ${model.canEdit
+              ? `<button type="button" class="mq-icon-button mq-danger" data-action="delete-flow-seq" data-item-id="${esc(step.id)}"
+                  title="Delete sequence"><i class="fa-solid fa-trash" inert></i></button>`
+              : ""}
+          </div>
+          ${step.weight === "open" || step.choice
+            ? `<p class="${cls("mq-flow-choice", !step.choice && "is-pending")}" ${model.canEdit ? `contenteditable="true" data-flow-choice="${esc(step.id)}"` : ""}>${esc(step.choice) || (model.canEdit ? "Choice rule — who picks what fills this slot?" : "")}</p>`
+            : ""}
+          <p class="${cls("mq-flow-scenes-edit", !scenes && "is-pending")}" ${model.canEdit ? `contenteditable="true" data-flow-scenes="${esc(step.id)}"` : ""}>${esc(scenes) || (model.canEdit ? "Scenes, one per line — drop a @UUID page link here." : "")}</p>
+        </li>`;
+        })
+        .join("")
+    : renderEmpty("No flow yet. The suggested script of this quest starts here.");
+
+  const add = model.canEdit
+    ? `<button type="button" class="mq-add" data-action="add-flow-seq"><i class="fa-solid fa-plus" inert></i> Sequence</button>`
+    : "";
+
+  return `
+    <section class="mq-flow-editor">
+      <header>
+        <h2>Flow</h2>
+        ${add}
+      </header>
+      <ul class="mq-box mq-flow-list">${itens}</ul>
+    </section>
+  `;
+}
+
 export function renderStagePanels(model) {
   const stages = model.sequences ?? [];
   if (!model.isGM || !stages.length) return "";
@@ -2235,6 +2393,7 @@ function renderNotesTab(model, field, label) {
           .join("")}</nav>`
       : "";
 
+  const flowScript = isPanel ? renderFlowScript(model) : "";
   const stagePanels = isPanel ? renderStagePanels(model) : "";
   const derived = field === "playernotes" ? renderDerivedProgress(model) : "";
   const journal = field === "playernotes" ? renderPlayerNotesJournalBar(model) : "";
@@ -2277,6 +2436,7 @@ function renderNotesTab(model, field, label) {
         <h2>${esc(label)}</h2>
       </header>
       ${toc}
+      ${flowScript}
       ${stagePanels}
       ${derived}
       ${journal}
@@ -2600,6 +2760,7 @@ function renderManagementTab(model) {
         ${renderDilemmas(model)}
         ${renderComplications(model)}
         ${renderOutcomes(model)}
+        ${renderFlowEditor(model)}
 
         <section class="mq-subquests">
           <header>
