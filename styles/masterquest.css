@@ -2415,3 +2415,21 @@
   color: var(--mq-text-muted);
   font-style: italic;
 }
+
+/* Edicao no lugar tem de se ANUNCIAR: sem isto, contenteditable e um segredo.
+   (Homologacao viva de 2026-09-17: o Mestre nao achou onde editar.) */
+.mq-flow-editor [contenteditable="true"] {
+  cursor: text;
+  border-bottom: 1px dashed transparent;
+}
+
+.mq-flow-editor [contenteditable="true"]:hover {
+  border-bottom-color: var(--mq-border-strong);
+  background: var(--mq-surface-2);
+}
+
+.mq-flow-editor [contenteditable="true"]:focus {
+  outline: 2px solid var(--mq-focus);
+  outline-offset: 1px;
+  background: var(--mq-surface-2);
+}
