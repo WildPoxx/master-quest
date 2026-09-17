@@ -203,6 +203,15 @@ export function buildQuestDetailsViewModel(quest, {
   }));
   const currentSequence = currentStage(sequences);
 
+  // 1.5.0 — o fluxo so existe para o Mestre: e direcao, como o gmnotes. O peso ganha
+  // rotulo aqui para o desenho nao carregar dicionario.
+  const flow = isGM
+    ? toArray(quest.flow).map((step) => ({
+        ...step,
+        weightLabel: FLOW_WEIGHT_LABEL[step.weight] ?? step.weight
+      }))
+    : [];
+
   const isSequence = quest.type === QUEST_TYPE.sequence;
   const siblings = isSequence && parent ? stagesOf(parent, readable) : [];
   const stageIndex = siblings.findIndex((sibling) => sibling.id === quest.id);
@@ -311,6 +320,7 @@ export function buildQuestDetailsViewModel(quest, {
     session: currentSession(quest),
     wrappedUp: quest.wrappedUp === true,
     subquests,
+    flow,
     sequences,
     currentSequence,
     allRewardsVisible: rewards.length > 0 && rewards.every((r) => !r.hidden),
@@ -381,6 +391,8 @@ function questIcon(quest) {
  * @param {object[]} quests As quests entre as quais procurar (ja filtradas por quem le).
  * @returns {object[]} As etapas, em ordem.
  */
+const FLOW_WEIGHT_LABEL = Object.freeze({ axis: "Axis", expected: "Expected", open: "Open" });
+
 export function stagesOf(quest, quests) {
   if (!quest?.id) return [];
   const linkOrder = toArray(quest.subquests);
