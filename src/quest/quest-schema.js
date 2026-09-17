@@ -82,6 +82,43 @@ export const QUEST_TYPE = Object.freeze({
   clock: "clock"
 });
 
+export const QUEST_TYPE_LABEL = Object.freeze({
+  main: "Main Quest",
+  subquest: "Subquest",
+  sequence: "Sequence",
+  side: "Side Quest",
+  personal: "Personal",
+  faction: "Faction",
+  clock: "Clock"
+});
+
+/**
+ * 1.5.3 — o selo de tipo do log circula, no clique do Mestre, apenas os tipos que se
+ * atribuem a mao. `sequence` fica de fora do ciclo: e papel estrutural (etapa do pai,
+ * 1.3.0), nao categoria de selo — quem clica num selo sem tipo, invalido ou de
+ * sequencia comeca do comeco do ciclo.
+ */
+export const QUEST_TYPE_CYCLE = Object.freeze([
+  QUEST_TYPE.main,
+  QUEST_TYPE.subquest,
+  QUEST_TYPE.side,
+  QUEST_TYPE.personal,
+  QUEST_TYPE.faction,
+  QUEST_TYPE.clock
+]);
+
+/**
+ * Next type in the badge cycle. Anything outside the cycle restarts it at `main`.
+ *
+ * @param {string|null} current The quest's current type.
+ * @returns {string} The next type.
+ */
+export function nextQuestType(current) {
+  const position = QUEST_TYPE_CYCLE.indexOf(current);
+  if (position === -1) return QUEST_TYPE.main;
+  return QUEST_TYPE_CYCLE[(position + 1) % QUEST_TYPE_CYCLE.length];
+}
+
 /**
  * Normalize an arbitrary object into a valid quest payload. Never throws: unknown
  * input degrades to a usable empty quest, because a corrupt flag must not break the log.

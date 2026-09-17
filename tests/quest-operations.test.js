@@ -21,6 +21,7 @@ import {
   readQuestById,
   saveQuest,
   setQuestStatus,
+  setQuestType,
   toStoredPayload,
   unlinkSubquest
 } from "../src/quest/quest-store.js";
@@ -217,6 +218,18 @@ test("setQuestStatus persists both the status and the dates", async () => {
   const stored = entry.flags[MODULE_ID].quest;
   assert.equal(stored.status, QUEST_STATUS.active);
   assert.equal(typeof stored.date.start, "number");
+});
+
+test("1.5.3: setQuestType troca o tipo e nada mais, pelo mesmo caminho do status", async () => {
+  const entry = makeEntry({ id: "q1", quest: normalizeQuest({ name: "Alvo", type: "side" }) });
+  const game = makeGame([entry]);
+
+  await setQuestType("q1", "main", { game });
+
+  const stored = entry.flags[MODULE_ID].quest;
+  assert.equal(stored.type, "main");
+  assert.equal(stored.name, "Alvo", "o resto da quest atravessa intacto");
+  assert.deepEqual(await setQuestType("nada", "main", { game }), { status: "missing", questId: "nada" });
 });
 
 test("linking a subquest updates both sides and moves it off the old parent", async () => {

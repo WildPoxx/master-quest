@@ -555,6 +555,24 @@
 }
 
 .masterquest .mq-quest-row:hover { background: var(--mq-surface-1); }
+
+/* 1.5.3 — o selo de tipo do log. A cor diz o tipo; a linha da Main Quest ganha o fundo
+   de chip ativo da skin, para saltar da lista sem gritar. Tokens apenas (DEC-012). */
+.masterquest .mq-type-badge { flex: 0 0 auto; }
+.masterquest span.mq-type-badge { cursor: default; }
+.masterquest .mq-type-main { color: var(--mq-metal-gold); }
+.masterquest .mq-type-side { color: var(--mq-accent); }
+.masterquest .mq-type-subquest { color: var(--mq-text-muted); }
+.masterquest .mq-type-personal { color: var(--mq-accent-bright); }
+.masterquest .mq-type-faction { color: var(--mq-danger); }
+.masterquest .mq-type-clock { color: var(--mq-status-inactive); }
+.masterquest .mq-type-none { color: var(--mq-text-muted); opacity: 0.6; }
+
+.masterquest .mq-quest-row.mq-quest-main {
+  background: var(--mq-chip-active-bg);
+  border-color: var(--mq-border-strong);
+}
+.masterquest .mq-quest-row.mq-quest-main:hover { background: var(--mq-chip-active-bg); }
 .masterquest .mq-dragging { opacity: 0.45; }
 .masterquest .mq-drop-target { border: 1px dashed var(--mq-focus); }
 

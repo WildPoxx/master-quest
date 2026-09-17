@@ -188,6 +188,22 @@ export async function setQuestStatus(questId, status, { game = globalThis.game }
 }
 
 /**
+ * 1.5.3 — change a quest's kind (`type`), the badge the log shows. Same shape as
+ * `setQuestStatus`: read, replace the field, save through the normalizer.
+ *
+ * @param {string} questId The quest id.
+ * @param {string|null} type The target type.
+ * @param {object} [options]
+ * @param {object} [options.game] The Foundry game object.
+ * @returns {Promise<object>} The save result.
+ */
+export async function setQuestType(questId, type, { game = globalThis.game } = {}) {
+  const quest = readQuestById(questId, { game });
+  if (!quest) return { status: "missing", questId };
+  return saveQuest({ ...quest, type });
+}
+
+/**
  * Attach `childId` as a subquest of `parentId`, detaching it from any previous parent.
  *
  * @param {string} parentId The parent quest id.

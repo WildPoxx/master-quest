@@ -16,10 +16,11 @@ import {
   linkSubquest,
   readAllQuests,
   setPrimaryQuestId,
-  setQuestStatus
+  setQuestStatus,
+  setQuestType
 } from "../quest/quest-store.js";
 import { buildQuestLogViewModel } from "../quest/quest-view-model.js";
-import { QUEST_STATUS } from "../quest/quest-schema.js";
+import { QUEST_STATUS, nextQuestType } from "../quest/quest-schema.js";
 import { cls, esc, escUrl, renderEmpty, renderStatusActions } from "./render-utils.js";
 
 let ActiveLogClass = null;
@@ -155,6 +156,17 @@ export function createMasterQuestLogClass(ApplicationV2) {
         });
       });
 
+      // 1.5.3 — o clique do Mestre no selo circula o tipo, como a severidade dos
+      // Dilemas: sem janela, sem campo novo. O jogador recebe o selo como texto.
+      root.querySelectorAll("[data-action='cycle-quest-type']").forEach((button) => {
+        button.addEventListener("click", async (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          await setQuestType(button.dataset.questId, nextQuestType(button.dataset.questType || null), { game: this.game });
+          this.render({ force: false });
+        });
+      });
+
       root.querySelectorAll("[data-action='toggle-primary']").forEach((button) => {
         button.addEventListener("click", async (event) => {
           event.preventDefault();
@@ -285,6 +297,40 @@ export function renderQuestLog(model) {
   `;
 }
 
+/**
+ * 1.5.3 — o selo de tipo (Proposta B de Mario, 2026-09-17): um simbolo entre os icones
+ * da linha que DIZ o tipo da quest e, para o Mestre, o troca no clique, circulando
+ * main -> subquest -> side -> personal -> faction -> clock. `sequence` so exibe
+ * (legado); quest sem tipo mostra a interrogacao apenas ao Mestre — convite a definir,
+ * nunca ruido ao jogador. Cores por token, nunca hardcoded (DEC-012).
+ */
+const QUEST_TYPE_BADGE = Object.freeze({
+  main: { icon: "fa-crown", className: "mq-type-main" },
+  subquest: { icon: "fa-arrow-turn-up", className: "mq-type-subquest" },
+  sequence: { icon: "fa-arrow-turn-up", className: "mq-type-subquest" },
+  side: { icon: "fa-bullseye", className: "mq-type-side" },
+  personal: { icon: "fa-user", className: "mq-type-personal" },
+  faction: { icon: "fa-flag", className: "mq-type-faction" },
+  clock: { icon: "fa-clock", className: "mq-type-clock" },
+  none: { icon: "fa-circle-question", className: "mq-type-none" }
+});
+
+export function renderTypeBadge(row, model) {
+  const spec = QUEST_TYPE_BADGE[row.type] ?? QUEST_TYPE_BADGE.none;
+  const label = row.typeLabel ?? "Sem tipo";
+
+  if (!model.isGM) {
+    if (!row.typeLabel) return "";
+    return `<span class="mq-icon-button mq-type-badge ${spec.className}" title="Tipo: ${esc(label)}">
+        <i class="fa-solid ${spec.icon}" inert></i></span>`;
+  }
+
+  return `<button type="button" class="mq-icon-button mq-type-badge ${spec.className}"
+      data-action="cycle-quest-type" data-quest-id="${esc(row.id)}" data-quest-type="${esc(row.type ?? "")}"
+      title="Tipo: ${esc(label)} (clique para alternar)">
+      <i class="fa-solid ${spec.icon}" inert></i></button>`;
+}
+
 function renderQuestRow(row, model) {
   const icon = row.img
     ? `<div class="mq-quest-icon" data-action="open-quest" data-quest-id="${esc(row.id)}"
@@ -324,7 +370,7 @@ function renderQuestRow(row, model) {
     : "";
 
   return `
-    <li class="mq-quest-row" data-quest-id="${esc(row.id)}" draggable="true">
+    <li class="${cls("mq-quest-row", row.type === "main" && "mq-quest-main")}" data-quest-id="${esc(row.id)}" draggable="true">
       ${icon}
       <div class="mq-quest-title" data-action="open-quest" data-quest-id="${esc(row.id)}">
         <h3>${esc(row.name)} ${badges}</h3>
@@ -333,6 +379,7 @@ function renderQuestRow(row, model) {
       </div>
       <div class="mq-quest-count" title="Objectives completed">${esc(row.objectiveBadge)}</div>
       ${renderStatusActions(row.statusActions, row.id)}
+      ${renderTypeBadge(row, model)}
       ${primaryToggle}
       ${deleteButton}
     </li>

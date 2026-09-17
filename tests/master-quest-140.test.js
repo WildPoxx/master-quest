@@ -1,11 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { FLOW_WEIGHTS, normalizeFlowStep, normalizeQuest } from "../src/quest/quest-schema.js";
+import { FLOW_WEIGHTS, QUEST_TYPE_CYCLE, nextQuestType, normalizeFlowStep, normalizeQuest } from "../src/quest/quest-schema.js";
 import { AUTHORED_BY_BLUEPRINT } from "../src/quest/merge-quest.js";
 import { mergeBlueprintIntoQuestWithOrphans } from "../src/quest/quest-blueprint.js";
-import { buildQuestDetailsViewModel } from "../src/quest/quest-view-model.js";
+import { buildQuestDetailsViewModel, buildQuestLogViewModel } from "../src/quest/quest-view-model.js";
 import { renderFlowEditor, renderFlowScript, renderQuestDetails } from "../src/ui/quest-details.js";
+import { renderQuestLog } from "../src/ui/quest-log.js";
 
 /* =====================================================================================
  * 1.5.0 — O FLUXO (taxonomia MGS 0.5, Mario, 2026-09-17)
@@ -155,4 +156,65 @@ test("1.5.0: o Script nao vaza para o campo gravavel do painel (DEC-028, DEC-031
   for (const valor of campos) {
     assert.doesNotMatch(valor, /KS1|The Plan|Downtime/, "sequencia vazou para o campo que a gravacao leva");
   }
+});
+
+/* =====================================================================================
+ * 1.5.3 — O SELO DE TIPO (Proposta B de Mario, 2026-09-17)
+ *
+ * Um simbolo entre os icones da linha do log que DIZ o tipo da quest ("um simbolo
+ * adicional entre esses da lista, que, se clicado, indique que aquela quest e uma gold
+ * quest"). O selo mostra o campo `type` que sempre existiu; o clique e do Mestre e
+ * CIRCULA o tipo, como a severidade dos Dilemas — nenhum campo novo, nenhuma janela.
+ * ===================================================================================== */
+
+test("1.5.3: o ciclo do selo percorre os seis tipos e recomeca; o que nao esta nele vira main", () => {
+  assert.deepEqual(QUEST_TYPE_CYCLE, ["main", "subquest", "side", "personal", "faction", "clock"]);
+  assert.equal(nextQuestType("main"), "subquest");
+  assert.equal(nextQuestType("clock"), "main", "o fim do ciclo volta ao comeco");
+  assert.equal(nextQuestType(null), "main", "sem tipo, o primeiro clique define main");
+  assert.equal(nextQuestType("sequence"), "main", "sequencia e papel estrutural, fora do ciclo");
+  assert.equal(nextQuestType("banana"), "main", "lixo nao quebra: recomeca");
+});
+
+test("1.5.3: a linha do log carrega type e typeLabel para o selo ler", () => {
+  const gold = quest("GQ1", { type: "side" });
+  const model = buildQuestLogViewModel([gold], { isGM: true });
+  const row = model.quests.active[0];
+
+  assert.equal(row.type, "side");
+  assert.equal(row.typeLabel, "Side Quest");
+
+  const semTipo = buildQuestLogViewModel([quest("X")], { isGM: true }).quests.active[0];
+  assert.equal(semTipo.type, null);
+  assert.equal(semTipo.typeLabel, null);
+});
+
+test("1.5.3: para o Mestre o selo e botao que circula; para o jogador, texto ou nada", () => {
+  const gold = quest("GQ1", { type: "side" });
+  const gm = renderQuestLog(buildQuestLogViewModel([gold], { isGM: true }));
+
+  assert.match(gm, /data-action="cycle-quest-type"/);
+  assert.match(gm, /data-quest-type="side"/);
+  assert.match(gm, /fa-bullseye/);
+  assert.match(gm, /clique para alternar/);
+
+  const player = renderQuestLog(buildQuestLogViewModel([gold], { isGM: false }));
+  assert.doesNotMatch(player, /cycle-quest-type/, "o jogador ve o selo, nunca o gesto");
+  assert.match(player, /mq-type-side/);
+
+  const semTipo = renderQuestLog(buildQuestLogViewModel([quest("X")], { isGM: false }));
+  assert.doesNotMatch(semTipo, /mq-type-none/, "interrogacao e convite ao Mestre, nao ruido ao jogador");
+  const gmSemTipo = renderQuestLog(buildQuestLogViewModel([quest("X")], { isGM: true }));
+  assert.match(gmSemTipo, /mq-type-none/);
+  assert.match(gmSemTipo, /fa-circle-question/);
+});
+
+test("1.5.3: a linha da Main Quest ganha a classe do fundo tingido; as outras, nao", () => {
+  const mq = quest("MQ", { type: "main" });
+  const gq = quest("GQ", { type: "side" });
+  const html = renderQuestLog(buildQuestLogViewModel([mq, gq], { isGM: true }));
+
+  const linhas = html.match(/<li class="[^"]*mq-quest-row[^"]*"/g) ?? [];
+  assert.equal(linhas.filter((l) => l.includes("mq-quest-main")).length, 1);
+  assert.match(html, /fa-crown/);
 });
