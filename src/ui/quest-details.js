@@ -1254,6 +1254,26 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
 
       // 1.5.0: as cenas da sequencia — uma linha por cena, em geral um @UUID por linha.
       // innerText preserva as quebras do contenteditable; linhas vazias caem fora.
+      // 1.5.2 — o lapis nao abre janela nenhuma: os campos JA sao editaveis no lugar
+      // (nome, regra de escolha e cenas). Ele existe porque a homologacao viva de
+      // 2026-09-17 mostrou que ninguem descobre contenteditable sem convite: o botao
+      // poe o cursor no nome, e o CSS passa a sublinhar o editavel sob o mouse.
+      root.querySelectorAll("[data-action='edit-flow-seq']").forEach((node) => {
+        node.addEventListener("click", (event) => {
+          event.preventDefault();
+          const id = node.dataset.itemId;
+          const alvo = root.querySelector(`[data-flow-name='${id}']`);
+          if (!alvo) return;
+          alvo.focus();
+          const range = document.createRange();
+          range.selectNodeContents(alvo);
+          range.collapse(false);
+          const sel = window.getSelection();
+          sel?.removeAllRanges();
+          sel?.addRange(range);
+        });
+      });
+
       root.querySelectorAll("[data-flow-scenes]").forEach((node) => {
         node.addEventListener("blur", async () => {
           const id = node.dataset.flowScenes;
@@ -2080,9 +2100,11 @@ export function renderFlowEditor(model) {
               ? `<button type="button" class="mq-pill mq-flow-weight mq-flow-weight-${esc(step.weight)}" data-action="cycle-flow-weight" data-item-id="${esc(step.id)}"
                   title="Axis: it happens · Expected: planned, can fall · Open: the players choose">${esc(step.weightLabel)}</button>`
               : `<span class="mq-pill mq-flow-weight mq-flow-weight-${esc(step.weight)}">${esc(step.weightLabel)}</span>`}
-            <p class="mq-flow-name" ${model.canEdit ? `contenteditable="true" data-flow-name="${esc(step.id)}"` : ""}>${esc(step.name)}</p>
+            <p class="mq-flow-name" ${model.canEdit ? `contenteditable="true" data-flow-name="${esc(step.id)}" title="Click to edit the sequence name"` : ""}>${esc(step.name)}</p>
             ${model.canEdit
-              ? `<button type="button" class="mq-icon-button mq-danger" data-action="delete-flow-seq" data-item-id="${esc(step.id)}"
+              ? `<button type="button" class="mq-icon-button" data-action="edit-flow-seq" data-item-id="${esc(step.id)}"
+                  title="Edit: name, choice rule and scenes are editable in place — this puts the cursor there"><i class="fa-solid fa-pen" inert></i></button>
+                <button type="button" class="mq-icon-button mq-danger" data-action="delete-flow-seq" data-item-id="${esc(step.id)}"
                   title="Delete sequence"><i class="fa-solid fa-trash" inert></i></button>`
               : ""}
           </div>

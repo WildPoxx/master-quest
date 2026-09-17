@@ -131,6 +131,7 @@ test("1.5.0: a Manage edita o fluxo com os gestos dos Desfechos", () => {
   assert.match(html, /data-action="add-flow-seq"/);
   assert.match(html, /data-action="cycle-flow-weight"/);
   assert.match(html, /data-action="delete-flow-seq"/);
+  assert.match(html, /data-action="edit-flow-seq"/, "o lapis convida para a edicao no lugar");
   assert.match(html, /data-flow-name=/);
   assert.match(html, /data-flow-scenes=/);
   assert.match(html, /draggable="true"/, "reordenar e arrastar, como nas outras colecoes");
