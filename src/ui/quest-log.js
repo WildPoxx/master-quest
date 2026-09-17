@@ -13,8 +13,8 @@ import {
   createQuest,
   deleteQuest,
   getPrimaryQuestId,
-  linkSubquest,
   readAllQuests,
+  reorderQuests,
   setPrimaryQuestId,
   setQuestStatus,
   setQuestType
@@ -109,10 +109,14 @@ export function createMasterQuestLogClass(ApplicationV2) {
 
       return {
         ...context,
-        model: buildQuestLogViewModel(readAllQuests({ game }), {
+        model: Object.assign(buildQuestLogViewModel(readAllQuests({ game }), {
           isGM: game?.user?.isGM === true,
           primaryQuestId: getPrimaryQuestId({ game }),
           activeTab: this.activeTab
+        }), {
+          // 1.5.4 — quais pastas de subquest estao abertas. Estado de tela, por
+          // cliente, vivo so enquanto a janela vive: nada disso vai ao mundo.
+          expandedQuests: (this.expandedQuests ??= new Set())
         })
       };
     }
@@ -152,6 +156,19 @@ export function createMasterQuestLogClass(ApplicationV2) {
           event.preventDefault();
           event.stopPropagation();
           await setQuestStatus(button.dataset.questId, button.dataset.status, { game: this.game });
+          this.render({ force: false });
+        });
+      });
+
+      // 1.5.4 — abrir e fechar a pasta de subquests da linha. Puro estado de tela.
+      root.querySelectorAll("[data-action='toggle-subquests']").forEach((button) => {
+        button.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const id = button.dataset.questId;
+          this.expandedQuests ??= new Set();
+          if (this.expandedQuests.has(id)) this.expandedQuests.delete(id);
+          else this.expandedQuests.add(id);
           this.render({ force: false });
         });
       });
@@ -199,9 +216,14 @@ export function createMasterQuestLogClass(ApplicationV2) {
       this.activateDragAndDrop(root);
     }
 
-    /** Dragging a quest row onto another row files it as a subquest. */
+    /**
+     * 1.5.4 — arrastar REORDENA (decisao de Mario, 2026-09-17). O gesto antigo de
+     * aninhar por arrasto saiu do log: tornar subquest e tarefa da Manage, e um
+     * gesto so nao pode dizer duas coisas. Soltar sobre uma linha poe a arrastada
+     * naquela posicao; a ordem inteira da aba vira `priority` e vale para todos.
+     */
     activateDragAndDrop(root) {
-      root.querySelectorAll(".mq-quest-row").forEach((row) => {
+      root.querySelectorAll(".mq-quest-row[draggable='true']").forEach((row) => {
         row.addEventListener("dragstart", (event) => {
           event.dataTransfer?.setData("text/plain", JSON.stringify({
             type: "masterquest-quest",
@@ -227,10 +249,14 @@ export function createMasterQuestLogClass(ApplicationV2) {
           if (payload?.type !== "masterquest-quest") return;
           if (payload.questId === row.dataset.questId) return;
 
-          const result = await linkSubquest(row.dataset.questId, payload.questId, { game: this.game });
-          if (result.status === "cycle") {
-            notifyWarning("A quest cannot become its own subquest.", this.ui);
-          }
+          const order = [...root.querySelectorAll(".mq-quest-list > .mq-quest-row[draggable='true']")]
+            .map((node) => node.dataset.questId);
+          const from = order.indexOf(payload.questId);
+          const to = order.indexOf(row.dataset.questId);
+          if (from === -1 || to === -1) return;
+          order.splice(to, 0, ...order.splice(from, 1));
+
+          await reorderQuests(order, { game: this.game });
           this.render({ force: false });
         });
       });
@@ -331,7 +357,7 @@ export function renderTypeBadge(row, model) {
       <i class="fa-solid ${spec.icon}" inert></i></button>`;
 }
 
-function renderQuestRow(row, model) {
+function renderQuestRow(row, model, { nested = false } = {}) {
   const icon = row.img
     ? `<div class="mq-quest-icon" data-action="open-quest" data-quest-id="${esc(row.id)}"
         style="background-image:url('${escUrl(row.img)}')" title="${esc(row.giverName)}"></div>`
@@ -369,8 +395,32 @@ function renderQuestRow(row, model) {
         <i class="fa-solid fa-trash" inert></i></button>`
     : "";
 
+  // 1.5.4 — a linha se tinge de leve pela cor do tipo (main ouro, side bordo,
+  // subquest azul-prata); os outros tipos ficam como sempre.
+  const typeClass = row.type === "main" ? "mq-quest-main"
+    : row.type === "side" ? "mq-quest-side"
+      : row.type === "subquest" ? "mq-quest-sub"
+        : "";
+
+  // 1.5.4 — a pasta: subquests aninhadas abrem e fecham pelo caret, para todos.
+  const expanded = Boolean(row.subrows?.length) && model.expandedQuests?.has?.(row.id) === true;
+  const caret = row.subrows?.length
+    ? `<button type="button" class="mq-icon-button mq-fold" data-action="toggle-subquests"
+        data-quest-id="${esc(row.id)}" title="${expanded ? "Recolher subquests" : `Mostrar ${esc(row.subrows.length)} subquest(s)`}">
+        <i class="fa-solid ${expanded ? "fa-caret-down" : "fa-caret-right"}" inert></i></button>`
+    : "";
+
+  // So a linha de topo do Mestre arrasta — e arrastar agora e reordenar.
+  const draggable = model.isGM && !nested ? "true" : "false";
+
+  const subrows = expanded
+    ? row.subrows.map((sub) => renderQuestRow(sub, model, { nested: true })).join("")
+    : "";
+
   return `
-    <li class="${cls("mq-quest-row", row.type === "main" && "mq-quest-main")}" data-quest-id="${esc(row.id)}" draggable="true">
+    <li class="${cls("mq-quest-row", typeClass, nested && "mq-quest-subrow")}" data-quest-id="${esc(row.id)}" draggable="${draggable}">
+      ${renderTypeBadge(row, model)}
+      ${caret}
       ${icon}
       <div class="mq-quest-title" data-action="open-quest" data-quest-id="${esc(row.id)}">
         <h3>${esc(row.name)} ${badges}</h3>
@@ -379,10 +429,10 @@ function renderQuestRow(row, model) {
       </div>
       <div class="mq-quest-count" title="Objectives completed">${esc(row.objectiveBadge)}</div>
       ${renderStatusActions(row.statusActions, row.id)}
-      ${renderTypeBadge(row, model)}
       ${primaryToggle}
       ${deleteButton}
     </li>
+    ${subrows}
   `;
 }
 

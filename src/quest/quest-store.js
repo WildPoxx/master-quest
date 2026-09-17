@@ -204,6 +204,32 @@ export async function setQuestType(questId, type, { game = globalThis.game } = {
 }
 
 /**
+ * 1.5.4 — persist the manual order of the Quest Log: the GM drags a row and every
+ * top-level quest of that tab receives a fresh `priority`, highest first, so the
+ * sort (`byPriorityThenName`) reproduces exactly what the GM arranged. Quests in
+ * other tabs keep their own numbers; the scales never mix.
+ *
+ * @param {string[]} orderedIds Quest ids in the order they should appear.
+ * @param {object} [options]
+ * @param {object} [options.game] The Foundry game object.
+ * @returns {Promise<object>} `{status, changed}`.
+ */
+export async function reorderQuests(orderedIds, { game = globalThis.game } = {}) {
+  const ids = (Array.isArray(orderedIds) ? orderedIds : []).filter(Boolean);
+  let priority = ids.length;
+  let changed = 0;
+  for (const id of ids) {
+    const quest = readQuestById(id, { game });
+    if (quest && quest.priority !== priority) {
+      await saveQuest({ ...quest, priority });
+      changed += 1;
+    }
+    priority -= 1;
+  }
+  return { status: "reordered", changed };
+}
+
+/**
  * Attach `childId` as a subquest of `parentId`, detaching it from any previous parent.
  *
  * @param {string} parentId The parent quest id.

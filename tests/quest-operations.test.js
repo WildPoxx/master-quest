@@ -19,6 +19,7 @@ import {
   readAllQuests,
   readQuest,
   readQuestById,
+  reorderQuests,
   saveQuest,
   setQuestStatus,
   setQuestType,
@@ -218,6 +219,23 @@ test("setQuestStatus persists both the status and the dates", async () => {
   const stored = entry.flags[MODULE_ID].quest;
   assert.equal(stored.status, QUEST_STATUS.active);
   assert.equal(typeof stored.date.start, "number");
+});
+
+test("1.5.4: reorderQuests grava a ordem arrastada como prioridade, maior primeiro", async () => {
+  const entries = [
+    makeEntry({ id: "a", quest: normalizeQuest({ name: "A", status: "active" }) }),
+    makeEntry({ id: "b", quest: normalizeQuest({ name: "B", status: "active" }) }),
+    makeEntry({ id: "c", quest: normalizeQuest({ name: "C", status: "active" }) })
+  ];
+  const game = makeGame(entries);
+
+  await reorderQuests(["c", "a", "b"], { game });
+
+  const model = buildQuestLogViewModel(readAllQuests({ game }), { isGM: true });
+  assert.deepEqual(model.quests.active.map((r) => r.id), ["c", "a", "b"],
+    "a lista renderiza exatamente o que o Mestre arranjou");
+  assert.equal(entries[2].flags[MODULE_ID].quest.priority, 3, "primeiro da lista, maior prioridade");
+  assert.deepEqual(await reorderQuests(["nada"], { game }), { status: "reordered", changed: 0 });
 });
 
 test("1.5.3: setQuestType troca o tipo e nada mais, pelo mesmo caminho do status", async () => {
@@ -474,7 +492,8 @@ test("the log row shows the objective badge and the parent name", () => {
   });
 
   const model = buildQuestLogViewModel([parent, child], { isGM: true });
-  const row = model.quests.active.find((r) => r.id === "c");
+  // 1.5.4 — a filha do mesmo status mora na pasta da mae; a linha dela esta la.
+  const row = model.quests.active.find((r) => r.id === "p").subrows.find((r) => r.id === "c");
 
   assert.equal(row.objectiveBadge, "1/2");
   assert.equal(row.isSubquest, true);

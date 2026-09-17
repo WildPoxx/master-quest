@@ -218,3 +218,70 @@ test("1.5.3: a linha da Main Quest ganha a classe do fundo tingido; as outras, n
   assert.equal(linhas.filter((l) => l.includes("mq-quest-main")).length, 1);
   assert.match(html, /fa-crown/);
 });
+
+/* =====================================================================================
+ * 1.5.4 — CORES, PASTAS E ORDEM (Mario, 2026-09-17)
+ *
+ * O selo vai para a borda esquerda com as cores pedidas (ouro/bordo/azul-prata, uma
+ * por skin em --mq-type-*); a linha se tinge de leve pela cor do tipo; a subquest do
+ * MESMO status recolhe como pasta dentro do pai; e arrastar passou a REORDENAR —
+ * aninhar por arrasto saiu do log e ficou so na Manage (decisao de Mario).
+ * ===================================================================================== */
+
+test("1.5.4: subquest do mesmo status vira pasta; de status diferente segue linha propria", () => {
+  const pai = quest("MQ1", { type: "main", subquests: ["S1", "S2"] });
+  const mesma = { ...quest("S1", { type: "side" }), parent: "MQ1" };
+  const outra = { ...quest("S2", { type: "side" }), parent: "MQ1", status: "completed" };
+
+  const model = buildQuestLogViewModel([pai, mesma, outra], { isGM: true });
+
+  assert.deepEqual(model.quests.active.map((r) => r.id), ["MQ1"]);
+  assert.deepEqual(model.quests.active[0].subrows.map((r) => r.id), ["S1"],
+    "so a filha do mesmo status recolhe na pasta");
+  assert.deepEqual(model.quests.completed.map((r) => r.id), ["S2"],
+    "a filha de outro status continua linha propria na aba dela — agrupamento nunca esconde");
+  assert.equal(model.counts.active, 2, "a aba conta pai e filha aninhada");
+});
+
+test("1.5.4: a pasta nasce fechada; o caret abre e as filhas saem recuadas", () => {
+  const pai = quest("MQ1", { name: "Mae", type: "main", subquests: ["S1"] });
+  const filha = { ...quest("S1", { name: "Filha Aninhada", type: "side" }), parent: "MQ1" };
+
+  const fechado = buildQuestLogViewModel([pai, filha], { isGM: true });
+  fechado.expandedQuests = new Set();
+  const htmlFechado = renderQuestLog(fechado);
+  assert.match(htmlFechado, /toggle-subquests/);
+  assert.match(htmlFechado, /fa-caret-right/);
+  assert.doesNotMatch(htmlFechado, /Filha Aninhada/, "pasta fechada nao renderiza a filha");
+
+  const aberto = buildQuestLogViewModel([pai, filha], { isGM: true });
+  aberto.expandedQuests = new Set(["MQ1"]);
+  const htmlAberto = renderQuestLog(aberto);
+  assert.match(htmlAberto, /fa-caret-down/);
+  assert.match(htmlAberto, /Filha Aninhada/);
+  assert.match(htmlAberto, /mq-quest-subrow/, "a filha sai marcada como linha recuada");
+  assert.match(htmlAberto, /mq-quest-subrow[^>]*draggable="false"/, "linha aninhada nao arrasta");
+});
+
+test("1.5.4: so a linha de topo do Mestre arrasta — e o jogador nao arrasta nada", () => {
+  const solta = quest("GQ1", { type: "side" });
+  const gm = renderQuestLog(buildQuestLogViewModel([solta], { isGM: true }));
+  assert.match(gm, /draggable="true"/);
+
+  const player = renderQuestLog(buildQuestLogViewModel([solta], { isGM: false }));
+  assert.doesNotMatch(player, /draggable="true"/, "reordenar e gesto do Mestre");
+});
+
+test("1.5.4: a linha se tinge pela cor do tipo e o selo abre a linha, a esquerda do icone", () => {
+  const gold = quest("GQ1", { type: "side" });
+  const sub = quest("SQ1", { type: "subquest" });
+  const html = renderQuestLog(buildQuestLogViewModel([gold, sub], { isGM: true }));
+
+  assert.match(html, /mq-quest-side/);
+  assert.match(html, /class="mq-quest-row mq-quest-sub"/);
+
+  const linha = html.match(/<li class="[^"]*mq-quest-side[^"]*"[\s\S]*?<\/li>/)?.[0] ?? "";
+  const selo = linha.indexOf("mq-type-badge");
+  const icone = linha.indexOf("mq-quest-icon");
+  assert.ok(selo !== -1 && icone !== -1 && selo < icone, "o selo vem antes do icone na linha");
+});

@@ -556,23 +556,37 @@
 
 .masterquest .mq-quest-row:hover { background: var(--mq-surface-1); }
 
-/* 1.5.3 — o selo de tipo do log. A cor diz o tipo; a linha da Main Quest ganha o fundo
-   de chip ativo da skin, para saltar da lista sem gritar. Tokens apenas (DEC-012). */
+/* 1.5.3/1.5.4 — o selo de tipo do log, agora na borda esquerda e com as cores que
+   Mario pediu (2026-09-17): ouro p/ main, bordo p/ side, azul-prata p/ subquest —
+   uma por skin, em --mq-type-* (DEC-012: nenhuma cor fora de token). */
 .masterquest .mq-type-badge { flex: 0 0 auto; }
 .masterquest span.mq-type-badge { cursor: default; }
-.masterquest .mq-type-main { color: var(--mq-metal-gold); }
-.masterquest .mq-type-side { color: var(--mq-accent); }
-.masterquest .mq-type-subquest { color: var(--mq-text-muted); }
+.masterquest .mq-type-main { color: var(--mq-type-main); }
+.masterquest .mq-type-side { color: var(--mq-type-side); }
+.masterquest .mq-type-subquest { color: var(--mq-type-sub); }
 .masterquest .mq-type-personal { color: var(--mq-accent-bright); }
 .masterquest .mq-type-faction { color: var(--mq-danger); }
 .masterquest .mq-type-clock { color: var(--mq-status-inactive); }
 .masterquest .mq-type-none { color: var(--mq-text-muted); opacity: 0.6; }
 
+/* 1.5.4 — o highlight bem leve por tipo: a mesma cor do selo, quase transparente.
+   color-mix deriva a tinta do token, entao cada skin tinge com a propria cor. */
 .masterquest .mq-quest-row.mq-quest-main {
-  background: var(--mq-chip-active-bg);
+  background: color-mix(in srgb, var(--mq-type-main) 16%, transparent);
   border-color: var(--mq-border-strong);
 }
-.masterquest .mq-quest-row.mq-quest-main:hover { background: var(--mq-chip-active-bg); }
+.masterquest .mq-quest-row.mq-quest-main:hover { background: color-mix(in srgb, var(--mq-type-main) 24%, transparent); }
+.masterquest .mq-quest-row.mq-quest-side { background: color-mix(in srgb, var(--mq-type-side) 13%, transparent); }
+.masterquest .mq-quest-row.mq-quest-side:hover { background: color-mix(in srgb, var(--mq-type-side) 21%, transparent); }
+.masterquest .mq-quest-row.mq-quest-sub { background: color-mix(in srgb, var(--mq-type-sub) 12%, transparent); }
+.masterquest .mq-quest-row.mq-quest-sub:hover { background: color-mix(in srgb, var(--mq-type-sub) 20%, transparent); }
+
+/* 1.5.4 — a pasta de subquests: caret na linha do pai, filhas recuadas com um fio. */
+.masterquest .mq-fold { flex: 0 0 auto; width: 20px; }
+.masterquest .mq-quest-subrow {
+  margin-left: 34px;
+  border-left: 2px solid var(--mq-border-strong);
+}
 .masterquest .mq-dragging { opacity: 0.45; }
 .masterquest .mq-drop-target { border: 1px dashed var(--mq-focus); }
 
