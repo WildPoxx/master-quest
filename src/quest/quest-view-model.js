@@ -11,6 +11,7 @@ import {
   QUEST_STATUS_LABEL,
   QUEST_STATUS_ORDER,
   QUEST_TYPE,
+  QUEST_TYPE_LABEL,
   GM_ONLY_STATUS,
   countObjectives,
   currentSession
@@ -125,6 +126,9 @@ export function buildQuestRow(quest, {
     name: quest.name,
     status: quest.status,
     statusLabel: QUEST_STATUS_LABEL[quest.status] ?? quest.status,
+    // 1.5.3 — o selo de tipo do log mostra o campo que sempre existiu.
+    type: quest.type ?? null,
+    typeLabel: QUEST_TYPE_LABEL[quest.type] ?? null,
     isPrimary: Boolean(primaryQuestId) && quest.id === primaryQuestId,
     isHidden: isQuestHidden(quest),
     // 1.3.0: "ter pai" deixou de bastar para ser subquest. `isChild` guarda o sentido
