@@ -2760,7 +2760,6 @@ function renderManagementTab(model) {
         ${renderDilemmas(model)}
         ${renderComplications(model)}
         ${renderOutcomes(model)}
-        ${renderFlowEditor(model)}
 
         <section class="mq-subquests">
           <header>
@@ -2773,6 +2772,8 @@ function renderManagementTab(model) {
       </div>
 
       <div class="mq-manage-right">
+        ${renderFlowEditor(model)}
+
         <section class="mq-sessions-section">
           <header><h2>Quest Sessions</h2></header>
           ${renderSessionControl(model)}
