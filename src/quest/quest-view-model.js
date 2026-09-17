@@ -63,15 +63,29 @@ export function buildQuestLogViewModel(quests, {
   // pai esta DE FATO numa linha desta lista; se o pai nao aparece — oculto para quem le,
   // ausente do mundo, ou ele mesmo recolhido —, a etapa volta a ser linha comum. Conteudo
   // nunca some da vista por causa de agrupamento (P5).
+  // 1.5.4 — a subquest vira PASTA dentro da linha do pai (pedido de Mario,
+  // 2026-09-17), mas so quando o pai e linha DESTA lista e esta NA MESMA aba:
+  // status diferente devolve a subquest a linha propria, senao ela sumiria de uma
+  // aba para aparecer recolhida em outra (P5 de novo: agrupamento nunca esconde).
+  const rowFor = (quest) => buildQuestRow(quest, {
+    isGM,
+    primaryQuestId,
+    countHidden,
+    index,
+    stages: stagesOf(quest, visible).filter((stage) => isNestedStage(stage, { index, visibleIds }))
+  });
+
   const rows = visible
     .filter((quest) => !isNestedStage(quest, { index, visibleIds }))
-    .map((quest) => buildQuestRow(quest, {
-      isGM,
-      primaryQuestId,
-      countHidden,
-      index,
-      stages: stagesOf(quest, visible).filter((stage) => isNestedStage(stage, { index, visibleIds }))
-    }))
+    .filter((quest) => !isNestedSubquest(quest, { index, visibleIds }))
+    .map((quest) => {
+      const row = rowFor(quest);
+      row.subrows = visible
+        .filter((sub) => sub.parent === quest.id && isNestedSubquest(sub, { index, visibleIds }))
+        .map(rowFor)
+        .sort(byPriorityThenName);
+      return row;
+    })
     .sort(byPriorityThenName);
 
   const tabs = QUEST_STATUS_ORDER
@@ -79,7 +93,9 @@ export function buildQuestLogViewModel(quests, {
     .map((status) => ({
       id: status,
       label: QUEST_STATUS_LABEL[status],
-      count: rows.filter((row) => row.status === status).length,
+      // A pasta nao muda a conta: a aba segue contando cada quest, aninhada ou nao.
+      count: rows.filter((row) => row.status === status)
+        .reduce((total, row) => total + 1 + row.subrows.length, 0),
       active: status === activeTab
     }));
 
@@ -418,6 +434,24 @@ export function stagesOf(quest, quests) {
  * linha visivel desta lista. Um nivel so: etapa de etapa volta a ser linha comum, em vez
  * de sumir dentro de uma linha que ja esta recolhida.
  */
+/**
+ * 1.5.4 — a subquest que se recolhe na linha do pai. Vale a MESMA prudencia da
+ * etapa: pai visivel, na mesma aba (mesmo status) e ele proprio uma linha de topo.
+ * Sequencia nunca entra aqui (ja e etapa); aninhamento e de UM nivel.
+ */
+function isNestedSubquest(quest, { index, visibleIds }) {
+  if (!quest?.parent || quest.type === QUEST_TYPE.sequence) return false;
+  if (!visibleIds.has(quest.parent)) return false;
+  const parent = index.get(quest.parent);
+  if (!parent || parent.status !== quest.status) return false;
+  if (isNestedStage(parent, { index, visibleIds })) return false;
+  const parentNests = Boolean(parent.parent)
+    && parent.type !== QUEST_TYPE.sequence
+    && visibleIds.has(parent.parent)
+    && index.get(parent.parent)?.status === parent.status;
+  return !parentNests;
+}
+
 function isNestedStage(quest, { index, visibleIds }) {
   if (quest?.type !== QUEST_TYPE.sequence || !quest.parent) return false;
   if (!visibleIds.has(quest.parent)) return false;

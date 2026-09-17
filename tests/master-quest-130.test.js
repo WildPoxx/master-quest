@@ -117,9 +117,13 @@ test("1.3.0: no log, o arco e UMA linha — as etapas entram dentro dela, em ord
   const model = buildQuestLogViewModel(questZero(), { isGM: true, activeTab: "active" });
   const active = model.quests.active;
 
-  assert.deepEqual(active.map((row) => row.id), ["P", "SD1", "SD2", "CK1"],
-    "nenhuma etapa pode ser linha de topo quando o pai esta na lista");
-  assert.equal(model.counts.active, 4, "a aba conta o trabalho, nao cada fatia dele");
+  // 1.5.4 — filho do mesmo status recolhe na PASTA do pai (subrows); etapa segue
+  // dentro da linha. Nada disso muda a conta da aba.
+  assert.deepEqual(active.map((row) => row.id), ["P"],
+    "nem etapa nem subquest do mesmo status pode ser linha de topo quando o pai esta na lista");
+  assert.deepEqual(active[0].subrows.map((row) => row.id), ["SD1", "SD2", "CK1"],
+    "a pasta guarda as filhas na ordem de prioridade");
+  assert.equal(model.counts.active, 4, "a aba conta o trabalho todo, aninhado ou nao");
   assert.equal(model.counts.completed, 0, "a etapa concluida nao infla a aba de concluidas");
 
   const pilar = active[0];

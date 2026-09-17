@@ -70,6 +70,11 @@
   --mq-metal-bronze: #7E5024;         /* 5.2 / 5.7                          */
   --mq-metal-silver: #5F5F5F;         /* 4.8 / 5.3                          */
   --mq-metal-gold: #6E5507;           /* 5.3 / 5.9                          */
+  /* 1.5.4 — cores do selo de tipo (Mario, 2026-09-17): ouro p/ main,
+     bordo p/ side (a GQ da mesa), azul-prata p/ subquest. */
+  --mq-type-main: var(--mq-metal-gold);
+  --mq-type-side: #7C2534;
+  --mq-type-sub: #4E6376;
 
   /* Chip de aba e botao de captura (DEC-030; valores do mockup Illustrator) */
   --mq-chip-outline: #815140;         /* contorno de aba e do botao         */
@@ -144,6 +149,11 @@
   --mq-metal-bronze: #D9A066;
   --mq-metal-silver: #E6EAF5;
   --mq-metal-gold: #FFD062;
+  /* 1.5.4 — cores do selo de tipo (Mario, 2026-09-17): ouro p/ main,
+     bordo p/ side (a GQ da mesa), azul-prata p/ subquest. */
+  --mq-type-main: var(--mq-metal-gold);
+  --mq-type-side: #E06A7E;
+  --mq-type-sub: #AFC6EA;
   --mq-chip-outline: #FFC154;
   --mq-chip-active-bg: rgba(255,178,58,.20);
   --mq-capture-bg: #2A1C08;
@@ -207,6 +217,11 @@
   --mq-metal-bronze: #D99D62;
   --mq-metal-silver: #D5E4E5;
   --mq-metal-gold: #E7D173;
+  /* 1.5.4 — cores do selo de tipo (Mario, 2026-09-17): ouro p/ main,
+     bordo p/ side (a GQ da mesa), azul-prata p/ subquest. */
+  --mq-type-main: var(--mq-metal-gold);
+  --mq-type-side: #F08694;
+  --mq-type-sub: #B9CFE8;
   --mq-chip-outline: #77DDD6;
   --mq-chip-active-bg: rgba(75,207,196,.24);
   --mq-capture-bg: #1A5A60;
@@ -247,6 +262,11 @@
   --mq-metal-bronze: #795D3A;
   --mq-metal-silver: #5E666A;
   --mq-metal-gold: #725A1C;
+  /* 1.5.4 — cores do selo de tipo (Mario, 2026-09-17): ouro p/ main,
+     bordo p/ side (a GQ da mesa), azul-prata p/ subquest. */
+  --mq-type-main: var(--mq-metal-gold);
+  --mq-type-side: #8F2F3B;
+  --mq-type-sub: #47617A;
   --mq-chip-outline: #506C74;
   --mq-chip-active-bg: rgba(45,98,114,.18);
   --mq-capture-bg: #D9E8E8;
@@ -303,6 +323,11 @@
   --mq-metal-bronze: #7A5732;
   --mq-metal-silver: #5F6964;
   --mq-metal-gold: #6D581B;
+  /* 1.5.4 — cores do selo de tipo (Mario, 2026-09-17): ouro p/ main,
+     bordo p/ side (a GQ da mesa), azul-prata p/ subquest. */
+  --mq-type-main: var(--mq-metal-gold);
+  --mq-type-side: #7E2938;
+  --mq-type-sub: #465F79;
   --mq-chip-outline: #5B6C4C;
   --mq-chip-active-bg: rgba(107,58,86,.18);
   --mq-capture-bg: #DCE5CE;
@@ -342,6 +367,11 @@
   --mq-metal-bronze: #C89264;
   --mq-metal-silver: #C2BDCC;
   --mq-metal-gold: #D8BC72;
+  /* 1.5.4 — cores do selo de tipo (Mario, 2026-09-17): ouro p/ main,
+     bordo p/ side (a GQ da mesa), azul-prata p/ subquest. */
+  --mq-type-main: var(--mq-metal-gold);
+  --mq-type-side: #D96C82;
+  --mq-type-sub: #A8BFE4;
   --mq-chip-outline: #7B6A94;
   --mq-chip-active-bg: rgba(188,144,220,0.22);
   --mq-capture-bg: #251F35;
@@ -381,6 +411,11 @@
   --mq-metal-bronze: #C89050;
   --mq-metal-silver: #CFCDC4;
   --mq-metal-gold: #E0C46E;
+  /* 1.5.4 — cores do selo de tipo (Mario, 2026-09-17): ouro p/ main,
+     bordo p/ side (a GQ da mesa), azul-prata p/ subquest. */
+  --mq-type-main: var(--mq-metal-gold);
+  --mq-type-side: #CD6474;
+  --mq-type-sub: #AFC3D4;
   --mq-chip-outline: #8A7A5A;
   --mq-chip-active-bg: rgba(208,154,72,0.22);
   --mq-capture-bg: #33302B;
@@ -420,6 +455,11 @@
   --mq-metal-bronze: #7A5326;
   --mq-metal-silver: #56606B;
   --mq-metal-gold: #6E5A10;
+  /* 1.5.4 — cores do selo de tipo (Mario, 2026-09-17): ouro p/ main,
+     bordo p/ side (a GQ da mesa), azul-prata p/ subquest. */
+  --mq-type-main: var(--mq-metal-gold);
+  --mq-type-side: #9A2B3A;
+  --mq-type-sub: #4A5F7A;
   --mq-chip-outline: #5B6B80;
   --mq-chip-active-bg: rgba(31,95,168,0.16);
   --mq-capture-bg: #D6E4F5;
@@ -459,6 +499,11 @@
   --mq-metal-bronze: #C89257;
   --mq-metal-silver: #C8C3B8;
   --mq-metal-gold: #DDBE6C;
+  /* 1.5.4 — cores do selo de tipo (Mario, 2026-09-17): ouro p/ main,
+     bordo p/ side (a GQ da mesa), azul-prata p/ subquest. */
+  --mq-type-main: var(--mq-metal-gold);
+  --mq-type-side: #CE6675;
+  --mq-type-sub: #AEC2CC;
   --mq-chip-outline: #8A7458;
   --mq-chip-active-bg: rgba(211,174,90,0.20);
   --mq-capture-bg: #3A322C;
@@ -498,6 +543,11 @@
   --mq-metal-bronze: #C08A4E;
   --mq-metal-silver: #C2CED0;
   --mq-metal-gold: #DFBA69;
+  /* 1.5.4 — cores do selo de tipo (Mario, 2026-09-17): ouro p/ main,
+     bordo p/ side (a GQ da mesa), azul-prata p/ subquest. */
+  --mq-type-main: var(--mq-metal-gold);
+  --mq-type-side: #CD6674;
+  --mq-type-sub: #A9C0CE;
   --mq-chip-outline: #94684A;
   --mq-chip-active-bg: rgba(223,186,105,0.20);
   --mq-capture-bg: #3B2312;
