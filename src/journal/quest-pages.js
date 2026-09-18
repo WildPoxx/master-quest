@@ -26,10 +26,18 @@ import { MODULE_ID } from "../constants.js";
 
 export const OWNERSHIP = Object.freeze({ INHERIT: -1, NONE: 0, LIMITED: 1, OBSERVER: 2, OWNER: 3 });
 
-/** Marcadores do bloco gerado da pagina Fatos Estabelecidos. O que o Mestre escrever
- * FORA deles e preservado em toda atualizacao. */
-export const FACTS_START = "<!-- mq:facts:start -->";
-export const FACTS_END = "<!-- mq:facts:end -->";
+/**
+ * Marcadores do bloco gerado do Diario. O que o Mestre escrever FORA deles e
+ * preservado em toda atualizacao.
+ *
+ * 1.6.3 — marcadores VISIVEIS ao parser: a homologacao de 2026-09-18 provou que o
+ * Foundry REMOVE comentarios HTML ao gravar a pagina — o bloco criado com <!-- -->
+ * voltou do mundo sem eles, e marcador que o mundo apaga faria cada atualizacao
+ * ANEXAR um bloco novo em vez de substituir. O bloco vive num div com atributo
+ * data-*, que o filtro do Foundry preserva e a tela nao mostra.
+ */
+export const FACTS_START = '<div data-mq-block="facts">';
+export const FACTS_END = "</div>";
 
 const FACTS_EMPTY = "<p><em>Nenhuma descoberta foi registrada ainda.</em></p>";
 
@@ -200,11 +208,16 @@ export function mergeFactsIntoContent(content, factsHtml) {
   const block = `${FACTS_START}${factsHtml}${FACTS_END}`;
   const text = typeof content === "string" ? content : "";
   const start = text.indexOf(FACTS_START);
-  const end = text.indexOf(FACTS_END);
-  if (start !== -1 && end !== -1 && end > start) {
-    return text.slice(0, start) + block + text.slice(end + FACTS_END.length);
+  if (start !== -1) {
+    // O fechamento e o PRIMEIRO </div> depois da abertura — o bloco gerado nao
+    // contem divs, entao ele e sempre o nosso.
+    const end = text.indexOf(FACTS_END, start + FACTS_START.length);
+    if (end !== -1) return text.slice(0, start) + block + text.slice(end + FACTS_END.length);
   }
-  return text ? `${text}${block}` : block;
+  // 1.6.3 — mundo que gravou o nascimento da 1.6.1/1.6.2 ficou com a linha vazia
+  // solta (o Foundry apagou os comentarios); ela sai antes do primeiro anexo.
+  const base = text.replace(FACTS_EMPTY, "");
+  return base ? `${base}${block}` : block;
 }
 
 /* ================================================================== Foundry glue == */
