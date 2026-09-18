@@ -154,3 +154,16 @@ test("1.6.0: findKitPage prefere a flag ao nome — renomear pagina do kit nao a
   assert.equal(findKitPage([homonima], spec), homonima);
   assert.equal(findKitPage([], spec), null);
 });
+
+test("1.6.2: a Manage oferece os gestos explicitos — Kit e Diario, lado a lado", async () => {
+  const { normalizeQuest } = await import("../src/quest/quest-schema.js");
+  const { buildQuestDetailsViewModel } = await import("../src/quest/quest-view-model.js");
+  const { renderQuestDetails } = await import("../src/ui/quest-details.js");
+
+  const q = { ...normalizeQuest({ name: "P", status: "active", type: "main" }), id: "P", entry: { ownership: { default: 2 } } };
+  const html = renderQuestDetails(buildQuestDetailsViewModel(q, { isGM: true, canEdit: true, allQuests: [q], activeTab: "management" }));
+
+  assert.match(html, /data-action="create-kit"/, "o kit nasce por botao, nao por efeito colateral de permissao");
+  assert.match(html, /data-action="sync-facts"/);
+  assert.match(html, /data-action="configure-ownership"/);
+});
