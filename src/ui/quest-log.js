@@ -14,6 +14,7 @@ import {
   deleteQuest,
   getPrimaryQuestId,
   readAllQuests,
+  readQuestById,
   reorderQuests,
   setPrimaryQuestId,
   setQuestStatus,
@@ -197,7 +198,10 @@ export function createMasterQuestLogClass(ApplicationV2) {
         button.addEventListener("click", async (event) => {
           event.preventDefault();
           event.stopPropagation();
-          if (!(await this.confirmDelete(button.dataset.questName))) return;
+          // 1.6.0 — o kit de paginas mora na entrada e morre com ela: a confirmacao avisa.
+          const alvo = readQuestById(button.dataset.questId, { game: this.game });
+          const pageCount = alvo?.entry?.pages?.size ?? alvo?.entry?.pages?.length ?? 0;
+          if (!(await this.confirmDelete(button.dataset.questName, { pageCount }))) return;
           await deleteQuest(button.dataset.questId, { game: this.game });
           this.render({ force: false });
         });
@@ -274,13 +278,17 @@ export function createMasterQuestLogClass(ApplicationV2) {
       });
     }
 
-    async confirmDelete(name) {
+    async confirmDelete(name, { pageCount = 0 } = {}) {
       const DialogV2 = globalThis.foundry?.applications?.api?.DialogV2;
       if (!DialogV2?.confirm) return true;
 
+      const paginas = pageCount > 0
+        ? ` A entrada tem <strong>${esc(pageCount)}</strong> página(s) — Diário, anotações e handouts serão apagados junto.`
+        : "";
+
       return DialogV2.confirm({
         window: { title: "Excluir quest" },
-        content: `<p>Excluir <strong>${esc(name)}</strong>? As subquests não são apagadas, apenas desvinculadas.</p>`,
+        content: `<p>Excluir <strong>${esc(name)}</strong>? As subquests não são apagadas, apenas desvinculadas.${paginas}</p>`,
         rejectClose: false,
         modal: true
       });
