@@ -36,8 +36,11 @@ test("1.6.0: o kit tem as cinco paginas do mock, em ordem, e nenhuma nasce vazia
     assert.ok(spec.name.length > 0);
     assert.ok(spec.birth.length > 0, `${spec.key} nasce com texto, nunca vazia`);
   }
-  assert.ok(QUEST_PAGE_KIT.find((p) => p.key === "diary").name === "Diário da Quest",
-    "o nome que Mario escolheu na revisao do mock");
+  // 1.6.1 — nomenclatura final da homologacao viva: a pagina sincronizada e o Diario.
+  assert.equal(QUEST_PAGE_KIT.find((p) => p.key === "facts").name, "Diário da Quest");
+  assert.equal(QUEST_PAGE_KIT.find((p) => p.key === "diary").name, "Registro de Eventos");
+  assert.deepEqual(QUEST_PAGE_KIT.find((p) => p.key === "summary").ownership, { default: OWNERSHIP.NONE },
+    "o Resumo nasce oculto de todos — so o encerramento o revela");
 });
 
 test("1.6.0: Fatos Estabelecidos so espelha o que ja e dos jogadores", () => {
@@ -105,8 +108,10 @@ test("1.6.0: o kit adota pagina existente por nome (o mock de Mario) e cria so o
 
   const result = await ensureQuestPagesKit(entry, { game });
 
-  assert.deepEqual(result.created, ["Fatos Estabelecidos", "Diário da Quest", "Resumo da Quest"],
+  assert.deepEqual(result.created, ["Diário da Quest", "Registro de Eventos", "Resumo da Quest"],
     "player-safe casa por prefixo e Anotacoes por nome — nada duplica");
+  const resumo = criadas.find((spec) => spec.name === "Resumo da Quest");
+  assert.deepEqual(resumo.ownership, { default: 0 }, "o Resumo ja nasce escondido dos jogadores");
   assert.deepEqual(result.adopted, ["Player-Safe — Esfera e Quest", "Anotações Pessoais"]);
   assert.ok(criadas.every((spec) => spec.flags[MODULE_ID].page && spec.text.content.length > 0));
   const adocoes = updates.filter(([, data]) => data[`flags.${MODULE_ID}.page`]);
@@ -144,7 +149,7 @@ test("1.6.0: entrada que carrega quest so o Mestre exclui — pagina sim, quest 
 test("1.6.0: findKitPage prefere a flag ao nome — renomear pagina do kit nao a perde", () => {
   const spec = QUEST_PAGE_KIT.find((p) => p.key === "diary");
   const renomeada = { name: "Cronicas da Esfera", flags: { [MODULE_ID]: { page: "diary" } } };
-  const homonima = { name: "Diário da Quest", flags: {} };
+  const homonima = { name: "Registro de Eventos", flags: {} };
   assert.equal(findKitPage([homonima, renomeada], spec), renomeada);
   assert.equal(findKitPage([homonima], spec), homonima);
   assert.equal(findKitPage([], spec), null);
