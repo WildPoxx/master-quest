@@ -188,3 +188,35 @@ test("1.6.3: o marcador sobrevive ao Foundry — e o mundo ferido da 1.6.1 se cu
   assert.match(duas, /class="minha">nota/);
   assert.ok(duas.includes(`${FACTS_START}<p>novo</p>${FACTS_END}`));
 });
+
+test("1.6.4: soltar um Item vira recompensa material — nascida oculta, nada e entregue", async () => {
+  const { REWARD_TYPE, rewardFromItemDrop } = await import("../src/quest/quest-schema.js");
+
+  // O gesto que a reconstrucao da janela perdeu: o Foundry entrega o arrasto de um
+  // Item como { type: "Item", uuid }; o documento resolvido da nome e icone.
+  const doc = { name: "Vindication", img: "icons/weapons/hammer.webp" };
+  const reward = rewardFromItemDrop({ type: "Item", uuid: "Item.abc123" }, doc);
+  assert.equal(reward.type, REWARD_TYPE.item);
+  assert.equal(reward.uuid, "Item.abc123");
+  assert.equal(reward.name, "Vindication");
+  assert.equal(reward.img, "icons/weapons/hammer.webp");
+  assert.equal(reward.hidden, true, "DEC-031: recompensa nasce OCULTA, como toda recompensa");
+  assert.equal(reward.granted, false, "registrar nao e entregar — nenhuma ficha e tocada");
+  assert.ok(reward.id.length > 0, "ganha id proprio como qualquer recompensa");
+});
+
+test("1.6.4: o receptor distingue os dois gestos — reorder e qualquer outro arrasto devolvem null", async () => {
+  const { rewardFromItemDrop } = await import("../src/quest/quest-schema.js");
+  const doc = { name: "X", img: "x.webp" };
+
+  assert.equal(rewardFromItemDrop({ type: "rewards", id: "r1" }, doc), null,
+    "o payload de reordenacao das proprias linhas nunca vira recompensa nova");
+  assert.equal(rewardFromItemDrop({ type: "Actor", uuid: "Actor.a" }, doc), null, "so Item interessa");
+  assert.equal(rewardFromItemDrop({ type: "Item" }, doc), null, "Item sem uuid nao tem vinculo");
+  assert.equal(rewardFromItemDrop(null, doc), null);
+  assert.equal(rewardFromItemDrop("Item.abc", doc), null, "payload que nao e objeto");
+
+  const semDoc = rewardFromItemDrop({ type: "Item", uuid: "Item.orfao" }, null);
+  assert.equal(semDoc.uuid, "Item.orfao");
+  assert.equal(semDoc.name, "", "sem documento resolvido, o helper nao inventa nome (a UI barra antes)");
+});

@@ -334,6 +334,36 @@ export function normalizeReward(input = {}) {
 }
 
 /**
+ * 1.6.4 — a volta do gesto: soltar um Item do Foundry sobre a secao Rewards vira
+ * recompensa MATERIAL. O schema sempre soube guarda-la (REWARD_TYPE.item, uuid, img);
+ * o que se perdeu na reconstrucao da janela foi o receptor do arrasto — so a
+ * reordenacao havia sido reescrita. Este helper e puro de proposito: recebe o payload
+ * do drag nativo do Foundry ({ type: "Item", uuid }) e o documento ja resolvido, e
+ * devolve a recompensa pronta — ou null quando o arrasto nao e um Item.
+ *
+ * Regras que ele preserva:
+ *   - DEC-031: a recompensa nasce OCULTA (normalizeReward cuida disso) e NAO
+ *     concedida — registrar nao e entregar; nenhuma ficha e tocada.
+ *   - payload de reordenacao ({ type: "rewards", id }) devolve null: o chamador
+ *     distingue os dois gestos por aqui, sem stopPropagation.
+ *
+ * @param {object} payload Parsed drag payload (Foundry: { type: "Item", uuid }).
+ * @param {object} [doc] The resolved Item document (fromUuid), if available.
+ * @returns {object|null} A normalized item reward, or null when not an Item drop.
+ */
+export function rewardFromItemDrop(payload, doc) {
+  if (!isRecord(payload) || payload.type !== "Item") return null;
+  const uuid = text(payload.uuid);
+  if (!uuid) return null;
+  return normalizeReward({
+    type: REWARD_TYPE.item,
+    uuid,
+    name: text(doc?.name),
+    img: text(doc?.img)
+  });
+}
+
+/**
  * DEC-035, renomeada por Mario em 2026-08-05: a regua de admissao (nenhuma saida neutra,
  * toda saida custa) define um DILEMA, nao um problema generico. E a pergunta que a quest
  * poe — de design, estrutural, rara. `state` e binario e nao e checkbox: a saida e um
