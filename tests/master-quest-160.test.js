@@ -167,3 +167,24 @@ test("1.6.2: a Manage oferece os gestos explicitos — Kit e Diario, lado a lado
   assert.match(html, /data-action="sync-facts"/);
   assert.match(html, /data-action="configure-ownership"/);
 });
+
+test("1.6.3: o marcador sobrevive ao Foundry — e o mundo ferido da 1.6.1 se cura no primeiro anexo", () => {
+  // O Foundry removeu os comentarios HTML ao gravar (homologacao de 2026-09-18):
+  // marcador agora e div com data-*, que o filtro preserva.
+  assert.doesNotMatch(FACTS_START, /<!--/, "comentario HTML nao sobrevive ao mundo");
+  assert.match(FACTS_START, /data-mq-block="facts"/);
+
+  // Pagina como o mundo a deixou (comentarios apagados, linha vazia solta):
+  const ferida = "<p><em>Espaço de transposição dos logs do MasterQuest.</em></p><p><em>Nenhuma descoberta foi registrada ainda.</em></p>";
+  const uma = mergeFactsIntoContent(ferida, "<p>fato</p>");
+  assert.match(uma, /Espaço de transposição/);
+  assert.equal(uma.split("Nenhuma descoberta").length - 1, 0, "a linha solta orfaos dos marcadores sai no anexo");
+  assert.ok(uma.includes(`${FACTS_START}<p>fato</p>${FACTS_END}`));
+  assert.equal(mergeFactsIntoContent(uma, "<p>fato</p>"), uma, "a partir dai, atualizar substitui — nunca anexa de novo");
+
+  // Texto do Mestre com div PROPRIO depois do bloco nao e engolido pelo fechamento.
+  const comDiv = `<p>Intro.</p>${FACTS_START}<p>velho</p>${FACTS_END}<div class="minha">nota</div>`;
+  const duas = mergeFactsIntoContent(comDiv, "<p>novo</p>");
+  assert.match(duas, /class="minha">nota/);
+  assert.ok(duas.includes(`${FACTS_START}<p>novo</p>${FACTS_END}`));
+});
