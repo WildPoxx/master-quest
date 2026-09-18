@@ -8,10 +8,10 @@
  * em que a entrada aparece para alguem, e ela nao pode aparecer vazia.
  *
  * O kit: cinco paginas de texto com donos claros. Player-Safe (copia deliberada do
- * handout, nunca @UUID para o fasciculo), Fatos Estabelecidos (a UNICA pagina escrita
- * por codigo, espelho player-safe do card), Diario da Quest (sintese por sessao,
- * Mestre/IA), Anotacoes Pessoais (dos jogadores) e Resumo da Quest (so no
- * encerramento). Nenhuma pagina nasce vazia; nenhuma e criada na importacao — o
+ * handout, nunca @UUID para o fasciculo), Diario da Quest (a UNICA pagina escrita
+ * por codigo: o espaco de transposicao dos logs, espelho player-safe do card),
+ * Registro de Eventos (sintese por sessao, Mestre/IA), Anotacoes Pessoais (dos
+ * jogadores) e Resumo da Quest (nasce oculto de todos; so o encerramento o revela). Nenhuma pagina nasce vazia; nenhuma e criada na importacao — o
  * gatilho e a concessao de permissao, e a criacao e idempotente.
  *
  * Posse (emenda de 2026-09-18): o dialogo segue oferecendo os niveis do Foundry e o
@@ -45,14 +45,18 @@ export const QUEST_PAGE_KIT = Object.freeze([
     birth: "<p><em>O Mestre publicará aqui o material player-safe desta quest, quando houver.</em></p>"
   },
   {
+    // 1.6.1 — nomenclatura final de Mario (homologacao viva de 2026-09-18): a pagina
+    // sincronizada pelo modulo e o "espaco de transposicao dos logs" e chama-se
+    // Diario da Quest. A key "facts" fica: e interna e ja identifica paginas adotadas.
     key: "facts",
-    name: "Fatos Estabelecidos",
+    name: "Diário da Quest",
     sort: 150000,
-    birth: `<p>Registro compartilhado da quest: aqui entram apenas fatos que a mesa já estabeleceu em jogo. Hipóteses e anotações livres pertencem às Anotações Pessoais.</p>${FACTS_START}${FACTS_EMPTY}${FACTS_END}`
+    birth: `<p><em>Espaço de transposição dos logs do MasterQuest.</em></p>${FACTS_START}${FACTS_EMPTY}${FACTS_END}`
   },
   {
+    // 1.6.1 — a sintese por sessao (Mestre/IA) chama-se Registro de Eventos.
     key: "diary",
-    name: "Diário da Quest",
+    name: "Registro de Eventos",
     sort: 175000,
     birth: "<p>A síntese do que aconteceu, sessão a sessão.</p><p><em>Aguardando a primeira sessão.</em></p>"
   },
@@ -63,9 +67,13 @@ export const QUEST_PAGE_KIT = Object.freeze([
     birth: "<p><em>Use esse espaço para anotações pessoais.</em></p>"
   },
   {
+    // 1.6.1 — "o unico que vai ficar sem aparecer nunca pra ninguem" (Mario,
+    // 2026-09-18): nasce com permissao explicita None na PAGINA, por cima da heranca,
+    // e so o encerramento o revela. O Mestre ve sempre.
     key: "summary",
     name: "Resumo da Quest",
     sort: 300000,
+    ownership: { default: OWNERSHIP.NONE },
     birth: "<p><em>Este registro será escrito quando a quest for encerrada — a história completa, para ler no futuro.</em></p>"
   }
 ]);
@@ -233,7 +241,8 @@ export async function ensureQuestPagesKit(entry, { game = globalThis.game } = {}
       sort: spec.sort,
       title: { show: true, level: 1 },
       text: { format: 1, content: spec.birth },
-      flags: { [MODULE_ID]: { page: spec.key } }
+      flags: { [MODULE_ID]: { page: spec.key } },
+      ...(spec.ownership ? { ownership: { ...spec.ownership } } : {})
     });
     created.push(spec.name);
   }

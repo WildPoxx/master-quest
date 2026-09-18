@@ -1340,8 +1340,8 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
         event.preventDefault();
         try {
           const result = await syncEstablishedFacts(this.quest, { game: this.game });
-          if (result.status === "updated") notifyInfo("Fatos Estabelecidos atualizados no journal da quest.", this.ui);
-          else notifyWarning("Nao foi possivel atualizar os Fatos Estabelecidos.", this.ui);
+          if (result.status === "updated") notifyInfo("Diário da Quest atualizado no journal da quest.", this.ui);
+          else notifyWarning("Não foi possível atualizar o Diário da Quest.", this.ui);
         } catch (error) {
           console.error(`${MODULE_ID} | falha ao atualizar Fatos Estabelecidos`, error);
           notifyWarning(`MasterQuest: ${error?.message ?? error}`, this.ui);
@@ -2843,8 +2843,8 @@ function renderManageFooter(model) {
   // 1.6.0 — o espelho player-safe do card: garante o kit e reescreve so o bloco entre
   // marcadores da pagina Fatos Estabelecidos. O que o Mestre escreveu fora, fica.
   const facts = `<button type="button" class="mq-manage-button" data-action="sync-facts"
-      title="Atualizar a pagina Fatos Estabelecidos do journal da quest">
-      <i class="fa-solid fa-book-open-reader" inert></i><span>Fatos</span></button>`;
+      title="Atualizar o Diario da Quest (transposicao dos logs) no journal da quest">
+      <i class="fa-solid fa-book-open-reader" inert></i><span>Diário</span></button>`;
 
   return renderSnapshotFooter(model, permissions + facts);
 }
