@@ -24,7 +24,7 @@ import { buildQuestDetailsViewModel } from "../quest/quest-view-model.js";
 import { diffQuestForLog, logToMarkdown, sessionHeading, sessionOpenedEntry } from "../quest/quest-log-diff.js";
 import { appendUnderSection, sectionHeading } from "../notes/session-sections.js";
 import { sessionsToSeal, toggleWrapUp } from "../quest/quest-wrapup.js";
-import { FLOW_WEIGHTS, SEVERITIES, currentSession, makeId, normalizeClue, normalizeComplication, normalizeDilemma, normalizeFlowStep, normalizeLogEntry, normalizeObjective, normalizeOutcome, normalizeReward, normalizeSession, reorderById } from "../quest/quest-schema.js";
+import { FLOW_WEIGHTS, SEVERITIES, currentSession, makeId, normalizeClue, normalizeComplication, normalizeDilemma, normalizeFlowStep, normalizeLogEntry, normalizeObjective, normalizeOutcome, normalizeReward, normalizeSession, reorderById, rewardFromItemDrop } from "../quest/quest-schema.js";
 import { readAllQuests } from "../quest/quest-store.js";
 // DEC-038 (0.25): as notas do jogador moram no Journal; a aba as espelha e aponta.
 import {
@@ -1116,6 +1116,47 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
           }));
         });
       });
+
+      // 1.6.4 — a volta do gesto perdido na reconstrucao da janela (ApplicationV2):
+      // soltar um Item do Foundry (sidebar ou compendio) sobre a secao Rewards cria a
+      // recompensa MATERIAL correspondente. O schema sempre a suportou (type "item",
+      // uuid, img); o que faltava era o receptor do arrasto — so a reordenacao havia
+      // sido reescrita. Portao de GM, como o reorder: recompensa e maquinaria de
+      // conducao. O drop de reordenacao das linhas ({type:"rewards"}) chega aqui por
+      // bubbling e e ignorado: rewardFromItemDrop devolve null para tudo que nao for
+      // { type: "Item", uuid } — nenhum stopPropagation em lugar nenhum.
+      const rewardsSection = root.querySelector(".mq-rewards");
+      if (rewardsSection && this.game?.user?.isGM === true) {
+        rewardsSection.addEventListener("dragover", (event) => event.preventDefault());
+        rewardsSection.addEventListener("drop", async (event) => {
+          let payload = null;
+          try {
+            payload = JSON.parse(event.dataTransfer?.getData("text/plain") ?? "null");
+          } catch {
+            return;
+          }
+          if (payload?.type !== "Item" || !payload.uuid) return;
+          event.preventDefault();
+
+          let doc = null;
+          try {
+            doc = await (globalThis.fromUuid?.(payload.uuid) ?? null);
+          } catch {
+            doc = null;
+          }
+          if (!doc) {
+            notifyWarning("MasterQuest: não foi possível resolver o item arrastado.", this.ui);
+            return;
+          }
+
+          const reward = rewardFromItemDrop(payload, doc);
+          if (!reward) return;
+
+          // Como o add-reward: a novidade entra no topo; a ordem final e do Mestre.
+          // DEC-031 preservada pelo helper: nasce oculta, nao concedida, ficha intocada.
+          await this.commit((draft) => ({ ...draft, rewards: [reward, ...draft.rewards] }));
+        });
+      }
 
       root.querySelectorAll("[data-reward-name]").forEach((node) => {
         node.addEventListener("blur", async () => {
