@@ -6,7 +6,7 @@
  */
 
 import { MODULE_ID } from "../constants.js";
-import { syncEstablishedFacts } from "../journal/quest-pages.js";
+import { ensureQuestPagesKit, syncEstablishedFacts } from "../journal/quest-pages.js";
 import { applyInterfaceSkin } from "../foundry/skin-settings.js";
 import { filterHeaderControls } from "../foundry/window-controls.js";
 import { notifyInfo, notifyWarning } from "../foundry/environment.js";
@@ -1334,6 +1334,19 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
             onChange: this.onChange
           });
         });
+      });
+
+      root.querySelector("[data-action='create-kit']")?.addEventListener("click", async (event) => {
+        event.preventDefault();
+        try {
+          const { created, adopted } = await ensureQuestPagesKit(this.quest?.entry, { game: this.game });
+          if (created.length) notifyInfo(`Kit: ${created.length} página(s) criada(s)${adopted.length ? `, ${adopted.length} adotada(s)` : ""}.`, this.ui);
+          else if (adopted.length) notifyInfo(`Kit: ${adopted.length} página(s) existente(s) adotada(s); nada faltava.`, this.ui);
+          else notifyInfo("Kit: as cinco páginas já existem. Nada a criar.", this.ui);
+        } catch (error) {
+          console.error(`${MODULE_ID} | falha ao criar o kit de páginas`, error);
+          notifyWarning(`MasterQuest: ${error?.message ?? error}`, this.ui);
+        }
       });
 
       root.querySelector("[data-action='sync-facts']")?.addEventListener("click", async (event) => {
@@ -2842,11 +2855,18 @@ function renderManageFooter(model) {
 
   // 1.6.0 — o espelho player-safe do card: garante o kit e reescreve so o bloco entre
   // marcadores da pagina Fatos Estabelecidos. O que o Mestre escreveu fora, fica.
+  // 1.6.2 — o gesto explicito (Mario, 2026-09-18): mudar permissao revela a entrada,
+  // mas quem cria as paginas e ESTE botao. Vale para qualquer status da quest, e e
+  // idempotente: pagina existente e adotada, nunca duplicada.
+  const kitButton = `<button type="button" class="mq-manage-button" data-action="create-kit"
+      title="Criar/garantir as paginas do jogador desta quest (Player-Safe, Diario, Registro, Anotacoes, Resumo)">
+      <i class="fa-solid fa-folder-plus" inert></i><span>Kit</span></button>`;
+
   const facts = `<button type="button" class="mq-manage-button" data-action="sync-facts"
       title="Atualizar o Diario da Quest (transposicao dos logs) no journal da quest">
       <i class="fa-solid fa-book-open-reader" inert></i><span>Diário</span></button>`;
 
-  return renderSnapshotFooter(model, permissions + facts);
+  return renderSnapshotFooter(model, permissions + kitButton + facts);
 }
 
 /**
