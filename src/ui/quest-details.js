@@ -6,6 +6,7 @@
  */
 
 import { MODULE_ID } from "../constants.js";
+import { syncEstablishedFacts } from "../journal/quest-pages.js";
 import { applyInterfaceSkin } from "../foundry/skin-settings.js";
 import { filterHeaderControls } from "../foundry/window-controls.js";
 import { notifyInfo, notifyWarning } from "../foundry/environment.js";
@@ -1333,6 +1334,18 @@ export function createMasterQuestDetailsClass(ApplicationV2) {
             onChange: this.onChange
           });
         });
+      });
+
+      root.querySelector("[data-action='sync-facts']")?.addEventListener("click", async (event) => {
+        event.preventDefault();
+        try {
+          const result = await syncEstablishedFacts(this.quest, { game: this.game });
+          if (result.status === "updated") notifyInfo("Fatos Estabelecidos atualizados no journal da quest.", this.ui);
+          else notifyWarning("Nao foi possivel atualizar os Fatos Estabelecidos.", this.ui);
+        } catch (error) {
+          console.error(`${MODULE_ID} | falha ao atualizar Fatos Estabelecidos`, error);
+          notifyWarning(`MasterQuest: ${error?.message ?? error}`, this.ui);
+        }
       });
 
       root.querySelector("[data-action='configure-ownership']")?.addEventListener("click", (event) => {
@@ -2827,7 +2840,13 @@ function renderManageFooter(model) {
       title="Who can see and edit this quest">
       <i class="fa-solid fa-lock" inert></i><span>Permissions</span></button>`;
 
-  return renderSnapshotFooter(model, permissions);
+  // 1.6.0 — o espelho player-safe do card: garante o kit e reescreve so o bloco entre
+  // marcadores da pagina Fatos Estabelecidos. O que o Mestre escreveu fora, fica.
+  const facts = `<button type="button" class="mq-manage-button" data-action="sync-facts"
+      title="Atualizar a pagina Fatos Estabelecidos do journal da quest">
+      <i class="fa-solid fa-book-open-reader" inert></i><span>Fatos</span></button>`;
+
+  return renderSnapshotFooter(model, permissions + facts);
 }
 
 /**
